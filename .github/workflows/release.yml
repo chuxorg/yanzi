@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: darwin
+            arch: arm64
+          - os: darwin
+            arch: amd64
+          - os: linux
+            arch: amd64
+          - os: windows
+            arch: amd64
+
+    steps:
+      # Checkout the distribution repository (this repo)
+      - name: Checkout distribution repo
+        uses: actions/checkout@v4
+
+      # Checkout the Yanzi CLI repository
+      - name: Checkout Yanzi CLI
+        uses: actions/checkout@v4
+        with:
+          repository: chuxorg/chux-yanzi-cli
+          path: chux-yanzi-cli
+
+      # Checkout the Yanzi Emitter repository
+      - name: Checkout Yanzi Emitter
+        uses: actions/checkout@v4
+        with:
+          repository: chuxorg/chux-yanzi-emitter
+          path: chux-yanzi-emitter
+
+      # Set up Go 1.21 for building
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      # Build the CLI binary for the target OS/arch
+      - name: Build CLI
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd chux-yanzi-cli
+          go build -o yanzi ./cmd/yanzi
+          mv yanzi "$GITHUB_WORKSPACE/"
+
+      # Build the emitter binary for the target OS/arch
+      - name: Build Emitter
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          cd chux-yanzi-emitter
+          go build -o yanzi-emitter ./cmd/yanzi-emitter
+          mv yanzi-emitter "$GITHUB_WORKSPACE/"
+
+      # Package binaries for darwin/linux into a tar.gz
+      - name: Package (darwin/linux)
+        if: ${{ matrix.os != 'windows' }}
+        run: |
+          tar -czf "yanzi_${{ matrix.os }}_${{ matrix.arch }}.tar.gz" yanzi yanzi-emitter
+
+      # Package binaries for windows into a zip
+      - name: Package (windows)
+        if: ${{ matrix.os == 'windows' }}
+        run: |
+          zip "yanzi_windows_amd64.zip" yanzi.exe yanzi-emitter.exe
+
+      # Upload the packaged artifact to the GitHub release
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ matrix.os == 'windows' && format('yanzi_windows_amd64.zip') || format('yanzi_{0}_{1}.tar.gz', matrix.os, matrix.arch) }}
+          asset_name: ${{ matrix.os == 'windows' && format('yanzi_windows_amd64.zip') || format('yanzi_{0}_{1}.tar.gz', matrix.os, matrix.arch) }}
+          asset_content_type: ${{ matrix.os == 'windows' && 'application/zip' || 'application/gzip' }}
