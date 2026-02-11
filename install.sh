@@ -55,4 +55,25 @@ for bin in yanzi yanzi-emitter; do
   chmod +x "$INSTALL_DIR/$bin"
 done
 
-echo "Yanzi installed. Run 'yanzi --help' to begin."
+case ":$PATH:" in
+  *":$INSTALL_DIR:"*)
+    echo "Yanzi installed successfully."
+    echo "Run: yanzi --help"
+    ;;
+  *)
+    echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."
+    echo "Add the following line to your shell config:"
+    echo "export PATH=\"\$PATH:$INSTALL_DIR\""
+    case "${SHELL:-}" in
+      *zsh*)
+        echo "For zsh, edit: ~/.zshrc"
+        ;;
+      *bash*)
+        echo "For bash, edit: ~/.bashrc"
+        ;;
+      *)
+        echo "Edit your shell profile (for example: ~/.profile)."
+        ;;
+    esac
+    ;;
+esac
