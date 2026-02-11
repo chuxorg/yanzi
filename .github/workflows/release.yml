@@ -70,6 +70,7 @@ jobs:
           repository: chuxorg/chux-yanzi-cli
           path: chux-yanzi-cli
           token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
+          ref: master
 
       # Checkout the Yanzi Emitter repository
       - name: Checkout Yanzi Emitter
@@ -78,6 +79,7 @@ jobs:
           repository: chuxorg/chux-yanzi-emitter
           path: chux-yanzi-emitter
           token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
+          ref: master
 
       # Set up Go 1.21 for building
       - name: Set up Go
@@ -91,20 +93,22 @@ jobs:
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
+          BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-cli
-          go build -o yanzi ./cmd/yanzi
-          mv yanzi "$GITHUB_WORKSPACE/"
+          go build -o "yanzi${BIN_EXT}" ./cmd/yanzi
+          mv "yanzi${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       # Build the emitter binary for the target OS/arch
       - name: Build Emitter
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
+          BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-emitter
-          go build -o yanzi-emitter ./cmd/yanzi-emitter
-          mv yanzi-emitter "$GITHUB_WORKSPACE/"
+          go build -o "yanzi-emitter${BIN_EXT}" ./cmd/yanzi-emitter
+          mv "yanzi-emitter${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       # Package binaries for darwin/linux into a tar.gz
       - name: Package (darwin/linux)
