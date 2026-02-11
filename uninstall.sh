@@ -1,37 +1,35 @@
 #!/usr/bin/env sh
 set -eu
 
-BINARIES="yanzi yanzi-emitter"
-LOCATIONS="/usr/local/bin ${HOME}/.local/bin"
-
-removed_any=false
-
-remove_file() {
+remove_path() {
   path="$1"
-  if [ -e "$path" ]; then
-    if rm -f "$path" 2>/dev/null; then
-      removed_any=true
+  if [ -z "$path" ]; then
+    return 0
+  fi
+  if [ ! -e "$path" ]; then
+    return 0
+  fi
+  if rm -f "$path" 2>/dev/null; then
+    return 0
+  fi
+  if command -v sudo >/dev/null 2>&1; then
+    if sudo -n rm -f "$path" 2>/dev/null; then
       return 0
     fi
-    if command -v sudo >/dev/null 2>&1; then
-      if sudo -n rm -f "$path" 2>/dev/null; then
-        removed_any=true
-        return 0
-      fi
-    fi
-    echo "Failed to remove $path (permission denied)." >&2
-    exit 1
   fi
+  echo "Failed to remove $path (permission denied)." >&2
+  exit 1
 }
 
-for dir in $LOCATIONS; do
-  for bin in $BINARIES; do
-    remove_file "$dir/$bin"
-  done
-done
+YANZI_PATH="$(command -v yanzi 2>/dev/null || true)"
+EMITTER_PATH="$(command -v yanzi-emitter 2>/dev/null || true)"
 
-if [ "$removed_any" = true ]; then
-  echo "Yanzi has been uninstalled."
-else
-  echo "Yanzi was not found on this system."
+if [ -z "$YANZI_PATH" ] && [ -z "$EMITTER_PATH" ]; then
+  echo "Yanzi is not installed."
+  exit 0
 fi
+
+remove_path "$YANZI_PATH"
+remove_path "$EMITTER_PATH"
+
+echo "Yanzi has been uninstalled."
