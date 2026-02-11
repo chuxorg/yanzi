@@ -21,6 +21,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs');
             const tag = context.ref.replace('refs/tags/', '');
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -40,7 +41,7 @@ jobs:
               });
               release = res.data;
             }
-            core.setOutput('upload_url', release.upload_url);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `upload_url=${release.upload_url}\n`);
 
   build-and-upload:
     needs: release
