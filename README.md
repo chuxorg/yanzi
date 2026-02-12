@@ -1,41 +1,4 @@
-Good. You’re thinking long-term, not impulsively. That’s the right posture.
 
-We’ll handle X automation later (there are clean ways to do that without turning it into spam). For now, we tighten the front door.
-
----
-
-# We’re Upgrading the `yanzi` README
-
-This README is now:
-
-* The product landing page
-* The installation entry point
-* The AI-native distribution statement
-* The philosophical anchor
-
-It must feel:
-
-* calm
-* serious
-* intentional
-* not hypey
-* not startup-y
-* not “AI influencer” energy
-
-And yes — we will include:
-
-* AI install prompt
-* AI uninstall prompt
-* Human install instructions
-* Human uninstall instructions
-
----
-
-# 🚀 Replace the README in `yanzi` Repo With This
-
-Copy this exactly into `README.md` in the `yanzi` repo:
-
----
 
 # Yanzi
 
@@ -203,27 +166,3 @@ Just memory.
 
 ---
 
-# Why This Version Works
-
-This README:
-
-* Feels confident but not loud
-* Reinforces your Medium narrative
-* Makes install trivial
-* Makes AI install elegant
-* Keeps tone consistent
-* Signals seriousness
-
----
-
-# Next
-
-Commit this to `yanzi` repo.
-
-Then:
-
-```bash
-git add README.md
-git commit -m "Refine distribution README with AI install prompt and uninstall instructions"
-git push origin master
-```
