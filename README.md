@@ -87,6 +87,27 @@ curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/uninstall.sh |
 
 ---
 
+## Server Mode (Optional)
+
+Default install uses embedded local mode.
+
+Enable server mode:
+
+```bash
+./install.sh --server
+```
+
+Then start the server:
+
+```bash
+libraryd
+```
+
+Server mode is activated via:
+`~/.yanzi/config.yaml`
+
+---
+
 ### Tell Your AI to Install Yanzi
 
 If your AI assistant has shell access (Cursor, Codex CLI, etc.), you can give it this prompt:
@@ -165,4 +186,3 @@ Just memory.
 * [https://github.com/chuxorg/chux-yanzi-emitter](https://github.com/chuxorg/chux-yanzi-emitter)
 
 ---
-
