@@ -4,9 +4,11 @@ set -eu
 BASE_URL="https://github.com/chuxorg/yanzi/releases/latest/download"
 
 ADD_PATH=false
+SERVER_MODE=false
 for arg in "$@"; do
   case "$arg" in
     --add-path) ADD_PATH=true ;;
+    --server) SERVER_MODE=true ;;
     *) ;;
   esac
 done
@@ -54,7 +56,7 @@ curl -fsSL "$URL" -o "$ARCHIVE"
 
 tar -xzf "$ARCHIVE" -C "$TMP_DIR"
 
-for bin in yanzi yanzi-emitter; do
+for bin in yanzi yanzi-emitter libraryd; do
   if [ ! -f "$TMP_DIR/$bin" ]; then
     echo "Missing binary in archive: $bin" >&2
     exit 1
@@ -62,6 +64,17 @@ for bin in yanzi yanzi-emitter; do
   mv -f "$TMP_DIR/$bin" "$INSTALL_DIR/$bin"
   chmod +x "$INSTALL_DIR/$bin"
 done
+
+if [ "$SERVER_MODE" = true ]; then
+  CONFIG_DIR="$HOME/.yanzi"
+  mkdir -p "$CONFIG_DIR"
+  cat > "$CONFIG_DIR/config.yaml" <<'EOF'
+mode: http
+base_url: http://localhost:8080
+EOF
+  echo "Server mode enabled."
+  echo "Run 'libraryd' to start the server."
+fi
 
 in_path=false
 case ":$PATH:" in
