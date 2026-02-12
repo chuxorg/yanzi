@@ -1,10 +1,7 @@
 name: Release
 
-# This workflow expects matching semantic version tags in:
-# - chuxorg/chux-yanzi-cli
-# - chuxorg/chux-yanzi-emitter
-# - chuxorg/chux-yanzi-core (if applicable)
-# - this distribution repo
+# This workflow expects matching semantic version tags
+# across core, cli, emitter, library, and distribution repos.
 on:
   push:
     tags:
@@ -87,6 +84,14 @@ jobs:
           token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
           ref: ${{ github.ref_name }}
 
+      - name: Checkout Yanzi Library
+        uses: actions/checkout@v4
+        with:
+          repository: chuxorg/chux-yanzi-library
+          path: chux-yanzi-library
+          token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
+          ref: ${{ github.ref_name }}
+
       # Set up Go 1.21 for building
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -116,17 +121,27 @@ jobs:
           go build -o "yanzi-emitter${BIN_EXT}" ./cmd/yanzi-emitter
           mv "yanzi-emitter${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
+      - name: Build Library Server
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
+        run: |
+          cd chux-yanzi-library
+          go build -o "libraryd${BIN_EXT}" ./bin/libraryd
+          mv "libraryd${BIN_EXT}" "$GITHUB_WORKSPACE/"
+
       # Package binaries for darwin/linux into a tar.gz
       - name: Package (darwin/linux)
         if: ${{ matrix.os != 'windows' }}
         run: |
-          tar -czf "yanzi_${{ matrix.os }}_${{ matrix.arch }}.tar.gz" yanzi yanzi-emitter
+          tar -czf "yanzi_${{ matrix.os }}_${{ matrix.arch }}.tar.gz" yanzi yanzi-emitter libraryd
 
       # Package binaries for windows into a zip
       - name: Package (windows)
         if: ${{ matrix.os == 'windows' }}
         run: |
-          zip "yanzi_windows_amd64.zip" yanzi.exe yanzi-emitter.exe
+          zip "yanzi_windows_amd64.zip" yanzi.exe yanzi-emitter.exe libraryd.exe
 
       # Upload the packaged artifact to the GitHub release
       - name: Upload release asset
