@@ -1,5 +1,10 @@
 name: Release
 
+# This workflow expects matching semantic version tags in:
+# - chuxorg/chux-yanzi-cli
+# - chuxorg/chux-yanzi-emitter
+# - chuxorg/chux-yanzi-core (if applicable)
+# - this distribution repo
 on:
   push:
     tags:
@@ -64,23 +69,23 @@ jobs:
       - name: Checkout distribution repo
         uses: actions/checkout@v4
 
-      # Checkout the Yanzi CLI repository
+      # Checkout the Yanzi CLI repository (tag must exist before release)
       - name: Checkout Yanzi CLI
         uses: actions/checkout@v4
         with:
           repository: chuxorg/chux-yanzi-cli
           path: chux-yanzi-cli
           token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
-          ref: master
+          ref: ${{ github.ref_name }}
 
-      # Checkout the Yanzi Emitter repository
+      # Checkout the Yanzi Emitter repository (tag must exist before release)
       - name: Checkout Yanzi Emitter
         uses: actions/checkout@v4
         with:
           repository: chuxorg/chux-yanzi-emitter
           path: chux-yanzi-emitter
           token: ${{ secrets.YANZI_CHECKOUT_TOKEN }}
-          ref: master
+          ref: ${{ github.ref_name }}
 
       # Set up Go 1.21 for building
       - name: Set up Go

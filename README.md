@@ -56,6 +56,33 @@ It does not summarize or reinterpret reasoning.
 
 It simply refuses to forget.
 
+## 90-Second Quickstart
+
+These commands assume embedded local mode (no server).
+
+1. Install
+```bash
+curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --add-path
+```
+2. Capture
+```bash
+yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt
+```
+3. Verify
+```bash
+yanzi verify <intent-id>
+```
+4. Chain
+```bash
+yanzi chain <intent-id>
+```
+5. Optional: enable HTTP mode
+```bash
+git clone https://github.com/chuxorg/chux-yanzi-library
+cd chux-yanzi-library
+go run ./cmd/libraryd -addr :8080 -db yanzi.db
+```
+
 ---
 
 ## The Problem
