@@ -128,7 +128,7 @@ jobs:
           BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-library
-          go build -o "libraryd${BIN_EXT}" ./bin/libraryd
+          go build -o "libraryd${BIN_EXT}" ./cmd/libraryd
           mv "libraryd${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       # Package binaries for darwin/linux into a tar.gz
