@@ -107,7 +107,7 @@ jobs:
           BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-cli
-          go build -o "yanzi${BIN_EXT}" ./cmd/yanzi
+          go build -ldflags "-X main.version=${{ github.ref_name }}" -o "yanzi${BIN_EXT}" ./cmd/yanzi
           mv "yanzi${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       # Build the emitter binary for the target OS/arch
@@ -118,7 +118,7 @@ jobs:
           BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-emitter
-          go build -o "yanzi-emitter${BIN_EXT}" ./cmd/yanzi-emitter
+          go build -ldflags "-X main.version=${{ github.ref_name }}" -o "yanzi-emitter${BIN_EXT}" ./cmd/yanzi-emitter
           mv "yanzi-emitter${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       - name: Build Library Server
@@ -128,7 +128,7 @@ jobs:
           BIN_EXT: ${{ matrix.os == 'windows' && '.exe' || '' }}
         run: |
           cd chux-yanzi-library
-          go build -o "libraryd${BIN_EXT}" ./cmd/libraryd
+          go build -ldflags "-X main.version=${{ github.ref_name }}" -o "libraryd${BIN_EXT}" ./cmd/libraryd
           mv "libraryd${BIN_EXT}" "$GITHUB_WORKSPACE/"
 
       # Package binaries for darwin/linux into a tar.gz
