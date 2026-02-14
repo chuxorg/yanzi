@@ -48,6 +48,106 @@ go run ./cmd/libraryd -addr :8080 -db yanzi.db
 
 ---
 
+## Use Cases
+
+Yanzi is useful for:
+
+* Individual developers using AI tools locally.
+* Teams sharing AI-generated decisions.
+* Resuming context after closing an AI session.
+* Preserving architectural reasoning.
+
+---
+
+## End-to-End Example: Local Mode (Default)
+
+1. Install:
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh
+```
+2. Verify version:
+```bash
+yanzi --version
+```
+3. Capture an interaction:
+```bash
+echo "Create a minimal HTML page that says Hello World" > prompt.txt
+echo "<!DOCTYPE html><html><body>Hello World</body></html>" > response.txt
+
+yanzi capture \
+  --author "developer" \
+  --source "manual" \
+  --prompt-file prompt.txt \
+  --response-file response.txt \
+  --meta project=hello-world \
+  --meta type=feature
+```
+4. Browse:
+```bash
+yanzi list
+```
+5. Inspect:
+```bash
+yanzi show <id>
+```
+6. Verify:
+```bash
+yanzi verify <id>
+```
+
+Local mode is the default and requires no server.
+
+---
+
+## End-to-End Example: Server Mode (Optional)
+
+1. Install with server enabled:
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --server
+```
+2. Start server:
+```bash
+libraryd
+```
+3. Confirm config:
+```bash
+cat ~/.yanzi/config.yaml
+```
+4. Capture via server:
+```bash
+yanzi capture ...
+```
+
+If the server is stopped, capture will fail (no silent fallback).
+
+---
+
+## AI Agent Integration Example
+
+```bash
+PROMPT_FILE=$(mktemp)
+RESPONSE_FILE=$(mktemp)
+
+echo "$HUMAN_PROMPT" > "$PROMPT_FILE"
+echo "$AI_RESPONSE" > "$RESPONSE_FILE"
+
+yanzi capture \
+  --author "codex" \
+  --source "codex" \
+  --prompt-file "$PROMPT_FILE" \
+  --response-file "$RESPONSE_FILE"
+
+rm "$PROMPT_FILE" "$RESPONSE_FILE"
+```
+
+Files are ephemeral. Yanzi stores structured, immutable records. Each capture represents one atomic interaction.
+
+---
+
+## Why This Is Necessary
+
+If you are using AI to generate production artifacts but not preserving the reasoning behind them, you are creating undocumented architectural drift.
+
 ## The Problem
 
 AI tools move fast.
