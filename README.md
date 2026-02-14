@@ -74,12 +74,22 @@ yanzi --version
 ```
 3. Capture an interaction:
 ```bash
+yanzi capture \
+  --author "developer" \
+  --prompt "Create a minimal HTML page that says Hello World" \
+  --response "<!DOCTYPE html><html><body>Hello World</body></html>" \
+  --meta project=hello-world \
+  --meta type=feature
+```
+Exactly one of `--prompt` or `--prompt-file` must be provided. Exactly one of `--response` or `--response-file` must be provided. Mixing inline and file inputs is valid.
+
+Optional file-based input:
+```bash
 echo "Create a minimal HTML page that says Hello World" > prompt.txt
 echo "<!DOCTYPE html><html><body>Hello World</body></html>" > response.txt
 
 yanzi capture \
   --author "developer" \
-  --source "manual" \
   --prompt-file prompt.txt \
   --response-file response.txt \
   --meta project=hello-world \
@@ -100,6 +110,15 @@ yanzi verify <id>
 
 Local mode is the default and requires no server.
 
+### Filtering by Metadata
+
+```bash
+yanzi list --meta project=hello-world
+yanzi list --meta project=hello-world --meta type=feature
+```
+
+Filtering is exact match. Multiple `--meta` flags use AND semantics. If no records match, an empty result set is returned.
+
 ---
 
 ## End-to-End Example: Server Mode (Optional)
@@ -118,10 +137,15 @@ cat ~/.yanzi/config.yaml
 ```
 4. Capture via server:
 ```bash
-yanzi capture ...
+yanzi capture \
+  --author "developer" \
+  --prompt "Refactor login handler for idempotency" \
+  --response "Updated code..." \
+  --meta project=auth-service \
+  --meta type=refactor
 ```
 
-If the server is stopped, capture will fail (no silent fallback).
+If libraryd is not reachable in HTTP mode, capture will fail. There is no automatic fallback to local mode.
 
 ---
 
@@ -143,7 +167,7 @@ yanzi capture \
 rm "$PROMPT_FILE" "$RESPONSE_FILE"
 ```
 
-Files are ephemeral. Yanzi stores structured, immutable records. Each capture represents one atomic interaction.
+For agents that can safely pass inline strings, `--prompt` and `--response` may be used directly. For large or complex content, file-based input remains supported. Files are ephemeral. Yanzi stores structured, immutable records. Each capture represents one atomic interaction.
 
 ---
 
