@@ -2,6 +2,9 @@
 
 # Yanzi
 
+[![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases)
+[![Release workflow](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
+
 **Managed Intent for AI-Assisted Development**
 
 AI accelerates generation.
