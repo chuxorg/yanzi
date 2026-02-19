@@ -116,11 +116,11 @@ jobs:
             arch: amd64
 
     steps:
-      # Checkout the distribution repository (development branch)
+      # Checkout the distribution repository (master branch)
       - name: Checkout distribution repo
         uses: actions/checkout@v4
         with:
-          ref: development
+          ref: master
 
       # Checkout the Yanzi CLI repository (development branch)
       - name: Checkout Yanzi CLI
