@@ -62,7 +62,6 @@ jobs:
                 repo,
                 tag_name: tag,
                 name: `${tag} QA`,
-                target_commitish: 'development',
                 draft: false,
                 prerelease: true,
               });
