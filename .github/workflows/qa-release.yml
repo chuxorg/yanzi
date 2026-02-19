@@ -2,6 +2,9 @@ name: QA Release
 
 # Build a QA release from the development branch.
 on:
+  push:
+    tags:
+      - 'v*-qa'
   workflow_dispatch:
     inputs:
       version:
@@ -21,7 +24,11 @@ jobs:
       - name: Validate version input
         id: version
         run: |
-          VERSION="${{ inputs.version }}"
+          if [ -n "${{ github.ref_name }}" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
           if [[ ! "$VERSION" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+-qa$ ]]; then
             echo "Invalid version: $VERSION"
             echo "Expected format: vX.Y.Z-qa"
