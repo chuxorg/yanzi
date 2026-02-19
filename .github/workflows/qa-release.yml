@@ -51,12 +51,19 @@ jobs:
             const tag = '${{ steps.version.outputs.version }}';
             const owner = context.repo.owner;
             const repo = context.repo.repo;
+            const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+            const getReleaseByTagSafe = async () => {
+              try {
+                const res = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
+                return res.data;
+              } catch (err) {
+                if (err.status !== 404) throw err;
+                return null;
+              }
+            };
             let release;
-            try {
-              const res = await github.rest.repos.getReleaseByTag({ owner, repo, tag });
-              release = res.data;
-            } catch (err) {
-              if (err.status !== 404) throw err;
+            release = await getReleaseByTagSafe();
+            if (!release) {
               try {
                 const res = await github.rest.repos.createRelease({
                   owner,
@@ -71,14 +78,24 @@ jobs:
                 const errors = createErr?.response?.data?.errors || [];
                 const alreadyExists = errors.some((e) => e?.code === 'already_exists' && e?.field === 'tag_name');
                 if (!alreadyExists) throw createErr;
-                const res = await github.paginate(github.rest.repos.listReleases, {
-                  owner,
-                  repo,
-                  per_page: 100,
-                });
-                release = res.find((r) => r.tag_name === tag);
-                if (!release) throw createErr;
               }
+            }
+            if (!release) {
+              for (let i = 0; i < 5 && !release; i += 1) {
+                await sleep(2000);
+                release = await getReleaseByTagSafe();
+              }
+            }
+            if (!release) {
+              const res = await github.paginate(github.rest.repos.listReleases, {
+                owner,
+                repo,
+                per_page: 100,
+              });
+              release = res.find((r) => r.tag_name === tag);
+            }
+            if (!release) {
+              throw new Error(`Release for tag ${tag} exists but could not be fetched.`);
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `upload_url=${release.upload_url}\n`);
 
