@@ -29,11 +29,15 @@ jobs:
           else
             VERSION="${{ inputs.version }}"
           fi
-          if [[ ! "$VERSION" =~ ^v[0-9]+\\.[0-9]+\\.[0-9]+-qa$ ]]; then
+          VERSION="$(printf '%s' "$VERSION" | tr -d '\r')"
+          case "$VERSION" in
+            v[0-9]*.[0-9]*.[0-9]*-qa) ;;
+            *)
             echo "Invalid version: $VERSION"
             echo "Expected format: vX.Y.Z-qa"
             exit 1
-          fi
+            ;;
+          esac
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       # Create or fetch the GitHub release for the QA tag on development

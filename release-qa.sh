@@ -62,9 +62,16 @@ for repo in "${REPOS[@]}"; do
   tag_if_missing "$repo" "$VERSION"
 done
 
-echo "Tagging distribution repo last"
+echo "Tagging distribution repo last (master)"
 cd "$BASE/yanzi"
-ensure_dev_branch "yanzi"
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$branch" != "master" ]; then
+  echo "Switching yanzi to master branch"
+  git fetch origin master
+  git checkout master
+fi
+
+git pull --ff-only origin master
 tag_if_missing "yanzi" "$VERSION"
 
 echo "QA release tags pushed."
