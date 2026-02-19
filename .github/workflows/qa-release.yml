@@ -57,15 +57,28 @@ jobs:
               release = res.data;
             } catch (err) {
               if (err.status !== 404) throw err;
-              const res = await github.rest.repos.createRelease({
-                owner,
-                repo,
-                tag_name: tag,
-                name: `${tag} QA`,
-                draft: false,
-                prerelease: true,
-              });
-              release = res.data;
+              try {
+                const res = await github.rest.repos.createRelease({
+                  owner,
+                  repo,
+                  tag_name: tag,
+                  name: `${tag} QA`,
+                  draft: false,
+                  prerelease: true,
+                });
+                release = res.data;
+              } catch (createErr) {
+                const errors = createErr?.response?.data?.errors || [];
+                const alreadyExists = errors.some((e) => e?.code === 'already_exists' && e?.field === 'tag_name');
+                if (!alreadyExists) throw createErr;
+                const res = await github.paginate(github.rest.repos.listReleases, {
+                  owner,
+                  repo,
+                  per_page: 100,
+                });
+                release = res.find((r) => r.tag_name === tag);
+                if (!release) throw createErr;
+              }
             }
             fs.appendFileSync(process.env.GITHUB_OUTPUT, `upload_url=${release.upload_url}\n`);
 
