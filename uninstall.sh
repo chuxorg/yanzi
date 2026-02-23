@@ -22,17 +22,10 @@ remove_path() {
 }
 
 YANZI_PATH="$(command -v yanzi 2>/dev/null || true)"
-EMITTER_PATH="$(command -v yanzi-emitter 2>/dev/null || true)"
-LIBRARYD_PATH="$(command -v libraryd 2>/dev/null || true)"
 
-if [ -z "$YANZI_PATH" ] && [ -z "$EMITTER_PATH" ] && [ -z "$LIBRARYD_PATH" ]; then
+if [ -z "$YANZI_PATH" ]; then
   echo "Yanzi is not installed."
   exit 0
-fi
-
-if pgrep libraryd >/dev/null 2>&1; then
-  echo "Stopping libraryd..."
-  pkill libraryd >/dev/null 2>&1 || true
 fi
 
 remove_file() {
@@ -45,7 +38,5 @@ remove_file() {
 }
 
 remove_file "yanzi" "$YANZI_PATH"
-remove_file "yanzi-emitter" "$EMITTER_PATH"
-remove_file "libraryd" "$LIBRARYD_PATH"
 
 echo "Uninstall complete."
