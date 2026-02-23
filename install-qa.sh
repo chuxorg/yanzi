@@ -16,14 +16,12 @@ case "$VERSION" in
     ;;
 esac
 
-BASE_URL="https://github.com/chuxorg/yanzi/releases/download/$VERSION"
+BASE_URL="https://github.com/chuxorg/chux-yanzi-cli/releases/download/$VERSION"
 
 ADD_PATH=false
-SERVER_MODE=false
 for arg in "$@"; do
   case "$arg" in
     --add-path) ADD_PATH=true ;;
-    --server) SERVER_MODE=true ;;
     *) ;;
   esac
 done
@@ -49,7 +47,7 @@ case "$ARCH_RAW" in
     ;;
 esac
 
-ARTIFACT="yanzi_${OS}_${ARCH}.tar.gz"
+ARTIFACT="yanzi-${OS}-${ARCH}"
 URL="$BASE_URL/$ARTIFACT"
 
 if [ -w /usr/local/bin ]; then
@@ -59,37 +57,14 @@ else
   mkdir -p "$INSTALL_DIR"
 fi
 
-TMP_DIR="$(mktemp -d)"
-cleanup() {
-  rm -rf "$TMP_DIR"
-}
-trap cleanup EXIT
+DEST="$INSTALL_DIR/yanzi"
 
-ARCHIVE="$TMP_DIR/$ARTIFACT"
-
-curl -fsSL "$URL" -o "$ARCHIVE"
-
-tar -xzf "$ARCHIVE" -C "$TMP_DIR"
-
-for bin in yanzi yanzi-emitter libraryd; do
-  if [ ! -f "$TMP_DIR/$bin" ]; then
-    echo "Missing binary in archive: $bin" >&2
-    exit 1
-  fi
-  mv -f "$TMP_DIR/$bin" "$INSTALL_DIR/$bin"
-  chmod +x "$INSTALL_DIR/$bin"
-done
-
-if [ "$SERVER_MODE" = true ]; then
-  CONFIG_DIR="$HOME/.yanzi"
-  mkdir -p "$CONFIG_DIR"
-  cat > "$CONFIG_DIR/config.yaml" <<'EOF'
-mode: http
-base_url: http://localhost:8080
-EOF
-  echo "Server mode enabled."
-  echo "Run 'libraryd' to start the server."
+if ! curl -fsSL "$URL" -o "$DEST"; then
+  echo "Download failed: $URL" >&2
+  exit 1
 fi
+
+chmod +x "$DEST"
 
 in_path=false
 case ":$PATH:" in
