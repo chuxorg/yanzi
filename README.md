@@ -3,7 +3,7 @@
 # Yanzi
 
 [![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases)
-[![Release workflow](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
+[![Release workflow](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/chux-yanzi-cli/actions/workflows/release.yml)
 
 <small>Yanzi is a local-first workflow state manager for AI-assisted development.</small>
 
