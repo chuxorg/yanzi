@@ -7,35 +7,31 @@
 
 <small>Yanzi is a local-first workflow state manager for AI-assisted development.</small>
 
-I use AI to maintain this README. The information is quality-controlled for correctness. If you see an issue,
-let me know <info@yanzi.io> - thanks.
 
-Yanzi captures prompt/response pairs as immutable artifacts, groups them into projects, and allows deterministic reconstruction of work using checkpoints.
+It captures prompt/response pairs as immutable artifacts, groups them into projects, and allows deterministic reconstruction of work using checkpoints.
 
 - No daemon required.
 - No orchestration layer.
 - No hidden state.
 
-The Problem
+---
+
+## The Problem
 
 If you use Copilot, CodeX, ChatGPT, or any LLM for development, you’ve likely experienced:
 
-Context drift
-
-- Re-explaining the same architecture repeatedly
-
-- Losing the thread after a session reset
-
-- Not knowing which decisions came first
-
-- “Almost working” states that you can’t reconstruct cleanly
+* Context drift
+* Re-explaining the same architecture repeatedly
+* Losing the thread after a session reset
+* Not knowing which decisions came first
+* “Almost working” states that you can’t reconstruct cleanly
 
 LLMs do not remember your project.
 They approximate it from context windows.
 
 Yanzi solves a narrow problem:
 
-Preserve intent and enable deterministic recovery.
+> Preserve intent and enable deterministic recovery.
 
 It does not summarize.
 It does not infer.
@@ -43,41 +39,45 @@ It does not reinterpret history.
 
 It records what happened.
 
-Core Concepts
-Intent
+---
+
+## Core Concepts
+
+### Intent
 
 An immutable prompt/response pair.
 
-Project
+### Project
 
 A scoped boundary grouping intents.
 
-Checkpoint
+### Checkpoint
 
 A stability marker within a project.
 
-Rehydrate
+### Rehydrate
 
 Mechanical reconstruction of:
 
-Project
-
-Latest checkpoint
-
-All intents since checkpoint
+* Project
+* Latest checkpoint
+* All intents since checkpoint
 
 No ML.
 No heuristics.
 Deterministic ordering only.
 
-Architecture
+---
+
+## Architecture
+
+```
 core → library → cli
+```
 
-core defines primitives
-
-library owns domain + SQLite persistence
-
-cli is the user-facing interface
+* `core` defines primitives
+* `library` owns domain + SQLite persistence
+* `cli` is the user-facing interface
 
 The CLI is the product.
 
@@ -86,63 +86,86 @@ Local mode is default.
 
 SQLite database location:
 
+```
 ~/.yanzi/yanzi.db
-Installation
+```
+
+---
+
+## Installation
 
 Releases are published from the CLI repository:
 
-👉 https://github.com/chuxorg/chux-yanzi-cli
+👉 [https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
 
 Example (macOS arm64):
 
+```bash
 curl -L https://github.com/chuxorg/chux-yanzi-cli/releases/download/v1.1.0-qa/yanzi_darwin_arm64.tar.gz -o yanzi.tar.gz
 tar -xzf yanzi.tar.gz
 sudo mv yanzi /usr/local/bin/
+```
 
 Verify:
 
+```bash
 yanzi version
+```
 
 Expected output:
 
+```
 v1.1.0-qa
-Quick Start
+```
+
+---
+
+## Quick Start
 
 Create and use a project:
 
+```bash
 yanzi project create "alpha"
 yanzi project use "alpha"
+```
 
 Create a checkpoint:
 
+```bash
 yanzi checkpoint create --summary "Stabilized pipeline"
+```
 
 Rehydrate:
 
+```bash
 yanzi rehydrate
-Intended Workflow
+```
+
+---
+
+## Intended Workflow
 
 Yanzi works best when paired with AI-assisted development.
 
 A typical loop:
 
-Prompt AI
-
-Implement changes
-
-Capture intent
-
-Checkpoint before structural shifts
-
-Rehydrate when context is lost
+1. Prompt AI
+2. Implement changes
+3. Capture intent
+4. Checkpoint before structural shifts
+5. Rehydrate when context is lost
 
 It is safe for humans to use directly.
 
 It becomes valuable when used consistently during AI-driven work.
 
-Prompt for AI Systems
+---
+
+## Prompt for AI Systems
 
 You may copy the following when onboarding an AI agent:
+
+---
 
 You are assisting with development in a repository that uses Yanzi.
 
@@ -150,78 +173,94 @@ Yanzi is a local-first workflow state manager.
 
 Rules:
 
-Each prompt/response cycle may be captured as intent.
-
-Projects define context boundaries.
-
-Create checkpoints before major structural changes.
-
-Use yanzi rehydrate instead of summarizing history.
-
-Do not assume implicit memory.
-
-Treat state as mechanical and reconstructable.
+* Each prompt/response cycle may be captured as intent.
+* Projects define context boundaries.
+* Create checkpoints before major structural changes.
+* Use `yanzi rehydrate` instead of summarizing history.
+* Do not assume implicit memory.
+* Treat state as mechanical and reconstructable.
 
 Installation:
-https://github.com/chuxorg/chux-yanzi-cli
+[https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
 
-Design Principles
+---
 
-Local-first
+## Design Principles
 
-Deterministic behavior
+* Local-first
+* Deterministic behavior
+* No daemon required
+* Agent-agnostic
+* Shell-friendly
+* Minimal surface area
+* No speculative orchestration
 
-No daemon required
+---
 
-Agent-agnostic
-
-Shell-friendly
-
-Minimal surface area
-
-No speculative orchestration
-
-Non-Goals
+## Non-Goals
 
 Yanzi is not:
 
-An agent framework
-
-A memory embedding system
-
-A vector database
-
-A workflow engine
-
-A summarization layer
-
-A project management tool
+* An agent framework
+* A memory embedding system
+* A vector database
+* A workflow engine
+* A summarization layer
+* A project management tool
 
 It solves one problem:
 
 Preserve intent. Enable recovery.
 
-Status
+---
+
+## Status
 
 Stabilization phase.
 
 Focus areas:
 
-Release pipeline hardening
-
-REST surface alignment
-
-Store abstraction (future)
+* Release pipeline hardening
+* REST surface alignment
+* Store abstraction (future)
 
 No feature sprawl.
 
-Repositories
+---
+
+## Repositories
 
 CLI (binaries + releases):
-https://github.com/chuxorg/chux-yanzi-cli
+[https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
 
 Library (domain + persistence):
-https://github.com/chuxorg/chux-yanzi-library
+[https://github.com/chuxorg/chux-yanzi-library](https://github.com/chuxorg/chux-yanzi-library)
 
 Core primitives:
-https://github.com/chuxorg/chux-yanzi-core
+[https://github.com/chuxorg/chux-yanzi-core](https://github.com/chuxorg/chux-yanzi-core)
+
+---
+
+That’s the README.
+
+---
+
+### Why This Works
+
+* Engineers immediately recognize drift pain.
+* AI integration is implied, not shouted.
+* Install instructions are concrete.
+* No vaporware language.
+* No “platform revolution” tone.
+* No premature website push.
+
+---
+
+If you’d like, we can next:
+
+* Tighten this further to one page
+* Add a small ASCII flow diagram
+* Add a minimal example of capturing an intent
+* Or refine tone slightly
+
+You’re building this the right way.
