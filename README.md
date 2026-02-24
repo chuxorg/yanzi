@@ -241,17 +241,3 @@ Core primitives:
 
 ---
 
-That’s the README.
-
----
-
-### Why This Works
-
-* Engineers immediately recognize drift pain.
-* AI integration is implied, not shouted.
-* Install instructions are concrete.
-* No vaporware language.
-* No “platform revolution” tone.
-* No premature website push.
-
----
