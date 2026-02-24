@@ -255,12 +255,3 @@ That’s the README.
 * No premature website push.
 
 ---
-
-If you’d like, we can next:
-
-* Tighten this further to one page
-* Add a small ASCII flow diagram
-* Add a minimal example of capturing an intent
-* Or refine tone slightly
-
-You’re building this the right way.
