@@ -5,311 +5,223 @@
 [![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases)
 [![Release workflow](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
 
-**Managed Intent for AI-Assisted Development**
-
-AI accelerates generation.
-Yanzi preserves the *why*.
-
----
-
-## What Yanzi Is
-
-Yanzi is a small, composable system that captures, verifies, and chains the reasoning behind AI-generated decisions.
-
-It does not generate code.
-It does not orchestrate agents.
-It does not summarize or reinterpret reasoning.
-
-It simply refuses to forget.
-
-## 90-Second Quickstart
-
-These commands assume embedded local mode (no server).
-
-1. Install
-```bash
-curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --add-path
-```
-2. Capture
-```bash
-yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt
-```
-3. Verify
-```bash
-yanzi verify <intent-id>
-```
-4. Chain
-```bash
-yanzi chain <intent-id>
-```
-5. Optional: enable HTTP mode
-```bash
-git clone https://github.com/chuxorg/chux-yanzi-library
-cd chux-yanzi-library
-go run ./cmd/libraryd -addr :8080 -db yanzi.db
-```
-
----
-
-## Use Cases
-
-Yanzi is useful for:
-
-* Individual developers using AI tools locally.
-* Teams sharing AI-generated decisions.
-* Resuming context after closing an AI session.
-* Preserving architectural reasoning.
-
----
-
-## End-to-End Example: Local Mode (Default)
-
-1. Install:
-```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh
-```
-2. Verify version:
-```bash
-yanzi --version
-```
-3. Capture an interaction:
-```bash
-yanzi capture \
-  --author "developer" \
-  --prompt "Create a minimal HTML page that says Hello World" \
-  --response "<!DOCTYPE html><html><body>Hello World</body></html>" \
-  --meta project=hello-world \
-  --meta type=feature
-```
-Exactly one of `--prompt` or `--prompt-file` must be provided. Exactly one of `--response` or `--response-file` must be provided. Mixing inline and file inputs is valid.
-
-Optional file-based input:
-```bash
-echo "Create a minimal HTML page that says Hello World" > prompt.txt
-echo "<!DOCTYPE html><html><body>Hello World</body></html>" > response.txt
-
-yanzi capture \
-  --author "developer" \
-  --prompt-file prompt.txt \
-  --response-file response.txt \
-  --meta project=hello-world \
-  --meta type=feature
-```
-4. Browse:
-```bash
-yanzi list
-```
-5. Inspect:
-```bash
-yanzi show <id>
-```
-6. Verify:
-```bash
-yanzi verify <id>
-```
+<small>Yanzi is a local-first workflow state manager for AI-assisted development.</small>
 
-Local mode is the default and requires no server.
+I use AI to maintain this README. The information is quality-controlled for correctness. If you see an issue,
+let me know <info@yanzi.io> - thanks.
 
-### Filtering by Metadata
+Yanzi captures prompt/response pairs as immutable artifacts, groups them into projects, and allows deterministic reconstruction of work using checkpoints.
 
-```bash
-yanzi list --meta project=hello-world
-yanzi list --meta project=hello-world --meta type=feature
-```
+- No daemon required.
+- No orchestration layer.
+- No hidden state.
 
-Filtering is exact match. Multiple `--meta` flags use AND semantics. If no records match, an empty result set is returned.
+The Problem
 
----
+If you use Copilot, CodeX, ChatGPT, or any LLM for development, you’ve likely experienced:
 
-## End-to-End Example: Server Mode (Optional)
+Context drift
 
-1. Install with server enabled:
-```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --server
-```
-2. Start server:
-```bash
-libraryd
-```
-3. Confirm config:
-```bash
-cat ~/.yanzi/config.yaml
-```
-4. Capture via server:
-```bash
-yanzi capture \
-  --author "developer" \
-  --prompt "Refactor login handler for idempotency" \
-  --response "Updated code..." \
-  --meta project=auth-service \
-  --meta type=refactor
-```
+- Re-explaining the same architecture repeatedly
 
-If libraryd is not reachable in HTTP mode, capture will fail. There is no automatic fallback to local mode.
+- Losing the thread after a session reset
 
----
+- Not knowing which decisions came first
 
-## AI Agent Integration Example
+- “Almost working” states that you can’t reconstruct cleanly
 
-```bash
-PROMPT_FILE=$(mktemp)
-RESPONSE_FILE=$(mktemp)
+LLMs do not remember your project.
+They approximate it from context windows.
 
-echo "$HUMAN_PROMPT" > "$PROMPT_FILE"
-echo "$AI_RESPONSE" > "$RESPONSE_FILE"
+Yanzi solves a narrow problem:
 
-yanzi capture \
-  --author "codex" \
-  --source "codex" \
-  --prompt-file "$PROMPT_FILE" \
-  --response-file "$RESPONSE_FILE"
+Preserve intent and enable deterministic recovery.
 
-rm "$PROMPT_FILE" "$RESPONSE_FILE"
-```
+It does not summarize.
+It does not infer.
+It does not reinterpret history.
 
-For agents that can safely pass inline strings, `--prompt` and `--response` may be used directly. For large or complex content, file-based input remains supported. Files are ephemeral. Yanzi stores structured, immutable records. Each capture represents one atomic interaction.
+It records what happened.
 
----
+Core Concepts
+Intent
 
-## Why This Is Necessary
+An immutable prompt/response pair.
 
-If you are using AI to generate production artifacts but not preserving the reasoning behind them, you are creating undocumented architectural drift.
+Project
 
-## The Problem
+A scoped boundary grouping intents.
 
-AI tools move fast.
-But the reasoning behind decisions often disappears.
+Checkpoint
 
-Weeks later, someone asks:
+A stability marker within a project.
 
-> Why does this exist?
+Rehydrate
 
-And no one can answer.
+Mechanical reconstruction of:
 
-Yanzi captures intent at the moment decisions are made — and preserves it immutably.
+Project
 
----
+Latest checkpoint
 
-## Install Yanzi
+All intents since checkpoint
 
-### For Humans
+No ML.
+No heuristics.
+Deterministic ordering only.
 
-macOS or Linux:
+Architecture
+core → library → cli
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh
-```
+core defines primitives
 
-Optional (auto-add to PATH):
+library owns domain + SQLite persistence
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --add-path
-```
+cli is the user-facing interface
 
-To uninstall:
+The CLI is the product.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/uninstall.sh | sh
-```
+HTTP mode is optional.
+Local mode is default.
 
----
+SQLite database location:
 
-## Server Mode (Optional)
+~/.yanzi/yanzi.db
+Installation
 
-Default install uses embedded local mode.
+Releases are published from the CLI repository:
 
-Enable server mode:
+👉 https://github.com/chuxorg/chux-yanzi-cli
 
-```bash
-./install.sh --server
-```
+Example (macOS arm64):
 
-Then start the server:
+curl -L https://github.com/chuxorg/chux-yanzi-cli/releases/download/v1.1.0-qa/yanzi_darwin_arm64.tar.gz -o yanzi.tar.gz
+tar -xzf yanzi.tar.gz
+sudo mv yanzi /usr/local/bin/
 
-```bash
-libraryd
-```
+Verify:
 
-Server mode is activated via:
-`~/.yanzi/config.yaml`
+yanzi version
 
----
+Expected output:
 
-### Tell Your AI to Install Yanzi
+v1.1.0-qa
+Quick Start
 
-If your AI assistant has shell access (Cursor, Codex CLI, etc.), you can give it this prompt:
+Create and use a project:
 
-```
-Install Yanzi on this machine.
+yanzi project create "alpha"
+yanzi project use "alpha"
 
-If macOS or Linux:
-Run:
-curl -fsSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | sh -s -- --add-path
+Create a checkpoint:
 
-If Windows:
-Download the latest release from:
-https://github.com/chuxorg/yanzi/releases
+yanzi checkpoint create --summary "Stabilized pipeline"
 
-After installation:
-Run:
-yanzi --help
+Rehydrate:
 
-Then reply:
-"Yanzi is installed and ready. I will save important decisions using it."
-```
+yanzi rehydrate
+Intended Workflow
 
----
+Yanzi works best when paired with AI-assisted development.
 
-## Quick Example
+A typical loop:
 
-Capture intent:
+Prompt AI
 
-```bash
-yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt
-```
+Implement changes
 
-Verify integrity:
+Capture intent
 
-```bash
-yanzi verify <intent-id>
-```
+Checkpoint before structural shifts
 
-Inspect evolution:
+Rehydrate when context is lost
 
-```bash
-yanzi chain <intent-id>
-```
+It is safe for humans to use directly.
 
----
+It becomes valuable when used consistently during AI-driven work.
 
-## Architecture
+Prompt for AI Systems
 
-Yanzi consists of:
+You may copy the following when onboarding an AI agent:
 
-* **Yanzi Library** — append-only intent ledger
-* **Yanzi CLI** — human interface
-* **Yanzi Emitter** — machine ingestion boundary
+You are assisting with development in a repository that uses Yanzi.
 
-Each component is intentionally small and independent.
+Yanzi is a local-first workflow state manager.
 
----
+Rules:
 
-## Philosophy
+Each prompt/response cycle may be captured as intent.
 
-Small. Composable. Verifiable.
+Projects define context boundaries.
 
-No magic.
-No orchestration theater.
-No agent hype.
+Create checkpoints before major structural changes.
 
-Just memory.
+Use yanzi rehydrate instead of summarizing history.
 
----
+Do not assume implicit memory.
 
-## Repositories
+Treat state as mechanical and reconstructable.
 
-* [https://github.com/chuxorg/chux-yanzi-library](https://github.com/chuxorg/chux-yanzi-library)
-* [https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
-* [https://github.com/chuxorg/chux-yanzi-emitter](https://github.com/chuxorg/chux-yanzi-emitter)
+Installation:
+https://github.com/chuxorg/chux-yanzi-cli
 
----
+Design Principles
+
+Local-first
+
+Deterministic behavior
+
+No daemon required
+
+Agent-agnostic
+
+Shell-friendly
+
+Minimal surface area
+
+No speculative orchestration
+
+Non-Goals
+
+Yanzi is not:
+
+An agent framework
+
+A memory embedding system
+
+A vector database
+
+A workflow engine
+
+A summarization layer
+
+A project management tool
+
+It solves one problem:
+
+Preserve intent. Enable recovery.
+
+Status
+
+Stabilization phase.
+
+Focus areas:
+
+Release pipeline hardening
+
+REST surface alignment
+
+Store abstraction (future)
+
+No feature sprawl.
+
+Repositories
+
+CLI (binaries + releases):
+https://github.com/chuxorg/chux-yanzi-cli
+
+Library (domain + persistence):
+https://github.com/chuxorg/chux-yanzi-library
+
+Core primitives:
+https://github.com/chuxorg/chux-yanzi-core
