@@ -4,8 +4,8 @@
 
 [Yanzi](https://www.yanzi.io/) | [Chuck Sailer](https://chucksailer.me)
 
-[![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/chuxorg/yanzi/ci.yml?branch=main&label=build%20status)](https://github.com/chuxorg/yanzi/actions)
+[![Release](https://img.shields.io/github/v/release/chuxorg/chux-yanzi-cli)](https://github.com/chuxorg/chux-yanzi-cli/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/chuxorg/chux-yanzi-cli/ci.yml?branch=master&label=build%20status)](https://github.com/chuxorg/chux-yanzi-cli/actions)
 
 <small>Yanzi is a local-first workflow state manager for AI-assisted development.</small>
 

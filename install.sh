@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-BASE_URL="https://github.com/chuxorg/yanzi/releases/latest/download"
+BASE_URL="https://github.com/chuxorg/chux-yanzi-cli/releases/latest/download"
 
 ADD_PATH=false
 SERVER_MODE=false
