@@ -2,8 +2,10 @@
 
 # Yanzi
 
-[![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases)
-<!-- [![Release workflow](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/chux-yanzi-cli/actions/workflows/release.yml) -->
+[Yanzi](https://www.yanzi.io/) | [Chuck Sailer](https://chucsailer.me)
+
+[![Release](https://img.shields.io/github/v/release/chuxorg/yanzi)](https://github.com/chuxorg/yanzi/releases/latest)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/chuxorg/yanzi/ci.yml?branch=main&label=build%20status)](https://github.com/chuxorg/yanzi/actions)
 
 <small>Yanzi is a local-first workflow state manager for AI-assisted development.</small>
 
@@ -71,15 +73,7 @@ Deterministic ordering only.
 
 ## Architecture
 
-```
-core → library → cli
-```
-
-* `core` defines primitives
-* `library` owns domain + SQLite persistence
-* `cli` is the user-facing interface
-
-The CLI is the product.
+Yanzi is delivered as a single CLI with local SQLite-backed state.
 
 HTTP mode is optional.
 Local mode is default.
@@ -94,16 +88,8 @@ SQLite database location:
 
 ## Installation
 
-Releases are published from the CLI repository:
-
-👉 [https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
-
-Example (macOS arm64):
-
 ```bash
-curl -L https://github.com/chuxorg/chux-yanzi-cli/releases/download/v1.1.0-qa/yanzi_darwin_arm64.tar.gz -o yanzi.tar.gz
-tar -xzf yanzi.tar.gz
-sudo mv yanzi /usr/local/bin/
+go install github.com/chuxorg/yanzi/cmd/yanzi@latest
 ```
 
 Verify:
@@ -112,10 +98,10 @@ Verify:
 yanzi version
 ```
 
-Expected output:
+## Uninstall
 
-```
-v1.1.0-qa
+```bash
+rm $(which yanzi)
 ```
 
 ---
@@ -181,7 +167,7 @@ Rules:
 * Treat state as mechanical and reconstructable.
 
 Installation:
-[https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
+`go install github.com/chuxorg/yanzi/cmd/yanzi@latest`
 
 ---
 
@@ -228,16 +214,4 @@ No feature sprawl.
 
 ---
 
-## Repositories
-
-CLI (binaries + releases):
-[https://github.com/chuxorg/chux-yanzi-cli](https://github.com/chuxorg/chux-yanzi-cli)
-
-Library (domain + persistence):
-[https://github.com/chuxorg/chux-yanzi-library](https://github.com/chuxorg/chux-yanzi-library)
-
-Core primitives:
-[https://github.com/chuxorg/chux-yanzi-core](https://github.com/chuxorg/chux-yanzi-core)
-
 ---
-
