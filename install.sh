@@ -1,14 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
-BASE_URL="https://github.com/chuxorg/chux-yanzi-cli/releases/latest/download"
+REPO="chuxorg/chux-yanzi-cli"
+RELEASES_API="https://api.github.com/repos/$REPO/releases"
 
 ADD_PATH=false
-SERVER_MODE=false
 for arg in "$@"; do
   case "$arg" in
     --add-path) ADD_PATH=true ;;
-    --server) SERVER_MODE=true ;;
     *) ;;
   esac
 done
@@ -34,8 +33,55 @@ case "$ARCH_RAW" in
     ;;
 esac
 
-ARTIFACT="yanzi_${OS}_${ARCH}.tar.gz"
-URL="$BASE_URL/$ARTIFACT"
+ASSET_BINARY="yanzi-${OS}-${ARCH}"
+ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
+
+URL=""
+ASSET_KIND=""
+for page in 1 2 3 4 5 6 7 8 9 10; do
+  RELEASES_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API?per_page=100&page=$page")"
+  if [ "$RELEASES_JSON" = "[]" ]; then
+    break
+  fi
+
+  ASSET_URLS="$(printf '%s\n' "$RELEASES_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
+
+  URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
+  if [ -n "$URL" ]; then
+    ASSET_KIND="binary"
+    break
+  fi
+
+  URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_TARBALL$" | head -n 1 || true)"
+  if [ -n "$URL" ]; then
+    ASSET_KIND="tarball"
+    break
+  fi
+
+  # Fallback for versioned/legacy artifact naming conventions.
+  URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[-_][^/]*[-_]${OS}[-_]${ARCH}$" | head -n 1 || true)"
+  if [ -n "$URL" ]; then
+    ASSET_KIND="binary"
+    break
+  fi
+
+  URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[^/]*_${OS}_${ARCH}[^/]*\\.tar\\.gz$" | head -n 1 || true)"
+  if [ -n "$URL" ]; then
+    ASSET_KIND="tarball"
+    break
+  fi
+done
+
+if [ -z "$URL" ]; then
+  echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
+  echo "The most recent releases may not contain binary assets for $OS/$ARCH." >&2
+  exit 1
+fi
+VERSION="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
+if [ -z "$VERSION" ]; then
+  echo "Failed to parse release version from asset URL" >&2
+  exit 1
+fi
 
 if [ -w /usr/local/bin ]; then
   INSTALL_DIR="/usr/local/bin"
@@ -50,30 +96,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
-ARCHIVE="$TMP_DIR/$ARTIFACT"
+if [ "$ASSET_KIND" = "tarball" ]; then
+  ARCHIVE="$TMP_DIR/$ASSET_TARBALL"
+  curl -fsSL "$URL" -o "$ARCHIVE"
 
-curl -fsSL "$URL" -o "$ARCHIVE"
+  tar -xzf "$ARCHIVE" -C "$TMP_DIR"
 
-tar -xzf "$ARCHIVE" -C "$TMP_DIR"
-
-for bin in yanzi yanzi-emitter libraryd; do
-  if [ ! -f "$TMP_DIR/$bin" ]; then
-    echo "Missing binary in archive: $bin" >&2
+  if [ ! -f "$TMP_DIR/yanzi" ]; then
+    echo "Missing binary in archive: yanzi" >&2
     exit 1
   fi
-  mv -f "$TMP_DIR/$bin" "$INSTALL_DIR/$bin"
-  chmod +x "$INSTALL_DIR/$bin"
-done
 
-if [ "$SERVER_MODE" = true ]; then
-  CONFIG_DIR="$HOME/.yanzi"
-  mkdir -p "$CONFIG_DIR"
-  cat > "$CONFIG_DIR/config.yaml" <<'EOF'
-mode: http
-base_url: http://localhost:8080
-EOF
-  echo "Server mode enabled."
-  echo "Run 'libraryd' to start the server."
+  mv -f "$TMP_DIR/yanzi" "$INSTALL_DIR/yanzi"
+  chmod +x "$INSTALL_DIR/yanzi"
+else
+  curl -fsSL "$URL" -o "$INSTALL_DIR/yanzi"
+  chmod +x "$INSTALL_DIR/yanzi"
 fi
 
 in_path=false
@@ -112,7 +150,7 @@ if [ "$ADD_PATH" = true ]; then
   fi
 else
   if [ "$in_path" = true ]; then
-    echo "Yanzi installed successfully."
+    echo "Yanzi $VERSION installed successfully."
     echo "Run: yanzi --help"
   else
     echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."

@@ -21,22 +21,37 @@ remove_path() {
   exit 1
 }
 
-YANZI_PATH="$(command -v yanzi 2>/dev/null || true)"
-
-if [ -z "$YANZI_PATH" ]; then
-  echo "Yanzi is not installed."
-  exit 0
-fi
-
 remove_file() {
   name="$1"
   path="$2"
   if [ -n "$path" ] && [ -e "$path" ]; then
     echo "Removing $name..."
     remove_path "$path"
+    return 0
   fi
+  return 1
 }
 
-remove_file "yanzi" "$YANZI_PATH"
+removed_any=false
+for bin in yanzi yanzi-emitter libraryd; do
+  path="$(command -v "$bin" 2>/dev/null || true)"
+  if remove_file "$bin" "$path"; then
+    removed_any=true
+    continue
+  fi
+
+  for dir in /usr/local/bin "$HOME/.local/bin"; do
+    candidate="$dir/$bin"
+    if remove_file "$bin" "$candidate"; then
+      removed_any=true
+      break
+    fi
+  done
+done
+
+if [ "$removed_any" = false ]; then
+  echo "Yanzi is not installed."
+  exit 0
+fi
 
 echo "Uninstall complete."
