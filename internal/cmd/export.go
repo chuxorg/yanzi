@@ -21,7 +21,7 @@ type exportItemType string
 const (
 	exportItemCheckpoint exportItemType = "checkpoint"
 	exportItemCapture    exportItemType = "capture"
-	exportItemEvent      exportItemType = "event"
+	exportItemMeta       exportItemType = "meta"
 )
 
 type exportItem struct {
@@ -47,15 +47,16 @@ type exportItem struct {
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	format := fs.String("format", "", "export format (required: markdown)")
+	format := fs.String("format", "", "export format (required: markdown|json)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format markdown")
+		return errors.New("usage: yanzi export --format <markdown|json>")
 	}
-	if strings.TrimSpace(*format) != "markdown" {
-		return errors.New("usage: yanzi export --format markdown")
+	formatValue := strings.TrimSpace(*format)
+	if formatValue != "markdown" && formatValue != "json" {
+		return errors.New("usage: yanzi export --format <markdown|json>")
 	}
 
 	project, err := loadActiveProject()
@@ -86,9 +87,18 @@ func RunExport(args []string, cliVersion string) error {
 		return err
 	}
 
-	content := renderMarkdownLog(project, cliVersion, time.Now().UTC(), items, captureCount)
+	now := time.Now().UTC()
 	path := filepath.Join(".", "YANZI_LOG.md")
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	content := []byte(renderMarkdownLog(project, cliVersion, now, items, captureCount))
+	if formatValue == "json" {
+		path = filepath.Join(".", "YANZI_LOG.json")
+		content, err = renderJSONLog(project, cliVersion, now, items)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
 
@@ -127,7 +137,7 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 
 		if isMetaCommandSource(sourceType) {
 			intents = append(intents, exportItem{
-				Kind:      exportItemEvent,
+				Kind:      exportItemMeta,
 				Timestamp: createdAt,
 				Command:   strings.TrimSpace(prompt),
 				Value:     strings.TrimSpace(response),
@@ -145,7 +155,7 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 			Hash:      hashValue,
 			Prompt:    prompt,
 			Response:  response,
-			Metadata:  meta,
+			Metadata:  exportableMetadata(meta),
 			RowID:     rowID,
 		})
 	}
@@ -213,6 +223,23 @@ func sortedMetaPairs(meta map[string]string) []string {
 	return lines
 }
 
+func exportableMetadata(meta map[string]string) map[string]string {
+	if len(meta) == 0 {
+		return nil
+	}
+	filtered := make(map[string]string, len(meta))
+	for key, value := range meta {
+		if strings.TrimSpace(key) == "project" {
+			continue
+		}
+		filtered[key] = value
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return filtered
+}
+
 func isMetaCommandSource(sourceType string) bool {
 	value := strings.ToLower(strings.TrimSpace(sourceType))
 	return value == "meta-command" || value == "meta_command" || value == "event"
@@ -274,7 +301,7 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 			b.WriteString(fmt.Sprintf("Summary: %s\n", item.Summary))
 			b.WriteString(fmt.Sprintf("Timestamp: %s\n", item.Timestamp))
 			b.WriteString("----------------------\n\n")
-		case exportItemEvent:
+		case exportItemMeta:
 			b.WriteString(fmt.Sprintf("### Event: %s\n\n", item.Command))
 			if strings.TrimSpace(item.Value) != "" {
 				b.WriteString(fmt.Sprintf("Value: %s\n", item.Value))
@@ -305,4 +332,88 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 	}
 
 	return b.String()
+}
+
+type jsonExport struct {
+	SchemaVersion int    `json:"schema_version"`
+	Project       string `json:"project"`
+	ExportedAt    string `json:"exported_at"`
+	Version       string `json:"version"`
+	Events        []any  `json:"events"`
+}
+
+type jsonCheckpointEvent struct {
+	Type      string `json:"type"`
+	ID        string `json:"id"`
+	Summary   string `json:"summary"`
+	Timestamp string `json:"timestamp"`
+}
+
+type jsonCaptureEvent struct {
+	Type      string            `json:"type"`
+	ID        string            `json:"id"`
+	Role      string            `json:"role"`
+	Timestamp string            `json:"timestamp"`
+	Hash      string            `json:"hash"`
+	Prompt    string            `json:"prompt"`
+	Response  string            `json:"response"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
+}
+
+type jsonMetaEvent struct {
+	Type      string `json:"type"`
+	Command   string `json:"command"`
+	Value     any    `json:"value"`
+	Timestamp string `json:"timestamp"`
+}
+
+func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem) ([]byte, error) {
+	events := make([]any, 0, len(items))
+	for _, item := range items {
+		switch item.Kind {
+		case exportItemCheckpoint:
+			events = append(events, jsonCheckpointEvent{
+				Type:      string(exportItemCheckpoint),
+				ID:        item.CheckpointID,
+				Summary:   item.Summary,
+				Timestamp: item.Timestamp,
+			})
+		case exportItemMeta:
+			var value any
+			if strings.TrimSpace(item.Value) != "" {
+				value = item.Value
+			}
+			events = append(events, jsonMetaEvent{
+				Type:      string(exportItemMeta),
+				Command:   item.Command,
+				Value:     value,
+				Timestamp: item.Timestamp,
+			})
+		default:
+			events = append(events, jsonCaptureEvent{
+				Type:      string(exportItemCapture),
+				ID:        item.CaptureID,
+				Role:      item.Role,
+				Timestamp: item.Timestamp,
+				Hash:      item.Hash,
+				Prompt:    item.Prompt,
+				Response:  item.Response,
+				Metadata:  item.Metadata,
+			})
+		}
+	}
+
+	payload := jsonExport{
+		SchemaVersion: 1,
+		Project:       project,
+		ExportedAt:    now.Format(time.RFC3339),
+		Version:       cliVersion,
+		Events:        events,
+	}
+	b, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("encode json export: %w", err)
+	}
+	b = append(b, '\n')
+	return b, nil
 }
