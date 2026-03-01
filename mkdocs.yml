@@ -1,0 +1,22 @@
+site_name: Yanzi CLI
+site_description: Yanzi CLI documentation
+repo_name: chuxorg/chux-yanzi-cli
+repo_url: https://github.com/chuxorg/chux-yanzi-cli
+
+theme:
+  name: material
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Agent Bootstrap: AGENT_BOOTSTRAP.md
+  - Release Protocol: RELEASE_PROTOCOL.md
+  - Code Documentation: CODE_DOCUMENTATION.md
+  - Branch Protection: BRANCH_PROTECTION.md
+  - API:
+      - Overview: api/index.md
+      - CLI Package: api/cmd.md
+      - Internal Packages: api/internal.md
+      - Combined API: API.md
