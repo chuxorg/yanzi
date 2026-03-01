@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chuxorg/chux-yanzi-cli/internal/config"
 	"github.com/chuxorg/chux-yanzi-cli/internal/core/hash"
@@ -112,9 +114,190 @@ func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
 		t.Fatalf("read export: %v", err)
 	}
 	output := string(data)
-	metaBlock := "Metadata:\n  area: auth\n  decision_type: refactor\n  project: alpha\n  tags: migration,security\n"
+	metaBlock := "Metadata:\n  area: auth\n  decision_type: refactor\n  tags: migration,security\n"
 	if !strings.Contains(output, metaBlock) {
 		t.Fatalf("expected sorted metadata block, got: %q", output)
+	}
+}
+
+func TestExportJSONNoActiveProject(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+
+	err := RunExport([]string{"--format", "json"}, "v1.2.3")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "no active project") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-1", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt 1", "response 1", map[string]string{
+		"project":       "alpha",
+		"decision_type": "refactor",
+		"area":          "auth",
+	})
+	seedCheckpointForExport(t, db, "alpha", "2025-01-01T00:00:02Z", "checkpoint 1")
+	seedIntentWithSource(t, db, "evt-1", "2025-01-01T00:00:03Z", "alpha", "engineer", "meta-command", "@yanzi pause", "true")
+
+	if err := RunExport([]string{"--format", "json"}, "v9.9.9"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	path := filepath.Join(workdir, "YANZI_LOG.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export json: %v", err)
+	}
+	if got := payload["schema_version"]; got != float64(1) {
+		t.Fatalf("expected schema_version=1, got %v", got)
+	}
+	if got := payload["project"]; got != "alpha" {
+		t.Fatalf("expected project alpha, got %v", got)
+	}
+	if got := payload["version"]; got != "v9.9.9" {
+		t.Fatalf("expected version v9.9.9, got %v", got)
+	}
+	exportedAt, ok := payload["exported_at"].(string)
+	if !ok || exportedAt == "" {
+		t.Fatalf("expected exported_at string, got %T %v", payload["exported_at"], payload["exported_at"])
+	}
+	if _, err := time.Parse(time.RFC3339, exportedAt); err != nil {
+		t.Fatalf("expected RFC3339 exported_at, got %q (%v)", exportedAt, err)
+	}
+
+	events, ok := payload["events"].([]any)
+	if !ok {
+		t.Fatalf("expected events array, got %T", payload["events"])
+	}
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events, got %d", len(events))
+	}
+
+	first := events[0].(map[string]any)
+	if first["type"] != "capture" {
+		t.Fatalf("expected first event capture, got %v", first["type"])
+	}
+	if _, ok := first["metadata"]; !ok {
+		t.Fatalf("expected capture metadata field")
+	}
+	if _, exists := first["summary"]; exists {
+		t.Fatalf("did not expect checkpoint fields on capture")
+	}
+
+	second := events[1].(map[string]any)
+	if second["type"] != "checkpoint" {
+		t.Fatalf("expected second event checkpoint, got %v", second["type"])
+	}
+
+	third := events[2].(map[string]any)
+	if third["type"] != "meta" {
+		t.Fatalf("expected third event meta, got %v", third["type"])
+	}
+	if third["command"] != "@yanzi pause" {
+		t.Fatalf("unexpected meta command: %v", third["command"])
+	}
+	if third["value"] != "true" {
+		t.Fatalf("unexpected meta value: %v", third["value"])
+	}
+
+	// encoding/json emits map keys in sorted order; ensure deterministic metadata key ordering.
+	jsonText := string(data)
+	areaIdx := strings.Index(jsonText, "\"area\": \"auth\"")
+	decisionIdx := strings.Index(jsonText, "\"decision_type\": \"refactor\"")
+	if areaIdx == -1 || decisionIdx == -1 || areaIdx > decisionIdx {
+		t.Fatalf("expected sorted metadata keys in output json, got: %s", jsonText)
+	}
+}
+
+func TestExportJSONOmitMetadataWhenOnlyProjectAndAllowNullMetaValue(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-1", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt 1", "response 1", map[string]string{
+		"project": "alpha",
+	})
+	seedIntentWithSource(t, db, "evt-1", "2025-01-01T00:00:02Z", "alpha", "engineer", "meta-command", "@yanzi role Architect", "   ")
+
+	if err := RunExport([]string{"--format", "json"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export json: %v", err)
+	}
+	events := payload["events"].([]any)
+	capture := events[0].(map[string]any)
+	if _, ok := capture["metadata"]; ok {
+		t.Fatalf("did not expect metadata field when only system metadata exists")
+	}
+	metaEvent := events[1].(map[string]any)
+	if _, ok := metaEvent["value"]; !ok {
+		t.Fatalf("expected value field on meta event")
+	}
+	if metaEvent["value"] != nil {
+		t.Fatalf("expected null meta value, got %v", metaEvent["value"])
+	}
+}
+
+func TestExportJSONNoEventsProducesEmptyArray(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+
+	if err := RunExport([]string{"--format", "json"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export json: %v", err)
+	}
+	events, ok := payload["events"].([]any)
+	if !ok {
+		t.Fatalf("expected events array, got %T", payload["events"])
+	}
+	if len(events) != 0 {
+		t.Fatalf("expected empty events array, got %d", len(events))
 	}
 }
 
@@ -201,7 +384,16 @@ func seedIntentWithSource(t *testing.T, db *sql.DB, id, createdAt, project, auth
 
 func seedIntentWithMeta(t *testing.T, db *sql.DB, id, createdAt, author, sourceType, prompt, response string, metaPayload map[string]string) {
 	t.Helper()
-	meta, err := json.Marshal(metaPayload)
+	keys := make([]string, 0, len(metaPayload))
+	for key := range metaPayload {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	ordered := make(map[string]string, len(metaPayload))
+	for _, key := range keys {
+		ordered[key] = metaPayload[key]
+	}
+	meta, err := json.Marshal(ordered)
 	if err != nil {
 		t.Fatalf("encode meta: %v", err)
 	}
