@@ -15,7 +15,6 @@
 - Version type (major/minor/patch) is decided by human before release.
 - `VERSION` stores plain semver (`X.Y.Z`).
 - Release automation resolves tag `v$(cat VERSION)` during master release flow.
-- Optional QA tags may use `vX.Y.Z-qa`.
 - No tag reuse.
 - No pseudo-versions.
 - No replace directives in go.mod.
@@ -30,3 +29,7 @@
 6. GitHub release is created with production binaries.
 
 ---
+
+Stage, Commit, and Push any and all changes
+Bump version and tag
+Create a Pull Request for merging the local development branch using the attached PR Protocol
