@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"sort"
@@ -47,16 +48,16 @@ type exportItem struct {
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	format := fs.String("format", "", "export format (required: markdown|json)")
+	format := fs.String("format", "", "export format (required: markdown|json|html)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json>")
+		return errors.New("usage: yanzi export --format <markdown|json|html>")
 	}
 	formatValue := strings.TrimSpace(*format)
-	if formatValue != "markdown" && formatValue != "json" {
-		return errors.New("usage: yanzi export --format <markdown|json>")
+	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
+		return errors.New("usage: yanzi export --format <markdown|json|html>")
 	}
 
 	project, err := loadActiveProject()
@@ -96,6 +97,10 @@ func RunExport(args []string, cliVersion string) error {
 		if err != nil {
 			return err
 		}
+	}
+	if formatValue == "html" {
+		path = filepath.Join(".", "YANZI_LOG.html")
+		content = []byte(renderHTMLLog(project, cliVersion, now, items))
 	}
 
 	if err := os.WriteFile(path, content, 0o644); err != nil {
@@ -210,17 +215,21 @@ func sortedMetaPairs(meta map[string]string) []string {
 	if len(meta) == 0 {
 		return nil
 	}
-	keys := make([]string, 0, len(meta))
-	for key := range meta {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
+	keys := sortedMetaKeys(meta)
 	lines := make([]string, 0, len(keys))
 	for _, key := range keys {
 		lines = append(lines, fmt.Sprintf("  %s: %s", key, meta[key]))
 	}
 	return lines
+}
+
+func sortedMetaKeys(meta map[string]string) []string {
+	keys := make([]string, 0, len(meta))
+	for key := range meta {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func exportableMetadata(meta map[string]string) map[string]string {
@@ -416,4 +425,109 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 	}
 	b = append(b, '\n')
 	return b, nil
+}
+
+func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem) string {
+	totalEvents := len(items)
+	totalCaptures := 0
+	totalCheckpoints := 0
+	for _, item := range items {
+		switch item.Kind {
+		case exportItemCapture:
+			totalCaptures++
+		case exportItemCheckpoint:
+			totalCheckpoints++
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("<!doctype html>\n")
+	b.WriteString("<html lang=\"en\">\n")
+	b.WriteString("<head>\n")
+	b.WriteString("  <meta charset=\"utf-8\">\n")
+	b.WriteString("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
+	b.WriteString("  <title>Yanzi Log</title>\n")
+	b.WriteString("  <style>\n")
+	b.WriteString("    body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;margin:0;background:#f6f7f8;color:#1f2937;line-height:1.45}\n")
+	b.WriteString("    main{max-width:980px;margin:0 auto;padding:24px 16px 40px}\n")
+	b.WriteString("    header{background:#fff;border:1px solid #d1d5db;border-radius:8px;padding:16px;margin-bottom:16px}\n")
+	b.WriteString("    h1{margin:0 0 8px;font-size:1.4rem}\n")
+	b.WriteString("    .meta-line{margin:2px 0;color:#4b5563;font-size:.95rem}\n")
+	b.WriteString("    .counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}\n")
+	b.WriteString("    .count{background:#f3f4f6;border:1px solid #e5e7eb;border-radius:6px;padding:6px 10px;font-size:.9rem}\n")
+	b.WriteString("    .timeline{display:flex;flex-direction:column;gap:12px}\n")
+	b.WriteString("    .capture{background:#fff;border:1px solid #d1d5db;border-radius:8px;padding:12px}\n")
+	b.WriteString("    .capture h3{margin:0 0 8px;font-size:1rem}\n")
+	b.WriteString("    .checkpoint{background:#fff;border-radius:8px;padding:10px 12px}\n")
+	b.WriteString("    .checkpoint h2{margin:0 0 6px;font-size:1.05rem}\n")
+	b.WriteString("    .meta-event{background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:10px 12px;color:#374151}\n")
+	b.WriteString("    .label{font-weight:600}\n")
+	b.WriteString("    table{border-collapse:collapse;margin:8px 0 6px;width:auto}\n")
+	b.WriteString("    th,td{border:1px solid #e5e7eb;padding:4px 8px;font-size:.9rem;text-align:left}\n")
+	b.WriteString("    pre{background:#111827;color:#e5e7eb;border-radius:6px;padding:10px;overflow:auto;white-space:pre-wrap}\n")
+	b.WriteString("    hr{border:none;border-top:1px solid #d1d5db;margin:4px 0}\n")
+	b.WriteString("  </style>\n")
+	b.WriteString("</head>\n")
+	b.WriteString("<body>\n")
+	b.WriteString("<main>\n")
+	b.WriteString("  <header>\n")
+	b.WriteString("    <h1>Yanzi Agent Log</h1>\n")
+	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Project:</span> %s</div>\n", html.EscapeString(project)))
+	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
+	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Version:</span> %s</div>\n", html.EscapeString(cliVersion)))
+	b.WriteString("    <div class=\"counts\">\n")
+	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total events: %d</div>\n", totalEvents))
+	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total captures: %d</div>\n", totalCaptures))
+	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total checkpoints: %d</div>\n", totalCheckpoints))
+	b.WriteString("    </div>\n")
+	b.WriteString("  </header>\n")
+	b.WriteString("  <section class=\"timeline\">\n")
+
+	for _, item := range items {
+		switch item.Kind {
+		case exportItemCheckpoint:
+			b.WriteString("    <hr>\n")
+			b.WriteString("    <section class=\"checkpoint\">\n")
+			b.WriteString(fmt.Sprintf("      <h2>Checkpoint: %s</h2>\n", html.EscapeString(item.CheckpointID)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString("    </section>\n")
+		case exportItemMeta:
+			b.WriteString("    <section class=\"meta-event\">\n")
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Event:</span> %s</div>\n", html.EscapeString(item.Command)))
+			if strings.TrimSpace(item.Value) != "" {
+				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
+			}
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString("    </section>\n")
+		default:
+			b.WriteString("    <section class=\"capture\">\n")
+			b.WriteString(fmt.Sprintf("      <h3>Capture: %s</h3>\n", html.EscapeString(item.CaptureID)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Role:</span> %s</div>\n", html.EscapeString(item.Role)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Hash:</span> %s</div>\n", html.EscapeString(item.Hash)))
+			if len(item.Metadata) > 0 {
+				keys := sortedMetaKeys(item.Metadata)
+				b.WriteString("      <table>\n")
+				b.WriteString("        <thead><tr><th>Metadata Key</th><th>Value</th></tr></thead>\n")
+				b.WriteString("        <tbody>\n")
+				for _, key := range keys {
+					b.WriteString(fmt.Sprintf("          <tr><td>%s</td><td>%s</td></tr>\n", html.EscapeString(key), html.EscapeString(item.Metadata[key])))
+				}
+				b.WriteString("        </tbody>\n")
+				b.WriteString("      </table>\n")
+			}
+			b.WriteString("      <div><span class=\"label\">Prompt:</span></div>\n")
+			b.WriteString(fmt.Sprintf("      <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
+			b.WriteString("      <div><span class=\"label\">Response:</span></div>\n")
+			b.WriteString(fmt.Sprintf("      <pre>%s</pre>\n", html.EscapeString(item.Response)))
+			b.WriteString("    </section>\n")
+		}
+	}
+
+	b.WriteString("  </section>\n")
+	b.WriteString("</main>\n")
+	b.WriteString("</body>\n")
+	b.WriteString("</html>\n")
+	return b.String()
 }

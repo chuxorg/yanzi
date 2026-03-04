@@ -142,6 +142,7 @@ rehydrate args:
 export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
   --format json         Generates YANZI_LOG.json in project root.
+  --format html         Generates YANZI_LOG.html in project root.
 
 notes:
   mode set to http does not start libraryd.
@@ -165,6 +166,7 @@ examples:
   yanzi rehydrate
   yanzi export --format markdown
   yanzi export --format json
+  yanzi export --format html
   yanzi version`)
 }
 
