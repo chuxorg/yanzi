@@ -1,7 +1,7 @@
 site_name: Yanzi CLI
 site_description: Yanzi CLI documentation
-repo_name: chuxorg/chux-yanzi-cli
-repo_url: https://github.com/chuxorg/chux-yanzi-cli
+repo_name: chuxorg/yanzi
+repo_url: https://github.com/chuxorg/yanzi
 
 theme:
   name: material

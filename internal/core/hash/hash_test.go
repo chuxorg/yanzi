@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
+	"github.com/chuxorg/yanzi/internal/core/model"
 )
 
 func TestHashIntentCanonicalization(t *testing.T) {

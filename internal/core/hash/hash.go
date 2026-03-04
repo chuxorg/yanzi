@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
+	"github.com/chuxorg/yanzi/internal/core/model"
 )
 
 // CanonicalizeMeta re-encodes a JSON object with sorted keys.

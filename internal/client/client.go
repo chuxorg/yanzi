@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
+	"github.com/chuxorg/yanzi/internal/core/model"
 )
 
 // Client is a minimal HTTP client for the Yanzi Library API.

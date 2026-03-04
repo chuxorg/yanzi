@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 func TestIsHelpArg(t *testing.T) {

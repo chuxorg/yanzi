@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 type projectState struct {

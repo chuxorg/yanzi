@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 // RunMode shows or sets the runtime mode.

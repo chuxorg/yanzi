@@ -29,6 +29,8 @@ profile.cov
 bin/
 build/
 dist/
+site/
+YANZI_LOG.*
 out/
 tmp/
 /yanzi

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "project": "sanity-test",
+  "exported_at": "2026-03-04T16:29:55Z",
+  "version": "dev",
+  "events": [
+    {
+      "type": "capture",
+      "id": "16669ac4d0ca7d8e543c2c7ab21be2ed",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.184632Z",
+      "hash": "49f6b7b979bc815d4cd16408f5d9dbbcd385b749956688d93efdd8335fc71eb4",
+      "prompt": "@yanzi role Engineer",
+      "response": "ACK: role set to Engineer",
+      "metadata": {
+        "area": "bootstrap",
+        "decision_type": "role",
+        "tags": "phase1"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "7030b08b6d0103e75538953028fab459",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.1968Z",
+      "hash": "0edbf50179246c43d6915f76633ccf08830b9c7b61cb0c88ab9191c0348311f1",
+      "prompt": "Begin sanity flow",
+      "response": "Flow started"
+    },
+    {
+      "type": "checkpoint",
+      "id": "68354eccafed32be43ad6a5c6089ed91f807aa354dc3b4fc285cb31796f0c65d",
+      "summary": "Initialized sanity flow and role baseline",
+      "timestamp": "2026-03-01T14:16:16.208699Z"
+    },
+    {
+      "type": "capture",
+      "id": "3000165f9d30236bcc35600b5c0ed30c",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.220041Z",
+      "hash": "5e7541fdcf32bc4879d6b91dcab512aee47dfb41f3f48847a666da75948783ef",
+      "prompt": "Capture duplicate area key",
+      "response": "Expect last key to win",
+      "metadata": {
+        "area": "payments",
+        "decision_type": "refactor",
+        "tags": "dupkey"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "9b7feed56a16881769ecfb0a2cdf8f32",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.231141Z",
+      "hash": "0449de26aeaebceeee537f250e37728e28d188078642b4ac880f929f7dcb6129",
+      "prompt": "@yanzi pause",
+      "response": "ACK: capture paused",
+      "metadata": {
+        "decision_type": "state_change"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "5ea342573939fd15bf443ec9045c25ba",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.243225Z",
+      "hash": "ec52cc8024826985a6fef80fee559ab5bfe5ece5c9ca55eeb2081b626ab99374",
+      "prompt": "@yanzi checkpoint \"Paused structural state\"",
+      "response": "ACK: checkpoint command intent recorded while paused"
+    },
+    {
+      "type": "checkpoint",
+      "id": "dd8f1bc2028518d331afe95efabe9102ed5c4498d52c5b6f2c7470abf3da80a4",
+      "summary": "Paused state validated for meta-command intent capture",
+      "timestamp": "2026-03-01T14:16:16.253813Z"
+    },
+    {
+      "type": "capture",
+      "id": "7d70373f74233bf090681a02fbe19f0e",
+      "role": "Engineer",
+      "timestamp": "2026-03-01T14:16:16.265703Z",
+      "hash": "e06c358752da2a8b9318089748c399c574dce9f9b671a9c926923373510bd489",
+      "prompt": "@yanzi resume",
+      "response": "ACK: capture resumed",
+      "metadata": {
+        "area": "runtime",
+        "tags": "resume,control"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "97c3cd724ea1c49ee3a6b3f694ecc0dd",
+      "role": "Architect",
+      "timestamp": "2026-03-01T14:16:16.278009Z",
+      "hash": "820f1bd4ba4bf83e0d927f537da2006318bc18fe2820247a1b591f93c52c6cea",
+      "prompt": "@yanzi role Architect",
+      "response": "ACK: role set to Architect",
+      "metadata": {
+        "area": "governance",
+        "decision_type": "role"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "8c802446a90a7092d1f112b909bbd66c",
+      "role": "Architect",
+      "timestamp": "2026-03-01T14:16:16.289465Z",
+      "hash": "fcf5aa3d9acc300f8380ded7fa680580543d0978515fb7946d7e0ecc14e5d542",
+      "prompt": "Continue logging under Architect role",
+      "response": "Logging continues"
+    },
+    {
+      "type": "capture",
+      "id": "aed72dc87014d6199e3b288162f89985",
+      "role": "Architect",
+      "timestamp": "2026-03-01T14:16:16.301383Z",
+      "hash": "e7c740571c5418f166188185049312e70f3d65b904fa93771a0adb3d20d7056d",
+      "prompt": "Record structured decision",
+      "response": "Decision recorded",
+      "metadata": {
+        "area": "export",
+        "decision_type": "documentation",
+        "tags": "md,structured"
+      }
+    },
+    {
+      "type": "capture",
+      "id": "3550b48853b6168dfebb1158d93fd8e2",
+      "role": "Architect",
+      "timestamp": "2026-03-01T14:16:16.323694Z",
+      "hash": "fa4c5a78dd645db39dca8b7418abfdedd0ce3410088b603be32c5055ecfb4e23",
+      "prompt": "Continue after malformed metadata error",
+      "response": "Recovered and continuing"
+    }
+  ]
+}
