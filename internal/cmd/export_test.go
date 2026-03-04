@@ -301,6 +301,118 @@ func TestExportJSONNoEventsProducesEmptyArray(t *testing.T) {
 	}
 }
 
+func TestExportHTMLNoActiveProject(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+
+	err := RunExport([]string{"--format", "html"}, "v1.2.3")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "no active project") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-1", "2025-01-01T00:00:01Z", "engineer", "cli", "line1\nline2", "result\nok", map[string]string{
+		"project":       "alpha",
+		"decision_type": "refactor",
+		"area":          "auth",
+	})
+	seedCheckpointForExport(t, db, "alpha", "2025-01-01T00:00:02Z", "checkpoint 1")
+	seedIntentWithSource(t, db, "evt-1", "2025-01-01T00:00:03Z", "alpha", "engineer", "meta-command", "@yanzi pause", "true")
+
+	if err := RunExport([]string{"--format", "html"}, "v9.9.9"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	path := filepath.Join(workdir, "YANZI_LOG.html")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+
+	if !strings.Contains(output, "<!doctype html>") {
+		t.Fatalf("missing html doctype: %q", output)
+	}
+	if !strings.Contains(output, "Project:</span> alpha") {
+		t.Fatalf("missing project header: %q", output)
+	}
+	if !strings.Contains(output, "Version:</span> v9.9.9") {
+		t.Fatalf("missing version header: %q", output)
+	}
+	if !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Total captures: 1") || !strings.Contains(output, "Total checkpoints: 1") {
+		t.Fatalf("missing counts: %q", output)
+	}
+
+	idxCapture := strings.Index(output, "Capture: cap-1")
+	idxCheckpoint := strings.Index(output, "Checkpoint: ")
+	idxMeta := strings.Index(output, "Event:</span> @yanzi pause")
+	if idxCapture == -1 || idxCheckpoint == -1 || idxMeta == -1 {
+		t.Fatalf("missing expected timeline sections: %q", output)
+	}
+	if !(idxCapture < idxCheckpoint && idxCheckpoint < idxMeta) {
+		t.Fatalf("unexpected timeline order: %q", output)
+	}
+
+	if !strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("missing metadata table header: %q", output)
+	}
+	areaIdx := strings.Index(output, "<td>area</td><td>auth</td>")
+	decisionIdx := strings.Index(output, "<td>decision_type</td><td>refactor</td>")
+	if areaIdx == -1 || decisionIdx == -1 || areaIdx > decisionIdx {
+		t.Fatalf("metadata order not deterministic: %q", output)
+	}
+
+	if !strings.Contains(output, "<pre>line1\nline2</pre>") {
+		t.Fatalf("prompt pre block did not preserve whitespace: %q", output)
+	}
+	if !strings.Contains(output, "<pre>result\nok</pre>") {
+		t.Fatalf("response pre block did not preserve whitespace: %q", output)
+	}
+}
+
+func TestExportHTMLOmitsMetadataWhenOnlyProject(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-1", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt", "response", map[string]string{
+		"project": "alpha",
+	})
+
+	if err := RunExport([]string{"--format", "html"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("did not expect metadata table for project-only metadata: %q", output)
+	}
+}
+
 func TestExportMarkdownNoCapturesRecorded(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)

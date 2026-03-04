@@ -16,3 +16,14 @@ Before executing any development task:
   - Always follow docs/CODE_DOCUMENTATION.md
   - All new and updated code that is testable must be unit tested.
   - All builds and unit tests must pass be for a task is pushed to the remote repo
+
+
+  - Stage, Commit and Push
+  - Create PR to development.
+  - Do not create tags before merge.
+  - Always follow docs/RELEASE_PROTOCOL.md
+  - Always update code comments for documentation
+  - Always follow docs/CODE_DOCUMENTATION.md
+  - All new and updated code that is testable must be unit tested.
+  - All builds and unit tests must pass be for a task is pushed to the remote repo
+  
