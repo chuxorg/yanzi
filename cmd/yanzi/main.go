@@ -83,7 +83,7 @@ func usage() {
   yanzi <command> [args]
 
 commands:
-  capture  Create a new intent record via the library API.
+  capture  Create a new intent record.
   verify   Verify an intent by id.
   chain    Print an intent chain by id.
   list     List intent records.
@@ -94,6 +94,10 @@ commands:
   rehydrate  Rehydrate active project context.
   export  Export active project history.
   version  Print the CLI version.
+
+global args:
+  -h, --help, ?          Show help.
+  --version              Print the CLI version.
 
 capture args:
   --author <name>         Required author name.
@@ -148,6 +152,8 @@ notes:
   mode set to http does not start libraryd.
 
 examples:
+  yanzi --help
+  yanzi --version
   yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt --meta lang=go
   yanzi capture --author "Ada" --prompt "Hello" --response "World"
   yanzi verify 01HZX9Q4X8N9JZ1K2G9N8M4V3P
