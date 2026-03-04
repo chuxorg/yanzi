@@ -8,6 +8,8 @@ Agent Setup: [Tell your AI Agent (Codex, Copilot, etc.)](prompts/AI_AGENT_SEED.m
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
+To get started with your favorite AI Agent, just copy the  [AI_AGENT_SEED Prompt](prompts/AI_AGENT_SEED.md) and paste into your AI Agent.
+
 ## What Yanzi Is
 
 Yanzi is a CLI designed to be used by AI Agents. Yanzi is not an MCP. Yanzi is a CLI and can be queried by a human from the command line. 
