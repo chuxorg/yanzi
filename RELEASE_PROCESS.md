@@ -40,4 +40,5 @@ Release workflow behavior:
 2. Confirm QA build passes on merge.
 3. Bump `VERSION` to next production version in `development`.
 4. Merge `development` into `master` via PR.
+5. Update CHANGELOG.md - if the file does not exsist, create it.
 5. Confirm release workflow completes and GitHub release is created.

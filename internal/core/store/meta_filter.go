@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
+	"github.com/chuxorg/yanzi/internal/core/model"
 )
 
 // FilterIntentsByMeta returns intents that match all meta filters (AND semantics).

@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
-	yanzilibrary "github.com/chuxorg/chux-yanzi-cli/internal/library"
+	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
 // RunRehydrate renders the latest checkpoint and artifacts since.
