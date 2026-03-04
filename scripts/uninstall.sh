@@ -33,7 +33,7 @@ remove_file() {
 }
 
 removed_any=false
-for bin in yanzi; do
+for bin in yanzi yanzi-emitter libraryd; do
   path="$(command -v "$bin" 2>/dev/null || true)"
   if remove_file "$bin" "$path"; then
     removed_any=true

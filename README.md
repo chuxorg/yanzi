@@ -4,104 +4,81 @@
 [![Release](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
 
 Links: [yanzi (install info)](https://github.com/chuxorg/yanzi) | [yanzi.io](https://yanzi.io) | [chucksailer.me](https://chucksailer.me)
+Agent Setup: [Tell your AI Agent (Codex, Copilot, etc.)](prompts/AI_AGENT_SEED.md)
 
-Yanzi is a local workflow state manager for AI-assisted development that enables deterministic resume via projects and checkpoints.
+AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
-## Why Yanzi
-- AI sessions are ephemeral
-- Context grows and becomes noisy
-- Rehydration is unreliable
-- Yanzi provides deterministic resume
+## What Yanzi Is
 
-## Capabilities
-- Global CLI install with `go install github.com/chuxorg/yanzi/cmd/yanzi@latest`.
-- Project primitive: `yanzi project create <name>`, `yanzi project use <name>`, `yanzi project list`, `yanzi project current`.
-- Active project context stored in `.yanzi/state.json`.
-- Capture primitive: `yanzi capture --prompt ... --response ...` (project metadata auto-attached when active; `--author` is required).
-- Checkpoint primitive: `yanzi checkpoint create --summary "..."`, `yanzi checkpoint list`.
-- Deterministic resume: `yanzi rehydrate`.
-- Deterministic project log export: `yanzi export --format markdown`.
-- Immutable artifact storage with deterministic hashing and an append-only ledger.
-- Unit-tested primitives.
+Yanzi is a deterministic logging layer for AI-assisted development.
+
+It records:
+- Captures (prompt/response records)
+- Checkpoints (milestone summaries)
+- Role/meta events (agent control intent)
+- Optional metadata for capture context
+
+Yanzi exports this event stream in structured formats so AI-assisted work can be reviewed later.
+
+Yanzi is not an orchestration framework or automation engine.
 
 ## Installation
-Install the latest CLI directly:
+
+Install Yanzi with Go:
 
 ```sh
 go install github.com/chuxorg/yanzi/cmd/yanzi@latest
 ```
 
-If you already have the repository checked out:
-
-```sh
-go install ./cmd/yanzi
-```
-
-Optional release-binary installer scripts are available under `scripts/`:
-
-```sh
-./scripts/install.sh
-./scripts/uninstall.sh
-```
-
-## Code Documentation
-- Yanzi uses `gomarkdoc` to generate API docs from Go comments.
-- Generated docs are written to `docs/API.md` and include an Index section (TOC).
-
-```sh
-make docs
-make docs-check
-```
+Binary downloads are also available from GitHub Releases.
 
 ## Quick Start
+
 ```sh
-yanzi project create MyProject
-yanzi project use MyProject
-yanzi capture --prompt "Build landing page" --response "..."
-yanzi checkpoint create --summary "Initial layout complete"
-yanzi export --format markdown
-yanzi rehydrate
+yanzi project create "alpha"
+yanzi checkpoint create --summary "Initial state"
 ```
 
-- `yanzi project create` creates a project record.
-- `yanzi project use` sets the active project in `.yanzi/state.json`.
-- `yanzi capture` stores the prompt/response and attaches active project metadata. Add `--author` when running this command.
-- `yanzi checkpoint create` saves a checkpoint for the active project.
-- `yanzi export --format markdown` generates `YANZI_LOG.md` in project root.
-- `yanzi rehydrate` prints the latest checkpoint and artifacts since.
+During development, agents can record captures and checkpoints as work progresses, then export logs when needed.
 
-## Typical Workflow
-- Build a feature and capture key prompts/responses.
-- Create a checkpoint when a milestone is reached.
-- Restart your AI session.
-- Run `yanzi rehydrate` to load the latest checkpoint and artifacts since.
-- Continue work with deterministic context.
+## Agent Protocol
 
-## Using Yanzi with AI Coding Agents
+Yanzi is designed for AI-agent workflows that use explicit control lines, for example:
+
 ```text
-You are an AI coding agent with shell access.
+@yanzi role Engineer
+@yanzi checkpoint "Refactor authentication flow"
+@yanzi pause
+@yanzi resume
+@yanzi export
+```
 
-Before beginning development:
+Agents translate these protocol lines into Yanzi CLI commands.
 
-1. Verify Yanzi is installed:
-   yanzi --version
+## Exporting Logs
 
-2. If not installed, install it using the documented method.
+Supported export formats:
 
-3. Create and activate a project:
-   yanzi project create <ProjectName>
-   yanzi project use <ProjectName>
+```sh
+yanzi export --format markdown
+yanzi export --format json
+yanzi export --format html
+```
 
-4. Persist all meaningful prompts and responses using:
-   yanzi capture
+- Markdown: human-readable log
+- JSON: structured machine-readable log
+- HTML: professional presentation of the log
 
-5. When a milestone is reached:
-   yanzi checkpoint create --summary "..."
+## Using Yanzi Logs in External Systems
 
-6. If the session restarts:
-   yanzi rehydrate
+Yanzi JSON export can be ingested by external systems such as ELK, Splunk, Sentry, or other logging pipelines.
 
-Yanzi must be treated as required workflow infrastructure.
-Do not proceed with development if it is unavailable.
------------------------------------------------------
+Yanzi writes JSON to `./YANZI_LOG.json` by default. Example usage patterns:
+
+```sh
+yanzi export --format json > log.json
+```
+
+```sh
+yanzi export --format json | curl -X POST https://example.internal/logs --data-binary @-
 ```

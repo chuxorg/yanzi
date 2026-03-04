@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO="chuxorg/yanzi"
+REPO="chuxorg/chux-yanzi-cli"
 RELEASES_API="https://api.github.com/repos/$REPO/releases"
 
 ADD_PATH=false
