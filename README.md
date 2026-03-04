@@ -10,6 +10,7 @@ AI-assisted development generates decisions and reasoning that are often lost ac
 
 ## What Yanzi Is
 
+Yanzi is a CLI designed to be used by AI Agents. Yanzi is not an MCP. Yanzi is a CLI and can be queried by a human from the command line. 
 Yanzi is a deterministic logging layer for AI-assisted development.
 
 It records:
@@ -18,7 +19,9 @@ It records:
 - Role/meta events (agent control intent)
 - Optional metadata for capture context
 
-Yanzi exports this event stream in structured formats so AI-assisted work can be reviewed later.
+Yanzi allows you to pause this capture as well.
+Yanzi offers a variety of commands, known as @yanzi commands, that allow both the AI Agent and Human to interact with Yanzi more easily. 
+Yanzi allows exports of the event stream, in structured formats, so AI-assisted work can be piped into other systems for later review or analysis.
 
 Yanzi is not an orchestration framework or automation engine.
 
