@@ -22,7 +22,9 @@ Expected checks:
 - `go build ./cmd/yanzi`
 
 ## Release Build Path
-Triggered by GitHub Actions when a pull request from `development` is merged into `master`.
+Triggered by GitHub Actions when:
+- a pull request from `development` is merged into `master`, or
+- a production tag `vX.Y.Z` is pushed.
 
 Release workflow behavior:
 - Reads `VERSION` and resolves release tag `v$(cat VERSION)`.
