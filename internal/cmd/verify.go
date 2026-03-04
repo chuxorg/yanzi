@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/client"
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/client"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 // RunVerify verifies the stored hash for a given intent id.

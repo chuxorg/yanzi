@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
-	yanzilibrary "github.com/chuxorg/chux-yanzi-cli/internal/library"
+	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
 func writeTestConfig(t *testing.T, home string) {

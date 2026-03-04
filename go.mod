@@ -1,4 +1,4 @@
-module github.com/chuxorg/chux-yanzi-cli
+module github.com/chuxorg/yanzi
 
 go 1.24.0
 

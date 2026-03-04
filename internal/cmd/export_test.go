@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/hash"
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
-	yanzilibrary "github.com/chuxorg/chux-yanzi-cli/internal/library"
+	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/core/hash"
+	"github.com/chuxorg/yanzi/internal/core/model"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	_ "modernc.org/sqlite"
 )
 

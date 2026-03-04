@@ -13,8 +13,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/client"
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/client"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 // RunCapture posts a new intent record to the library API.

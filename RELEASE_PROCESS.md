@@ -22,7 +22,9 @@ Expected checks:
 - `go build ./cmd/yanzi`
 
 ## Release Build Path
-Triggered by GitHub Actions when a pull request from `development` is merged into `master`.
+Triggered by GitHub Actions when:
+- a pull request from `development` is merged into `master`, or
+- a production tag `vX.Y.Z` is pushed.
 
 Release workflow behavior:
 - Reads `VERSION` and resolves release tag `v$(cat VERSION)`.
@@ -40,4 +42,5 @@ Release workflow behavior:
 2. Confirm QA build passes on merge.
 3. Bump `VERSION` to next production version in `development`.
 4. Merge `development` into `master` via PR.
+5. Update CHANGELOG.md - if the file does not exsist, create it.
 5. Confirm release workflow completes and GitHub release is created.

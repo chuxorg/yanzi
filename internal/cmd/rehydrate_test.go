@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/hash"
-	"github.com/chuxorg/chux-yanzi-cli/internal/core/model"
-	yanzilibrary "github.com/chuxorg/chux-yanzi-cli/internal/library"
+	"github.com/chuxorg/yanzi/internal/core/hash"
+	"github.com/chuxorg/yanzi/internal/core/model"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	_ "modernc.org/sqlite"
 )
 

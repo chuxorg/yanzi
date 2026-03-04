@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 type exportItemType string

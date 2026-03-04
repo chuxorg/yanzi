@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/chuxorg/chux-yanzi-cli/internal/client"
-	"github.com/chuxorg/chux-yanzi-cli/internal/config"
+	"github.com/chuxorg/yanzi/internal/client"
+	"github.com/chuxorg/yanzi/internal/config"
 )
 
 // RunList lists intent records.

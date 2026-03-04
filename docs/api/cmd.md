@@ -3,7 +3,7 @@
 # yanzi
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/cmd/yanzi"
+import "github.com/chuxorg/yanzi/cmd/yanzi"
 ```
 
 ## Index

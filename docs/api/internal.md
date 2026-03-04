@@ -3,7 +3,7 @@
 # client
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/client"
+import "github.com/chuxorg/yanzi/internal/client"
 ```
 
 ## Index
@@ -23,7 +23,7 @@ import "github.com/chuxorg/chux-yanzi-cli/internal/client"
 
 
 <a name="ChainResponse"></a>
-## type [ChainResponse](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L37-L42>)
+## type [ChainResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L37-L42>)
 
 ChainResponse is returned by the /chain endpoint.
 
@@ -37,7 +37,7 @@ type ChainResponse struct {
 ```
 
 <a name="Client"></a>
-## type [Client](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L18-L21>)
+## type [Client](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L18-L21>)
 
 Client is a minimal HTTP client for the Yanzi Library API.
 
@@ -49,7 +49,7 @@ type Client struct {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L61>)
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L61>)
 
 ```go
 func New(baseURL string) *Client
@@ -58,7 +58,7 @@ func New(baseURL string) *Client
 New creates a client using the provided base URL.
 
 <a name="Client.ChainIntent"></a>
-### func \(\*Client\) [ChainIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L90>)
+### func \(\*Client\) [ChainIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L90>)
 
 ```go
 func (c *Client) ChainIntent(ctx context.Context, id string) (ChainResponse, error)
@@ -67,7 +67,7 @@ func (c *Client) ChainIntent(ctx context.Context, id string) (ChainResponse, err
 ChainIntent calls GET /v0/intents/\{id\}/chain.
 
 <a name="Client.CreateIntent"></a>
-### func \(\*Client\) [CreateIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L71>)
+### func \(\*Client\) [CreateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L71>)
 
 ```go
 func (c *Client) CreateIntent(ctx context.Context, req CreateIntentRequest) (IntentRecord, error)
@@ -76,7 +76,7 @@ func (c *Client) CreateIntent(ctx context.Context, req CreateIntentRequest) (Int
 CreateIntent posts a new intent record.
 
 <a name="Client.GetIntent"></a>
-### func \(\*Client\) [GetIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L126>)
+### func \(\*Client\) [GetIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L126>)
 
 ```go
 func (c *Client) GetIntent(ctx context.Context, id string) (IntentRecord, error)
@@ -85,7 +85,7 @@ func (c *Client) GetIntent(ctx context.Context, id string) (IntentRecord, error)
 GetIntent calls GET /v0/intents/\{id\}.
 
 <a name="Client.ListIntents"></a>
-### func \(\*Client\) [ListIntents](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L100>)
+### func \(\*Client\) [ListIntents](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L100>)
 
 ```go
 func (c *Client) ListIntents(ctx context.Context, author, source string, limit int, metaFilters map[string]string) (ListResponse, error)
@@ -94,7 +94,7 @@ func (c *Client) ListIntents(ctx context.Context, author, source string, limit i
 ListIntents calls GET /v0/intents.
 
 <a name="Client.VerifyIntent"></a>
-### func \(\*Client\) [VerifyIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L80>)
+### func \(\*Client\) [VerifyIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L80>)
 
 ```go
 func (c *Client) VerifyIntent(ctx context.Context, id string) (VerifyResponse, error)
@@ -103,7 +103,7 @@ func (c *Client) VerifyIntent(ctx context.Context, id string) (VerifyResponse, e
 VerifyIntent calls GET /v0/intents/\{id\}/verify.
 
 <a name="CreateIntentRequest"></a>
-## type [CreateIntentRequest](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L50-L58>)
+## type [CreateIntentRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L50-L58>)
 
 CreateIntentRequest is the payload for POST /v0/intents.
 
@@ -120,7 +120,7 @@ type CreateIntentRequest struct {
 ```
 
 <a name="IntentRecord"></a>
-## type [IntentRecord](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L24>)
+## type [IntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L24>)
 
 IntentRecord mirrors the server v0 schema.
 
@@ -129,7 +129,7 @@ type IntentRecord = model.IntentRecord
 ```
 
 <a name="ListResponse"></a>
-## type [ListResponse](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L45-L47>)
+## type [ListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L45-L47>)
 
 ListResponse is returned by the /intents endpoint.
 
@@ -140,7 +140,7 @@ type ListResponse struct {
 ```
 
 <a name="VerifyResponse"></a>
-## type [VerifyResponse](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/client/client.go#L27-L34>)
+## type [VerifyResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L27-L34>)
 
 VerifyResponse is returned by the /verify endpoint.
 
@@ -158,7 +158,7 @@ type VerifyResponse struct {
 # cmd
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/cmd"
+import "github.com/chuxorg/yanzi/internal/cmd"
 ```
 
 ## Index
@@ -176,7 +176,7 @@ import "github.com/chuxorg/chux-yanzi-cli/internal/cmd"
 
 
 <a name="RunCapture"></a>
-## func [RunCapture](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/capture.go#L21>)
+## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L21>)
 
 ```go
 func RunCapture(args []string) error
@@ -185,7 +185,7 @@ func RunCapture(args []string) error
 RunCapture posts a new intent record to the library API.
 
 <a name="RunChain"></a>
-## func [RunChain](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/chain.go#L15>)
+## func [RunChain](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/chain.go#L15>)
 
 ```go
 func RunChain(args []string) error
@@ -194,7 +194,7 @@ func RunChain(args []string) error
 RunChain prints the intent chain from oldest to newest.
 
 <a name="RunCheckpoint"></a>
-## func [RunCheckpoint](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/checkpoint.go#L15>)
+## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L15>)
 
 ```go
 func RunCheckpoint(args []string) error
@@ -203,7 +203,7 @@ func RunCheckpoint(args []string) error
 RunCheckpoint handles checkpoint subcommands.
 
 <a name="RunExport"></a>
-## func [RunExport](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/export.go#L47>)
+## func [RunExport](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/export.go#L48>)
 
 ```go
 func RunExport(args []string, cliVersion string) error
@@ -212,7 +212,7 @@ func RunExport(args []string, cliVersion string) error
 RunExport writes deterministic project history logs.
 
 <a name="RunList"></a>
-## func [RunList](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/list.go#L15>)
+## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L15>)
 
 ```go
 func RunList(args []string) error
@@ -221,7 +221,7 @@ func RunList(args []string) error
 RunList lists intent records.
 
 <a name="RunMode"></a>
-## func [RunMode](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/mode.go#L12>)
+## func [RunMode](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/mode.go#L12>)
 
 ```go
 func RunMode(args []string) error
@@ -230,7 +230,7 @@ func RunMode(args []string) error
 RunMode shows or sets the runtime mode.
 
 <a name="RunProject"></a>
-## func [RunProject](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/project.go#L20>)
+## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L20>)
 
 ```go
 func RunProject(args []string) error
@@ -239,7 +239,7 @@ func RunProject(args []string) error
 RunProject handles project subcommands.
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/rehydrate.go#L15>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L15>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -248,7 +248,7 @@ func RunRehydrate(args []string) error
 RunRehydrate renders the latest checkpoint and artifacts since.
 
 <a name="RunShow"></a>
-## func [RunShow](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/show.go#L15>)
+## func [RunShow](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/show.go#L15>)
 
 ```go
 func RunShow(args []string) error
@@ -257,7 +257,7 @@ func RunShow(args []string) error
 RunShow prints full intent details by id.
 
 <a name="RunVerify"></a>
-## func [RunVerify](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/cmd/verify.go#L15>)
+## func [RunVerify](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/verify.go#L15>)
 
 ```go
 func RunVerify(args []string) error
@@ -268,7 +268,7 @@ RunVerify verifies the stored hash for a given intent id.
 # config
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/config"
+import "github.com/chuxorg/yanzi/internal/config"
 ```
 
 ## Index
@@ -282,7 +282,7 @@ import "github.com/chuxorg/chux-yanzi-cli/internal/config"
 
 
 <a name="ConfigPath"></a>
-## func [ConfigPath](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L97>)
+## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L97>)
 
 ```go
 func ConfigPath() (string, error)
@@ -291,7 +291,7 @@ func ConfigPath() (string, error)
 ConfigPath returns the full path to \~/.yanzi/config.yaml.
 
 <a name="DefaultDBPath"></a>
-## func [DefaultDBPath](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L115>)
+## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L115>)
 
 ```go
 func DefaultDBPath() (string, error)
@@ -300,7 +300,7 @@ func DefaultDBPath() (string, error)
 DefaultDBPath returns the default SQLite path under \~/.yanzi.
 
 <a name="StateDir"></a>
-## func [StateDir](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L106>)
+## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L106>)
 
 ```go
 func StateDir() (string, error)
@@ -309,7 +309,7 @@ func StateDir() (string, error)
 StateDir returns the \~/.yanzi directory path.
 
 <a name="Config"></a>
-## type [Config](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L24-L28>)
+## type [Config](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L24-L28>)
 
 Config holds CLI configuration values loaded from disk.
 
@@ -322,7 +322,7 @@ type Config struct {
 ```
 
 <a name="Load"></a>
-### func [Load](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L31>)
+### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L31>)
 
 ```go
 func Load() (Config, error)
@@ -331,7 +331,7 @@ func Load() (Config, error)
 Load reads \~/.yanzi/config.yaml and returns defaults if missing.
 
 <a name="Mode"></a>
-## type [Mode](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/config/config.go#L16>)
+## type [Mode](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L16>)
 
 Mode controls whether yanzi runs against local storage or HTTP APIs.
 
@@ -351,7 +351,7 @@ const (
 # yanzilibrary
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/library"
+import "github.com/chuxorg/yanzi/internal/library"
 ```
 
 ## Index
@@ -392,7 +392,7 @@ var ErrCheckpointNotFound = errors.New("checkpoint not found")
 ```
 
 <a name="HashCheckpoint"></a>
-## func [HashCheckpoint](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_hash.go#L14>)
+## func [HashCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_hash.go#L14>)
 
 ```go
 func HashCheckpoint(checkpoint Checkpoint) (string, error)
@@ -401,7 +401,7 @@ func HashCheckpoint(checkpoint Checkpoint) (string, error)
 HashCheckpoint computes a deterministic SHA\-256 hash for a Checkpoint. The hash preimage excludes the hash field and uses canonical field order.
 
 <a name="InitDB"></a>
-## func [InitDB](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/db_init.go#L58>)
+## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L58>)
 
 ```go
 func InitDB() (*sql.DB, error)
@@ -410,7 +410,7 @@ func InitDB() (*sql.DB, error)
 InitDB resolves the database path, ensures migrations, and returns a SQLite handle.
 
 <a name="Initialize"></a>
-## func [Initialize](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/db_init.go#L39>)
+## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L39>)
 
 ```go
 func Initialize() (bool, error)
@@ -419,7 +419,7 @@ func Initialize() (bool, error)
 Initialize ensures the default yanzi runtime directory, database, and schema exist. It returns true when this run performed first\-time schema initialization.
 
 <a name="MigrationsFS"></a>
-## func [MigrationsFS](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/migrations_embed.go#L12>)
+## func [MigrationsFS](<https://github.com/chuxorg/yanzi/blob/master/internal/library/migrations_embed.go#L12>)
 
 ```go
 func MigrationsFS() fs.FS
@@ -428,7 +428,7 @@ func MigrationsFS() fs.FS
 MigrationsFS exposes embedded migration files for libraryd.
 
 <a name="ResolvedDBPath"></a>
-## func [ResolvedDBPath](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/db_init.go#L74>)
+## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L74>)
 
 ```go
 func ResolvedDBPath() string
@@ -437,7 +437,7 @@ func ResolvedDBPath() string
 ResolvedDBPath returns the most recently resolved database path.
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L9-L16>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)
 
 Checkpoint represents an immutable checkpoint artifact.
 
@@ -453,7 +453,7 @@ type Checkpoint struct {
 ```
 
 <a name="CreateCheckpoint"></a>
-### func [CreateCheckpoint](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L155>)
+### func [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L155>)
 
 ```go
 func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, artifactIDs []string) (Checkpoint, error)
@@ -462,7 +462,7 @@ func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, 
 CreateCheckpoint is a convenience wrapper for CheckpointStore.CreateCheckpoint.
 
 <a name="ListCheckpoints"></a>
-### func [ListCheckpoints](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L160>)
+### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L160>)
 
 ```go
 func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpoint, error)
@@ -471,7 +471,7 @@ func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpo
 ListCheckpoints is a convenience wrapper for CheckpointStore.ListCheckpoints.
 
 <a name="Checkpoint.Normalize"></a>
-### func \(Checkpoint\) [Normalize](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L60>)
+### func \(Checkpoint\) [Normalize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L60>)
 
 ```go
 func (c Checkpoint) Normalize() Checkpoint
@@ -480,7 +480,7 @@ func (c Checkpoint) Normalize() Checkpoint
 Normalize returns a copy with normalized fields for deterministic hashing/storage.
 
 <a name="Checkpoint.Validate"></a>
-### func \(Checkpoint\) [Validate](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L40>)
+### func \(Checkpoint\) [Validate](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L40>)
 
 ```go
 func (c Checkpoint) Validate() error
@@ -489,7 +489,7 @@ func (c Checkpoint) Validate() error
 Validate checks required fields for a checkpoint record.
 
 <a name="CheckpointStore"></a>
-## type [CheckpointStore](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L13-L15>)
+## type [CheckpointStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L13-L15>)
 
 CheckpointStore provides persistence for checkpoints.
 
@@ -500,7 +500,7 @@ type CheckpointStore struct {
 ```
 
 <a name="NewCheckpointStore"></a>
-### func [NewCheckpointStore](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L18>)
+### func [NewCheckpointStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L18>)
 
 ```go
 func NewCheckpointStore(db *sql.DB) *CheckpointStore
@@ -509,7 +509,7 @@ func NewCheckpointStore(db *sql.DB) *CheckpointStore
 NewCheckpointStore constructs a CheckpointStore using the provided database handle.
 
 <a name="CheckpointStore.CreateCheckpoint"></a>
-### func \(\*CheckpointStore\) [CreateCheckpoint](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L23>)
+### func \(\*CheckpointStore\) [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L23>)
 
 ```go
 func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary string, artifactIDs []string) (Checkpoint, error)
@@ -518,7 +518,7 @@ func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary
 CreateCheckpoint creates a new checkpoint artifact for a project.
 
 <a name="CheckpointStore.ListCheckpoints"></a>
-### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint_store.go#L99>)
+### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L99>)
 
 ```go
 func (s *CheckpointStore) ListCheckpoints(ctx context.Context, project string) ([]Checkpoint, error)
@@ -527,7 +527,7 @@ func (s *CheckpointStore) ListCheckpoints(ctx context.Context, project string) (
 ListCheckpoints returns checkpoints for a project ordered by creation time, newest first.
 
 <a name="CheckpointValidationError"></a>
-## type [CheckpointValidationError](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L19-L22>)
+## type [CheckpointValidationError](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L19-L22>)
 
 CheckpointValidationError reports invalid checkpoint input.
 
@@ -539,7 +539,7 @@ type CheckpointValidationError struct {
 ```
 
 <a name="CheckpointValidationError.Error"></a>
-### func \(CheckpointValidationError\) [Error](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L25>)
+### func \(CheckpointValidationError\) [Error](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L25>)
 
 ```go
 func (e CheckpointValidationError) Error() string
@@ -548,7 +548,7 @@ func (e CheckpointValidationError) Error() string
 Error returns the validation error as "\<field\> \<message\>".
 
 <a name="Intent"></a>
-## type [Intent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/rehydrate.go#L17-L28>)
+## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L17-L28>)
 
 Intent represents an intent artifact loaded from the intents table for rehydration.
 
@@ -568,7 +568,7 @@ type Intent struct {
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/project.go#L6-L10>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project.go#L6-L10>)
 
 Project represents a named project namespace in the library ledger.
 
@@ -581,7 +581,7 @@ type Project struct {
 ```
 
 <a name="CreateProject"></a>
-### func [CreateProject](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/project_store.go#L15>)
+### func [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L15>)
 
 ```go
 func CreateProject(name string, description string) (*Project, error)
@@ -590,7 +590,7 @@ func CreateProject(name string, description string) (*Project, error)
 CreateProject creates a unique project record and returns the created project.
 
 <a name="ListProjects"></a>
-### func [ListProjects](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/project_store.go#L65>)
+### func [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L65>)
 
 ```go
 func ListProjects() ([]Project, error)
@@ -599,7 +599,7 @@ func ListProjects() ([]Project, error)
 ListProjects returns all projects ordered by creation time, oldest first.
 
 <a name="ProjectNotFoundError"></a>
-## type [ProjectNotFoundError](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L30-L32>)
+## type [ProjectNotFoundError](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L30-L32>)
 
 ProjectNotFoundError indicates the referenced project was not found.
 
@@ -610,7 +610,7 @@ type ProjectNotFoundError struct {
 ```
 
 <a name="ProjectNotFoundError.Error"></a>
-### func \(ProjectNotFoundError\) [Error](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/checkpoint.go#L35>)
+### func \(ProjectNotFoundError\) [Error](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L35>)
 
 ```go
 func (e ProjectNotFoundError) Error() string
@@ -619,7 +619,7 @@ func (e ProjectNotFoundError) Error() string
 Error returns the project\-not\-found message including the project name.
 
 <a name="RehydratePayload"></a>
-## type [RehydratePayload](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/rehydrate.go#L31-L35>)
+## type [RehydratePayload](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L31-L35>)
 
 RehydratePayload contains the latest checkpoint and the intents created after it.
 
@@ -632,7 +632,7 @@ type RehydratePayload struct {
 ```
 
 <a name="RehydrateProject"></a>
-### func [RehydrateProject](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/library/rehydrate.go#L38>)
+### func [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L38>)
 
 ```go
 func RehydrateProject(project string) (*RehydratePayload, error)
@@ -643,7 +643,7 @@ RehydrateProject loads the latest checkpoint and subsequent intents for a projec
 # hash
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/core/hash"
+import "github.com/chuxorg/yanzi/internal/core/hash"
 ```
 
 Package hash provides deterministic intent hashing logic.
@@ -655,7 +655,7 @@ Package hash provides deterministic intent hashing logic.
 
 
 <a name="CanonicalizeMeta"></a>
-## func [CanonicalizeMeta](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/hash/hash.go#L20>)
+## func [CanonicalizeMeta](<https://github.com/chuxorg/yanzi/blob/master/internal/core/hash/hash.go#L20>)
 
 ```go
 func CanonicalizeMeta(raw json.RawMessage) (json.RawMessage, error)
@@ -664,7 +664,7 @@ func CanonicalizeMeta(raw json.RawMessage) (json.RawMessage, error)
 CanonicalizeMeta re\-encodes a JSON object with sorted keys.
 
 <a name="HashIntent"></a>
-## func [HashIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/hash/hash.go#L43>)
+## func [HashIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/core/hash/hash.go#L43>)
 
 ```go
 func HashIntent(record model.IntentRecord) (string, error)
@@ -675,7 +675,7 @@ HashIntent computes a deterministic SHA\-256 hash for an IntentRecord. The hash 
 # model
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/core/model"
+import "github.com/chuxorg/yanzi/internal/core/model"
 ```
 
 Package model provides shared data model types.
@@ -688,7 +688,7 @@ Package model provides shared data model types.
 
 
 <a name="IntentRecord"></a>
-## type [IntentRecord](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/model/intent.go#L12-L23>)
+## type [IntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/core/model/intent.go#L12-L23>)
 
 IntentRecord represents the v0 intent schema persisted and shared across services.
 
@@ -708,7 +708,7 @@ type IntentRecord struct {
 ```
 
 <a name="IntentRecord.Normalize"></a>
-### func \(IntentRecord\) [Normalize](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/model/intent.go#L55>)
+### func \(IntentRecord\) [Normalize](<https://github.com/chuxorg/yanzi/blob/master/internal/core/model/intent.go#L55>)
 
 ```go
 func (r IntentRecord) Normalize() IntentRecord
@@ -717,7 +717,7 @@ func (r IntentRecord) Normalize() IntentRecord
 Normalize returns a copy with normalized fields for deterministic hashing/storage.
 
 <a name="IntentRecord.Validate"></a>
-### func \(IntentRecord\) [Validate](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/model/intent.go#L26>)
+### func \(IntentRecord\) [Validate](<https://github.com/chuxorg/yanzi/blob/master/internal/core/model/intent.go#L26>)
 
 ```go
 func (r IntentRecord) Validate() error
@@ -728,7 +728,7 @@ Validate checks required fields for the v0 schema.
 # store
 
 ```go
-import "github.com/chuxorg/chux-yanzi-cli/internal/core/store"
+import "github.com/chuxorg/yanzi/internal/core/store"
 ```
 
 Package store provides a SQLite persistence layer.
@@ -747,7 +747,7 @@ Package store provides a SQLite persistence layer.
 
 
 <a name="FilterIntentsByMeta"></a>
-## func [FilterIntentsByMeta](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/meta_filter.go#L11>)
+## func [FilterIntentsByMeta](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/meta_filter.go#L11>)
 
 ```go
 func FilterIntentsByMeta(intents []model.IntentRecord, filters map[string]string) ([]model.IntentRecord, error)
@@ -756,7 +756,7 @@ func FilterIntentsByMeta(intents []model.IntentRecord, filters map[string]string
 FilterIntentsByMeta returns intents that match all meta filters \(AND semantics\).
 
 <a name="Store"></a>
-## type [Store](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L27-L29>)
+## type [Store](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L27-L29>)
 
 Store provides CRUD and migration operations for intent persistence.
 
@@ -767,7 +767,7 @@ type Store struct {
 ```
 
 <a name="Open"></a>
-### func [Open](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L32>)
+### func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L32>)
 
 ```go
 func Open(path string) (*Store, error)
@@ -776,7 +776,7 @@ func Open(path string) (*Store, error)
 Open creates a SQLite\-backed Store with required runtime pragmas enabled.
 
 <a name="Store.Close"></a>
-### func \(\*Store\) [Close](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L63>)
+### func \(\*Store\) [Close](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L63>)
 
 ```go
 func (s *Store) Close() error
@@ -785,7 +785,7 @@ func (s *Store) Close() error
 
 
 <a name="Store.CreateIntent"></a>
-### func \(\*Store\) [CreateIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L151>)
+### func \(\*Store\) [CreateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L151>)
 
 ```go
 func (s *Store) CreateIntent(ctx context.Context, record model.IntentRecord) error
@@ -794,7 +794,7 @@ func (s *Store) CreateIntent(ctx context.Context, record model.IntentRecord) err
 
 
 <a name="Store.GetIntent"></a>
-### func \(\*Store\) [GetIntent](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L183>)
+### func \(\*Store\) [GetIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L183>)
 
 ```go
 func (s *Store) GetIntent(ctx context.Context, id string) (model.IntentRecord, error)
@@ -803,7 +803,7 @@ func (s *Store) GetIntent(ctx context.Context, id string) (model.IntentRecord, e
 
 
 <a name="Store.GetIntentByHash"></a>
-### func \(\*Store\) [GetIntentByHash](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L217>)
+### func \(\*Store\) [GetIntentByHash](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L217>)
 
 ```go
 func (s *Store) GetIntentByHash(ctx context.Context, hash string) (model.IntentRecord, error)
@@ -812,7 +812,7 @@ func (s *Store) GetIntentByHash(ctx context.Context, hash string) (model.IntentR
 GetIntentByHash loads an intent by its hash for chain traversal.
 
 <a name="Store.ListIntents"></a>
-### func \(\*Store\) [ListIntents](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L250>)
+### func \(\*Store\) [ListIntents](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L250>)
 
 ```go
 func (s *Store) ListIntents(ctx context.Context, limit int) ([]model.IntentRecord, error)
@@ -821,7 +821,7 @@ func (s *Store) ListIntents(ctx context.Context, limit int) ([]model.IntentRecor
 
 
 <a name="Store.Migrate"></a>
-### func \(\*Store\) [Migrate](<https://github.com/chuxorg/chux-yanzi-cli/blob/master/internal/core/store/sqlite.go#L70>)
+### func \(\*Store\) [Migrate](<https://github.com/chuxorg/yanzi/blob/master/internal/core/store/sqlite.go#L70>)
 
 ```go
 func (s *Store) Migrate(ctx context.Context) error
