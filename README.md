@@ -12,7 +12,8 @@ To get started with your favorite AI Agent, just copy the  [AI_AGENT_SEED Prompt
 
 ## What Yanzi Is
 
-Yanzi is a CLI designed to be used by AI Agents. Yanzi is not an MCP. Yanzi is a CLI and can be queried by a human from the command line. 
+Yanzi is a cross-platfor (Windows, Mac OS, and Linux) CLI written in golang and is designed to be used by AI Agents. 
+Yanzi is not an MCP. Yanzi is a CLI and can be queried by a human from the command line. 
 Yanzi is a deterministic logging layer for AI-assisted development.
 
 It records:
