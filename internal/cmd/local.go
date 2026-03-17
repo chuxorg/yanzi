@@ -77,8 +77,8 @@ func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecor
 
 	_, err := db.ExecContext(
 		ctx,
-		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.ID,
 		record.CreatedAt,
 		record.Author,
@@ -89,6 +89,10 @@ func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecor
 		meta,
 		prevHash,
 		record.Hash,
+		"intent",
+		"prompt",
+		record.Prompt,
+		meta,
 	)
 	return err
 }
@@ -275,7 +279,7 @@ func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int) ([]model
 		limit = 100
 	}
 
-	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash FROM intents ORDER BY created_at DESC LIMIT ?`, limit)
+	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}

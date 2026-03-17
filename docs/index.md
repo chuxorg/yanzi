@@ -4,10 +4,10 @@ This site hosts operational documentation for the Yanzi CLI.
 
 ## Main Documents
 
-- [Agent Bootstrap](AGENT_BOOTSTRAP.md)
-- [Release Protocol](RELEASE_PROTOCOL.md)
-- [Code Documentation Workflow](CODE_DOCUMENTATION.md)
-- [Branch Protection](BRANCH_PROTECTION.md)
+- [Agent Bootstrap](./agent-bootstrap.md)
+- [Release Protocol](./dev/RELEASE_PROTOCOL.md))
+- [Code Documentation Workflow](./dev/CODE_DOCUMENTATION.md)
+- [Branch Protection](./dev/BRANCH_PROTECTION.md)
 
 ## API Docs
 

@@ -86,6 +86,64 @@ func TestExportMarkdownChronological(t *testing.T) {
 	if !strings.Contains(output, "**Response**\n```text\nresponse 1\n```") {
 		t.Fatalf("missing response block: %q", output)
 	}
+
+	intentDirEntries, err := os.ReadDir(filepath.Join(workdir, "Intent"))
+	if err != nil {
+		t.Fatalf("read intent export dir: %v", err)
+	}
+	if len(intentDirEntries) != 0 {
+		t.Fatalf("expected empty intent export dir, got %d files", len(intentDirEntries))
+	}
+
+	contextDirEntries, err := os.ReadDir(filepath.Join(workdir, "Context"))
+	if err != nil {
+		t.Fatalf("read context export dir: %v", err)
+	}
+	if len(contextDirEntries) != 0 {
+		t.Fatalf("expected empty context export dir, got %d files", len(contextDirEntries))
+	}
+}
+
+func TestExportMarkdownWritesArtifactDirectories(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	createTestProject(t, "alpha")
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "decision", "Export scope", "Export intent artifacts.", ""); err != nil {
+		t.Fatalf("CreateArtifact intent: %v", err)
+	}
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassContext, "policy", "Release policy", "Never rewrite history.", ""); err != nil {
+		t.Fatalf("CreateArtifact context: %v", err)
+	}
+
+	if err := RunExport([]string{"--format", "markdown"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	intentEntries, err := os.ReadDir(filepath.Join(workdir, "Intent"))
+	if err != nil {
+		t.Fatalf("read intent dir: %v", err)
+	}
+	if len(intentEntries) != 1 {
+		t.Fatalf("expected 1 intent artifact file, got %d", len(intentEntries))
+	}
+	if !strings.HasSuffix(intentEntries[0].Name(), "-export-scope.md") {
+		t.Fatalf("unexpected intent filename: %s", intentEntries[0].Name())
+	}
+
+	contextEntries, err := os.ReadDir(filepath.Join(workdir, "Context"))
+	if err != nil {
+		t.Fatalf("read context dir: %v", err)
+	}
+	if len(contextEntries) != 1 {
+		t.Fatalf("expected 1 context artifact file, got %d", len(contextEntries))
+	}
+	if !strings.HasSuffix(contextEntries[0].Name(), "-release-policy.md") {
+		t.Fatalf("unexpected context filename: %s", contextEntries[0].Name())
+	}
 }
 
 func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
@@ -473,18 +531,10 @@ func openConfiguredDBForExportTest(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
-	db, err := sql.Open("sqlite", cfg.DBPath)
+	t.Setenv("YANZI_DB_PATH", cfg.DBPath)
+	db, err := yanzilibrary.InitDB()
 	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if _, err := db.Exec(intentTableSQL); err != nil {
-		t.Fatalf("create intents: %v", err)
-	}
-	if _, err := db.Exec(projectTableSQL); err != nil {
-		t.Fatalf("create projects: %v", err)
-	}
-	if _, err := db.Exec(checkpointTableSQL); err != nil {
-		t.Fatalf("create checkpoints: %v", err)
+		t.Fatalf("InitDB: %v", err)
 	}
 	return db
 }

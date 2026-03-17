@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
 type exportItemType string
@@ -106,6 +107,9 @@ func RunExport(args []string, cliVersion string) error {
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
+	if err := exportArtifactDirectories(project); err != nil {
+		return err
+	}
 
 	fmt.Printf("Exported %s\n", path)
 	return nil
@@ -117,6 +121,7 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 
 	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta
 		FROM intents
+		WHERE source_type <> 'artifact'
 		ORDER BY created_at ASC, rowid ASC`)
 	if err != nil {
 		return nil, 0, err
@@ -197,6 +202,98 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 	}
 
 	return mergeChronological(intents, checkpoints), captureCount, nil
+}
+
+func exportArtifactDirectories(project string) error {
+	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "")
+	if err != nil {
+		return err
+	}
+	if err := writeArtifactDirectory("Intent", intentArtifacts); err != nil {
+		return err
+	}
+
+	contextArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassContext, "")
+	if err != nil {
+		return err
+	}
+	return writeArtifactDirectory("Context", contextArtifacts)
+}
+
+func writeArtifactDirectory(dir string, artifacts []yanzilibrary.Artifact) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create artifact export directory: %w", err)
+	}
+	for _, artifact := range artifacts {
+		path := filepath.Join(dir, artifactExportFilename(artifact))
+		if err := os.WriteFile(path, []byte(renderArtifactMarkdown(artifact)), 0o644); err != nil {
+			return fmt.Errorf("write artifact export file: %w", err)
+		}
+	}
+	return nil
+}
+
+func artifactExportFilename(artifact yanzilibrary.Artifact) string {
+	parsed, err := time.Parse(time.RFC3339Nano, artifact.CreatedAt)
+	timestamp := artifact.CreatedAt
+	if err == nil {
+		timestamp = parsed.UTC().Format("20060102T150405Z")
+	}
+	return fmt.Sprintf("%s-%s.md", timestamp, slugify(artifact.Title))
+}
+
+func renderArtifactMarkdown(artifact yanzilibrary.Artifact) string {
+	var b strings.Builder
+	b.WriteString("# ")
+	b.WriteString(artifact.Title)
+	b.WriteString("\n\n")
+	b.WriteString("Type: ")
+	b.WriteString(artifact.Type)
+	b.WriteString("\n")
+	b.WriteString("Created: ")
+	b.WriteString(artifact.CreatedAt)
+	b.WriteString("\n\n")
+	b.WriteString("## Content\n\n```text\n")
+	b.WriteString(artifact.Content)
+	if !strings.HasSuffix(artifact.Content, "\n") {
+		b.WriteString("\n")
+	}
+	b.WriteString("```\n")
+	if strings.TrimSpace(artifact.Metadata) != "" {
+		b.WriteString("\n## Metadata\n\n```text\n")
+		b.WriteString(artifact.Metadata)
+		if !strings.HasSuffix(artifact.Metadata, "\n") {
+			b.WriteString("\n")
+		}
+		b.WriteString("```\n")
+	}
+	return b.String()
+}
+
+func slugify(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	var b strings.Builder
+	prevDash := false
+	for _, r := range value {
+		switch {
+		case r >= 'a' && r <= 'z':
+			b.WriteRune(r)
+			prevDash = false
+		case r >= '0' && r <= '9':
+			b.WriteRune(r)
+			prevDash = false
+		default:
+			if !prevDash && b.Len() > 0 {
+				b.WriteByte('-')
+				prevDash = true
+			}
+		}
+	}
+	slug := strings.Trim(b.String(), "-")
+	if slug == "" {
+		return "artifact"
+	}
+	return slug
 }
 
 func decodeStringMeta(metaText string) (map[string]string, error) {

@@ -55,6 +55,10 @@ func main() {
 		err = cmd.RunMode(os.Args[2:])
 	case "project":
 		err = cmd.RunProject(os.Args[2:])
+	case "intent":
+		err = cmd.RunIntent(os.Args[2:])
+	case "context":
+		err = cmd.RunContext(os.Args[2:])
 	case "checkpoint":
 		err = cmd.RunCheckpoint(os.Args[2:])
 	case "rehydrate":
@@ -90,6 +94,8 @@ commands:
   show     Show intent details by id.
   mode     Show or set runtime mode (local | http).
   project  Manage project context.
+  intent  Manage intent artifacts.
+  context  Manage context artifacts.
   checkpoint  Manage checkpoints.
   rehydrate  Rehydrate active project context.
   export  Export active project history.
@@ -136,6 +142,14 @@ project args:
   current               Show the active project.
   list                  List projects.
 
+intent args:
+  add --title "..."     Add an intent artifact.
+  list                  List intent artifacts.
+
+context args:
+  add --title "..."     Add a context artifact.
+  list                  List context artifacts.
+
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
   list                   List checkpoints for the active project.
@@ -167,6 +181,10 @@ examples:
   yanzi project use "alpha"
   yanzi project current
   yanzi project list
+  yanzi intent add --title "Clarify export scope" --content "Export only deterministic artifacts."
+  yanzi intent list --type decision
+  yanzi context add --type policy --title "Release rule" --file ./policy.md
+  yanzi context list --type policy
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate
