@@ -473,18 +473,10 @@ func openConfiguredDBForExportTest(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
-	db, err := sql.Open("sqlite", cfg.DBPath)
+	t.Setenv("YANZI_DB_PATH", cfg.DBPath)
+	db, err := yanzilibrary.InitDB()
 	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if _, err := db.Exec(intentTableSQL); err != nil {
-		t.Fatalf("create intents: %v", err)
-	}
-	if _, err := db.Exec(projectTableSQL); err != nil {
-		t.Fatalf("create projects: %v", err)
-	}
-	if _, err := db.Exec(checkpointTableSQL); err != nil {
-		t.Fatalf("create checkpoints: %v", err)
+		t.Fatalf("InitDB: %v", err)
 	}
 	return db
 }

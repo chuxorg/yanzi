@@ -26,7 +26,11 @@ const (
 	response TEXT NOT NULL,
 	meta TEXT,
 	prev_hash TEXT,
-	hash TEXT NOT NULL
+	hash TEXT NOT NULL,
+	class TEXT,
+	type TEXT,
+	content TEXT,
+	metadata TEXT
 );`
 	projectTableSQL = `CREATE TABLE IF NOT EXISTS projects (
 	name TEXT PRIMARY KEY,
@@ -156,18 +160,9 @@ func openTestDB(t *testing.T, dir string) *sql.DB {
 
 	path := filepath.Join(dir, "yanzi-library.db")
 	t.Setenv("YANZI_DB_PATH", path)
-	db, err := sql.Open("sqlite", path)
+	db, err := yanzilibrary.InitDB()
 	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if _, err := db.Exec(intentTableSQL); err != nil {
-		t.Fatalf("create intents: %v", err)
-	}
-	if _, err := db.Exec(projectTableSQL); err != nil {
-		t.Fatalf("create projects: %v", err)
-	}
-	if _, err := db.Exec(checkpointTableSQL); err != nil {
-		t.Fatalf("create checkpoints: %v", err)
+		t.Fatalf("InitDB: %v", err)
 	}
 	return db
 }
