@@ -1,7 +1,7 @@
 # AI Execution Rules
 
 Before executing any development task:
-
+- Ignore changes in all YANZI_LOG.* and issues files. 
 - Confirm work is on a feature branch.
 - Confirm no direct commits to development or master.
 - After each task:
