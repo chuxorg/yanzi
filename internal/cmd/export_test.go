@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -370,6 +371,101 @@ func TestExportHTMLNoActiveProject(t *testing.T) {
 		t.Fatal("expected error")
 	}
 	if !strings.Contains(err.Error(), "no active project") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExportHTMLOpenInvokesBrowser(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+
+	var openedPath string
+	original := openExportInBrowser
+	openExportInBrowser = func(path string) error {
+		openedPath = path
+		return nil
+	}
+	defer func() {
+		openExportInBrowser = original
+	}()
+
+	if err := RunExport([]string{"--format", "html", "--open"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+	if openedPath != "YANZI_LOG.html" {
+		t.Fatalf("expected browser open for YANZI_LOG.html, got %q", openedPath)
+	}
+	if _, err := os.Stat(filepath.Join(workdir, "YANZI_LOG.html")); err != nil {
+		t.Fatalf("expected html export file to exist: %v", err)
+	}
+}
+
+func TestExportHTMLOpenReturnsUsefulErrorAfterWritingFile(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+
+	original := openExportInBrowser
+	openExportInBrowser = func(path string) error {
+		return errors.New("launcher unavailable")
+	}
+	defer func() {
+		openExportInBrowser = original
+	}()
+
+	err := RunExport([]string{"--format", "html", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "open export in browser: launcher unavailable") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(workdir, "YANZI_LOG.html")); statErr != nil {
+		t.Fatalf("expected html export file to still exist: %v", statErr)
+	}
+}
+
+func TestExportMarkdownOpenRejected(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	err := RunExport([]string{"--format", "markdown", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--open is only supported with --format html") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExportJSONOpenRejected(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	err := RunExport([]string{"--format", "json", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--open is only supported with --format html") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

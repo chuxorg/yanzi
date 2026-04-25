@@ -8,8 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"html"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +20,8 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
+
+var openExportInBrowser = openBrowser
 
 type exportItemType string
 
@@ -51,15 +56,19 @@ func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
+	open := fs.Bool("open", false, "open generated html export in the default browser")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html>")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
-		return errors.New("usage: yanzi export --format <markdown|json|html>")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+	}
+	if *open && formatValue != "html" {
+		return errors.New("--open is only supported with --format html")
 	}
 
 	project, err := loadActiveProject()
@@ -113,6 +122,36 @@ func RunExport(args []string, cliVersion string) error {
 	}
 
 	fmt.Printf("Exported %s\n", path)
+	if *open {
+		if err := openExportInBrowser(path); err != nil {
+			return fmt.Errorf("open export in browser: %w", err)
+		}
+	}
+	return nil
+}
+
+func openBrowser(path string) error {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve export path: %w", err)
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", absPath)
+	case "linux":
+		cmd = exec.Command("xdg-open", absPath)
+	case "windows":
+		fileURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(absPath)}).String()
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", fileURL)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
 	return nil
 }
 
