@@ -31,7 +31,30 @@ Yanzi is not an orchestration framework or automation engine.
 
 ## Installation
 
-Install Yanzi with Go:
+Install Yanzi with Homebrew:
+
+```sh
+brew tap chuxorg/yanzi
+brew install yanzi
+yanzi version
+```
+
+Upgrade and uninstall with Homebrew:
+
+```sh
+brew upgrade yanzi
+brew uninstall yanzi
+```
+
+Homebrew manages the installed binary only. It does not delete project data or local state under `~/.yanzi`.
+
+Manual fallback install with the repo script:
+
+```sh
+./scripts/install.sh
+```
+
+Install with Go:
 
 ```sh
 go install github.com/chuxorg/yanzi/cmd/yanzi@latest
