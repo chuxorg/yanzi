@@ -5,10 +5,11 @@
 
 Links: [yanzi.io](https://yanzi.io) | [chucksailer.me](https://chucksailer.me)
 Agent Setup: [Tell your AI Agent to use Yanzi (Codex, Copilot, etc.)](docs/agent-bootstrap.md)
+Tutorial: [Learn Yanzi step-by-step](docs/tutorial.md)
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
-To get started with your favorite AI Agent, just copy the  [Agent Boot Strap Prompt](docs/agent-bootstrap.md) and paste into your AI Agent.
+To get started with your favorite AI Agent, first provide the seed prompt from [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md), then continue with the [Agent Bootstrap](docs/agent-bootstrap.md) and the [Yanzi Tutorial](docs/tutorial.md).
 
 ## What Yanzi Is
 
@@ -42,6 +43,7 @@ Binary downloads are also available from GitHub Releases.
 
 ```sh
 yanzi project create "alpha"
+yanzi project use "alpha"
 yanzi checkpoint create --summary "Initial state"
 ```
 
@@ -74,6 +76,8 @@ yanzi export --format html
 - Markdown: human-readable log
 - JSON: structured machine-readable log
 - HTML: professional presentation of the log
+
+For a full walkthrough including captures, projects, and the HTML export UI, see [docs/tutorial.md](docs/tutorial.md).
 
 ## Using Yanzi Logs in External Systems
 
