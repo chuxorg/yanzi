@@ -50,6 +50,25 @@ Checkpoints are milestone entries that mark a meaningful boundary in the project
 
 If Yanzi is not already installed:
 
+Install with Homebrew:
+
+```sh
+brew tap chuxorg/yanzi
+brew install yanzi
+yanzi version
+```
+
+Upgrade or uninstall later with:
+
+```sh
+brew upgrade yanzi
+brew uninstall yanzi
+```
+
+Homebrew removes the managed binary, but it does not delete your local Yanzi data under `~/.yanzi`.
+
+If you prefer a manual fallback install from this repository:
+
 ```sh
 ./scripts/install.sh
 ```
