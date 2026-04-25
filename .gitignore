@@ -54,4 +54,5 @@ go.work.sum
 .cache/
 .go-build/
 .gocache/
+.gomodcache/
 .notes/
