@@ -520,6 +520,12 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, ".timeline::before") || !strings.Contains(output, "class=\"timeline-marker\"") {
 		t.Fatalf("missing timeline rail and markers: %q", output)
 	}
+	if !strings.Contains(output, ".timeline-marker{position:absolute;left:-88px;top:20px;width:22px;height:22px") {
+		t.Fatalf("timeline markers were not reduced in size: %q", output)
+	}
+	if !strings.Contains(output, ".timeline-stamp{position:absolute;left:-92px;top:52px;width:84px") || !strings.Contains(output, "font-weight:700") || !strings.Contains(output, "white-space:nowrap") {
+		t.Fatalf("timeline timestamp styling was not strengthened: %q", output)
+	}
 
 	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
