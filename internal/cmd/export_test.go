@@ -86,6 +86,64 @@ func TestExportMarkdownChronological(t *testing.T) {
 	if !strings.Contains(output, "**Response**\n```text\nresponse 1\n```") {
 		t.Fatalf("missing response block: %q", output)
 	}
+
+	intentDirEntries, err := os.ReadDir(filepath.Join(workdir, "Intent"))
+	if err != nil {
+		t.Fatalf("read intent export dir: %v", err)
+	}
+	if len(intentDirEntries) != 0 {
+		t.Fatalf("expected empty intent export dir, got %d files", len(intentDirEntries))
+	}
+
+	contextDirEntries, err := os.ReadDir(filepath.Join(workdir, "Context"))
+	if err != nil {
+		t.Fatalf("read context export dir: %v", err)
+	}
+	if len(contextDirEntries) != 0 {
+		t.Fatalf("expected empty context export dir, got %d files", len(contextDirEntries))
+	}
+}
+
+func TestExportMarkdownWritesArtifactDirectories(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	createTestProject(t, "alpha")
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "decision", "Export scope", "Export intent artifacts.", ""); err != nil {
+		t.Fatalf("CreateArtifact intent: %v", err)
+	}
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassContext, "policy", "Release policy", "Never rewrite history.", ""); err != nil {
+		t.Fatalf("CreateArtifact context: %v", err)
+	}
+
+	if err := RunExport([]string{"--format", "markdown"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	intentEntries, err := os.ReadDir(filepath.Join(workdir, "Intent"))
+	if err != nil {
+		t.Fatalf("read intent dir: %v", err)
+	}
+	if len(intentEntries) != 1 {
+		t.Fatalf("expected 1 intent artifact file, got %d", len(intentEntries))
+	}
+	if !strings.HasSuffix(intentEntries[0].Name(), "-export-scope.md") {
+		t.Fatalf("unexpected intent filename: %s", intentEntries[0].Name())
+	}
+
+	contextEntries, err := os.ReadDir(filepath.Join(workdir, "Context"))
+	if err != nil {
+		t.Fatalf("read context dir: %v", err)
+	}
+	if len(contextEntries) != 1 {
+		t.Fatalf("expected 1 context artifact file, got %d", len(contextEntries))
+	}
+	if !strings.HasSuffix(contextEntries[0].Name(), "-release-policy.md") {
+		t.Fatalf("unexpected context filename: %s", contextEntries[0].Name())
+	}
 }
 
 func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
@@ -357,9 +415,15 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Total captures: 1") || !strings.Contains(output, "Total checkpoints: 1") {
 		t.Fatalf("missing counts: %q", output)
 	}
+	if !strings.Contains(output, "position:sticky") {
+		t.Fatalf("expected sticky header styling: %q", output)
+	}
+	if !strings.Contains(output, "id=\"event-search\"") || !strings.Contains(output, "Showing 3 of 3 events") {
+		t.Fatalf("missing search UI: %q", output)
+	}
 
-	idxCapture := strings.Index(output, "Capture: cap-1")
-	idxCheckpoint := strings.Index(output, "Checkpoint: ")
+	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
+	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
 	idxMeta := strings.Index(output, "Event:</span> @yanzi pause")
 	if idxCapture == -1 || idxCheckpoint == -1 || idxMeta == -1 {
 		t.Fatalf("missing expected timeline sections: %q", output)
@@ -377,11 +441,32 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 		t.Fatalf("metadata order not deterministic: %q", output)
 	}
 
+	if !strings.Contains(output, "Show prompt") || !strings.Contains(output, "Show response") {
+		t.Fatalf("missing collapse controls: %q", output)
+	}
+	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
+		t.Fatalf("missing copy controls: %q", output)
+	}
+	if !strings.Contains(output, "class=\"checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
+		t.Fatalf("checkpoint styling was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "data-search=\"capture 2025-01-01T00:00:01Z cap-1 engineer") {
+		t.Fatalf("missing capture search corpus: %q", output)
+	}
+	if !strings.Contains(output, "id=\"prompt-0\" class=\"content-block\" hidden") || !strings.Contains(output, "id=\"response-0\" class=\"content-block\" hidden") {
+		t.Fatalf("prompt/response blocks should be collapsible and hidden by default: %q", output)
+	}
 	if !strings.Contains(output, "<pre>line1\nline2</pre>") {
 		t.Fatalf("prompt pre block did not preserve whitespace: %q", output)
 	}
 	if !strings.Contains(output, "<pre>result\nok</pre>") {
 		t.Fatalf("response pre block did not preserve whitespace: %q", output)
+	}
+	if !strings.Contains(output, "navigator.clipboard") || !strings.Contains(output, "document.execCommand('copy')") {
+		t.Fatalf("expected clipboard copy with fallback: %q", output)
+	}
+	if strings.Contains(output, "<script src=") || strings.Contains(output, "<link rel=\"stylesheet\"") {
+		t.Fatalf("html export must remain standalone: %q", output)
 	}
 }
 
@@ -473,18 +558,10 @@ func openConfiguredDBForExportTest(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("load config: %v", err)
 	}
-	db, err := sql.Open("sqlite", cfg.DBPath)
+	t.Setenv("YANZI_DB_PATH", cfg.DBPath)
+	db, err := yanzilibrary.InitDB()
 	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	if _, err := db.Exec(intentTableSQL); err != nil {
-		t.Fatalf("create intents: %v", err)
-	}
-	if _, err := db.Exec(projectTableSQL); err != nil {
-		t.Fatalf("create projects: %v", err)
-	}
-	if _, err := db.Exec(checkpointTableSQL); err != nil {
-		t.Fatalf("create checkpoints: %v", err)
+		t.Fatalf("InitDB: %v", err)
 	}
 	return db
 }

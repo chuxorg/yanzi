@@ -31,5 +31,24 @@
 ---
 
 Stage, Commit, and Push any and all changes
-Bump version and tag
+
 Create a Pull Request for merging the local development branch using the attached PR Protocol
+
+# Release Process
+
+Releases are generated from the CLI repository.
+
+Bump version and tag 
+
+Tagging the CLI triggers GitHub Actions which build binaries for supported platforms.
+
+Version numbers are embedded in the binary using ldflags.
+
+Example:
+
+```go build -ldflags "-X main.version=v1.1.0"```
+
+Artifacts are published as GitHub releases.
+
+The Yanzi repository provides documentation and entry points to these releases.
+---

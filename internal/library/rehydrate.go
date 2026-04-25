@@ -117,7 +117,7 @@ func intentsSinceCheckpoint(ctx context.Context, db *sql.DB, checkpointCreatedAt
 		ctx,
 		`SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash
 		FROM intents
-		WHERE created_at > ?
+		WHERE created_at > ? AND source_type <> 'artifact'
 		ORDER BY created_at ASC, id ASC`,
 		checkpointCreatedAt,
 	)

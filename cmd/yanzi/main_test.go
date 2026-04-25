@@ -48,6 +48,12 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "export  Export active project history.") {
 		t.Fatalf("expected export command description, got: %s", output)
 	}
+	if !strings.Contains(output, "intent  Manage intent artifacts.") {
+		t.Fatalf("expected intent command description, got: %s", output)
+	}
+	if !strings.Contains(output, "context  Manage context artifacts.") {
+		t.Fatalf("expected context command description, got: %s", output)
+	}
 	if !strings.Contains(output, "--meta key=value") {
 		t.Fatalf("expected capture metadata help text, got: %s", output)
 	}

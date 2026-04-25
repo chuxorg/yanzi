@@ -3,13 +3,17 @@
 [![QA Build](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml)
 [![Release](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
 
-Links: [yanzi (install info)](https://github.com/chuxorg/yanzi) | [yanzi.io](https://yanzi.io) | [chucksailer.me](https://chucksailer.me)
-Agent Setup: [Tell your AI Agent (Codex, Copilot, etc.)](prompts/AI_AGENT_SEED.md)
+Links: [yanzi.io](https://yanzi.io) | [chucksailer.me](https://chucksailer.me)
+Agent Setup: [Tell your AI Agent to use Yanzi (Codex, Copilot, etc.)](docs/agent-bootstrap.md)
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
+To get started with your favorite AI Agent, just copy the  [Agent Boot Strap Prompt](docs/agent-bootstrap.md) and paste into your AI Agent.
+
 ## What Yanzi Is
 
+Yanzi is a cross-platfor (Windows, Mac OS, and Linux) CLI written in golang and is designed to be used by AI Agents. 
+Yanzi is not an MCP. Yanzi is a CLI and can be queried by a human from the command line. 
 Yanzi is a deterministic logging layer for AI-assisted development.
 
 It records:
@@ -18,7 +22,9 @@ It records:
 - Role/meta events (agent control intent)
 - Optional metadata for capture context
 
-Yanzi exports this event stream in structured formats so AI-assisted work can be reviewed later.
+Yanzi allows you to pause this capture as well.
+Yanzi offers a variety of commands, known as @yanzi commands, that allow both the AI Agent and Human to interact with Yanzi more easily. 
+Yanzi allows exports of the event stream, in structured formats, so AI-assisted work can be piped into other systems for later review or analysis.
 
 Yanzi is not an orchestration framework or automation engine.
 

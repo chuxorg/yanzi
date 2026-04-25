@@ -11,10 +11,10 @@ plugins:
 
 nav:
   - Home: index.md
-  - Agent Bootstrap: AGENT_BOOTSTRAP.md
-  - Release Protocol: RELEASE_PROTOCOL.md
-  - Code Documentation: CODE_DOCUMENTATION.md
-  - Branch Protection: BRANCH_PROTECTION.md
+  - Agent Bootstrap: agent-bootstrap.md
+  - Release Protocol: dev/RELEASE_PROTOCOL.md
+  - Code Documentation: dev/CODE_DOCUMENTATION.md
+  - Branch Protection: dev/BRANCH_PROTECTION.md
   - API:
       - Overview: api/index.md
       - CLI Package: api/cmd.md

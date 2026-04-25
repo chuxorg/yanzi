@@ -134,3 +134,85 @@ yanzi export --format markdown
 - Metadata is optional and should not change capture ordering.
 - Runtime `mode http` does not start `libraryd`.
 - Keep outputs deterministic and machine-auditable.
+
+## Ensure Yanzi Is Installed
+
+This repository uses **Yanzi** to track development intent and checkpoints during AI-assisted work.
+Before proceeding with development tasks, ensure that the `yanzi` CLI is installed and available in the system PATH.
+
+### 1. Check if Yanzi is installed
+
+Run:
+
+```bash
+yanzi version
+```
+
+If the command returns a version number, Yanzi is already installed and ready to use and disregard the rest of this prompt. 
+
+If there was no version returned do the following:
+
+### 2. Install Yanzi (if not installed)
+
+If the command is not found, install Yanzi from the official releases page:
+
+https://github.com/chuxorg/chux-yanzi-cli/releases
+
+Download the archive that matches your operating system.
+
+Example installation (macOS / Linux):
+
+```bash
+curl -L https://github.com/chuxorg/chux-yanzi-cli/releases/latest/download/yanzi_darwin_arm64.tar.gz -o yanzi.tar.gz
+tar -xzf yanzi.tar.gz
+sudo mv yanzi /usr/local/bin/
+```
+
+You may need to select a different archive depending on your platform.
+
+---
+
+### 3. Verify installation
+
+Confirm the CLI is available:
+
+```bash
+yanzi version
+```
+
+The command should return the installed version.
+
+---
+
+### 4. Initialize a Yanzi development project
+
+Once installed, initialize a project for tracking development work in this repository:
+
+```bash
+yanzi project create "cli-development"
+yanzi project use "cli-development"
+```
+
+---
+
+### 5. Record development checkpoints
+
+Before significant changes, record a checkpoint describing the work being done:
+
+```bash
+yanzi checkpoint create --summary "starting development session"
+```
+
+Checkpoints make it possible to reconstruct development state later.
+
+If context is lost during development, use:
+
+```bash
+yanzi rehydrate
+```
+
+This reconstructs the current project state from the most recent checkpoint and recorded artifacts.
+
+
+
+
