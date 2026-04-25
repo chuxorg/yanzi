@@ -447,6 +447,12 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
 		t.Fatalf("missing copy controls: %q", output)
 	}
+	if !strings.Contains(output, "class=\"preview-text\">line1 line2</div>") || !strings.Contains(output, "class=\"preview-text\">result ok</div>") {
+		t.Fatalf("missing prompt/response preview snippets: %q", output)
+	}
+	if !strings.Contains(output, "data-preview-target=\"prompt-preview-0\"") || !strings.Contains(output, "data-preview-target=\"response-preview-0\"") {
+		t.Fatalf("toggle buttons should be wired to previews: %q", output)
+	}
 	if !strings.Contains(output, "class=\"checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
 		t.Fatalf("checkpoint styling was not rendered: %q", output)
 	}
@@ -461,6 +467,15 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "<pre>result\nok</pre>") {
 		t.Fatalf("response pre block did not preserve whitespace: %q", output)
+	}
+	if !strings.Contains(output, "class=\"js-timestamp\" data-timestamp=\"2025-01-01T00:00:01Z\" title=\"2025-01-01T00:00:01Z\">2025-01-01T00:00:01Z</span>") {
+		t.Fatalf("missing raw timestamp tooltip hook: %q", output)
+	}
+	if !strings.Contains(output, "Intl.DateTimeFormat") || !strings.Contains(output, "formatTimestamps()") {
+		t.Fatalf("expected client-side timestamp formatting: %q", output)
+	}
+	if !strings.Contains(output, "min-width:110px;height:34px") {
+		t.Fatalf("expected consistent button styling: %q", output)
 	}
 	if !strings.Contains(output, "navigator.clipboard") || !strings.Contains(output, "document.execCommand('copy')") {
 		t.Fatalf("expected clipboard copy with fallback: %q", output)
