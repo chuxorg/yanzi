@@ -36,6 +36,7 @@ type exportItem struct {
 
 	CaptureID string
 	Role      string
+	Source    string
 	Hash      string
 	Prompt    string
 	Response  string
@@ -162,6 +163,7 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 			Timestamp: createdAt,
 			CaptureID: id,
 			Role:      author,
+			Source:    sourceType,
 			Hash:      hashValue,
 			Prompt:    prompt,
 			Response:  response,
@@ -580,6 +582,12 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .timeline-entry-checkpoint .timeline-stamp{top:64px;font-weight:700;color:#6a5320}\n")
 	b.WriteString("    .timeline-entry-meta .timeline-marker{background:#d8dee8;box-shadow:0 0 0 3px rgba(144,160,184,.35),0 6px 14px rgba(15,23,42,.08)}\n")
 	b.WriteString("    .label{font-weight:600}\n")
+	b.WriteString("    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}\n")
+	b.WriteString("    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface-muted);font-size:.78rem;font-weight:600;letter-spacing:.01em;color:var(--muted)}\n")
+	b.WriteString("    .badge-strong{border-color:rgba(242,193,78,.45);background:rgba(242,193,78,.16);color:#f8e6ac}\n")
+	b.WriteString("    .badge-accent{border-color:rgba(15,118,110,.22);background:rgba(15,118,110,.09);color:#0f5c56}\n")
+	b.WriteString("    .badge-muted{background:#f3f6fa}\n")
+	b.WriteString("    .checkpoint .badge{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#f8fafc}\n")
 	b.WriteString("    table{border-collapse:collapse;margin:8px 0 6px;width:auto}\n")
 	b.WriteString("    th,td{border:1px solid #e5e7eb;padding:4px 8px;font-size:.9rem;text-align:left}\n")
 	b.WriteString("    .field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}\n")
@@ -641,6 +649,11 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("      <section class=\"checkpoint timeline-card\">\n")
 			b.WriteString("      <div class=\"event-header\">\n")
 			b.WriteString("        <div class=\"event-main\">\n")
+			b.WriteString("          <div class=\"badge-row\">\n")
+			for _, badge := range checkpointBadges(item) {
+				b.WriteString(fmt.Sprintf("            <span class=\"badge badge-strong\">%s</span>\n", html.EscapeString(badge)))
+			}
+			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
 			b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
 			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
@@ -665,6 +678,15 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("      <section class=\"capture timeline-card\">\n")
 			b.WriteString("      <div class=\"event-header\">\n")
 			b.WriteString("        <div class=\"event-main\">\n")
+			b.WriteString("          <div class=\"badge-row\">\n")
+			for _, badge := range captureBadges(item) {
+				className := "badge badge-muted"
+				if strings.HasPrefix(badge, "Role:") || strings.HasPrefix(badge, "Source:") {
+					className = "badge badge-accent"
+				}
+				b.WriteString(fmt.Sprintf("            <span class=\"%s\">%s</span>\n", className, html.EscapeString(badge)))
+			}
+			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span>%s</span></div>\n", html.EscapeString(item.Timestamp)))
@@ -764,15 +786,35 @@ func exportSearchText(item exportItem) string {
 	switch item.Kind {
 	case exportItemCheckpoint:
 		parts = append(parts, item.CheckpointID, item.Summary)
+		parts = append(parts, checkpointBadges(item)...)
 	case exportItemMeta:
 		parts = append(parts, item.Command, item.Value)
 	default:
-		parts = append(parts, item.CaptureID, item.Role, item.Hash, item.Prompt, item.Response)
+		parts = append(parts, item.CaptureID, item.Role, item.Source, item.Hash, item.Prompt, item.Response)
+		parts = append(parts, captureBadges(item)...)
 		for _, key := range sortedMetaKeys(item.Metadata) {
 			parts = append(parts, key, item.Metadata[key])
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func checkpointBadges(item exportItem) []string {
+	return []string{"Checkpoint", "Boundary", "Rehydration Anchor", "Hash"}
+}
+
+func captureBadges(item exportItem) []string {
+	badges := []string{"Capture", "Prompt", "Response", "Hash"}
+	if strings.TrimSpace(item.Role) != "" {
+		badges = append(badges, fmt.Sprintf("Role: %s", item.Role))
+	}
+	if strings.TrimSpace(item.Source) != "" {
+		badges = append(badges, fmt.Sprintf("Source: %s", item.Source))
+	}
+	if len(item.Metadata) > 0 {
+		badges = append(badges, "Metadata")
+	}
+	return badges
 }
 
 func compactTimestamp(value string) string {
