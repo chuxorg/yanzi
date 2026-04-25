@@ -631,12 +631,14 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    th,td{border:1px solid #e5e7eb;padding:4px 8px;font-size:.9rem;text-align:left}\n")
 	b.WriteString("    .field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}\n")
 	b.WriteString("    .mono-inline{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(15,23,42,.05);border-radius:6px;padding:2px 6px;max-width:100%;overflow-wrap:anywhere}\n")
-	b.WriteString("    .copy-btn,.toggle-btn{appearance:none;border:1px solid var(--border-strong);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:.88rem;color:var(--text);cursor:pointer}\n")
+	b.WriteString("    .event-actions{gap:6px}\n")
+	b.WriteString("    .copy-btn,.toggle-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:110px;height:34px;border:1px solid var(--border);background:var(--surface-muted);border-radius:999px;padding:0 12px;font:inherit;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}\n")
 	b.WriteString("    .copy-btn:hover,.toggle-btn:hover,.search-input:focus{border-color:var(--accent)}\n")
 	b.WriteString("    .copy-btn:focus,.toggle-btn:focus,.search-input:focus{outline:2px solid rgba(15,118,110,.2);outline-offset:2px}\n")
 	b.WriteString("    .copy-btn[data-copied=\"true\"]{background:var(--accent-soft);border-color:var(--accent);color:#0f5132}\n")
 	b.WriteString("    .toggle-row{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}\n")
 	b.WriteString("    .block-label{font-weight:600;font-size:.95rem}\n")
+	b.WriteString("    .preview-text{margin:0 0 10px;padding:10px 12px;border:1px dashed #d7dde7;border-radius:10px;background:#fbfcfe;color:var(--muted);font-size:.92rem;white-space:pre-wrap}\n")
 	b.WriteString("    .content-block[hidden]{display:none !important}\n")
 	b.WriteString("    pre{margin:0;background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}\n")
 	b.WriteString("    .timeline-divider{position:relative;height:18px;margin:0}\n")
@@ -695,11 +697,11 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
 			b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
-			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString("        </div>\n")
 			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint ID\" aria-label=\"Copy checkpoint ID\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint hash\" aria-label=\"Copy checkpoint hash\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
 			b.WriteString("        </div>\n")
 			b.WriteString("      </div>\n")
 			b.WriteString("      </section>\n")
@@ -709,11 +711,13 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			if strings.TrimSpace(item.Value) != "" {
 				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
 			}
-			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString("      </section>\n")
 		default:
 			promptID := fmt.Sprintf("prompt-%d", idx)
 			responseID := fmt.Sprintf("response-%d", idx)
+			promptPreviewID := fmt.Sprintf("prompt-preview-%d", idx)
+			responsePreviewID := fmt.Sprintf("response-preview-%d", idx)
 			b.WriteString("      <section class=\"capture timeline-card\">\n")
 			b.WriteString("      <div class=\"event-header\">\n")
 			b.WriteString("        <div class=\"event-main\">\n")
@@ -728,12 +732,12 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
-			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span>%s</span></div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Hash:</span> <code class=\"mono-inline\">%s</code></div>\n", html.EscapeString(item.Hash)))
 			b.WriteString("        </div>\n")
 			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy hash</button>\n", html.EscapeString(item.Hash)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture ID\" aria-label=\"Copy capture ID\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture hash\" aria-label=\"Copy capture hash\">Copy hash</button>\n", html.EscapeString(item.Hash)))
 			b.WriteString("        </div>\n")
 			b.WriteString("      </div>\n")
 			if len(item.Metadata) > 0 {
@@ -749,15 +753,17 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			}
 			b.WriteString("      <div class=\"toggle-row\">\n")
 			b.WriteString("        <div class=\"block-label\">Prompt</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" aria-expanded=\"false\">Show prompt</button></div>\n", promptID, promptID))
+			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full prompt\" aria-label=\"Show full prompt\">Show prompt</button></div>\n", promptID, promptID, promptPreviewID))
 			b.WriteString("      </div>\n")
+			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", promptPreviewID, html.EscapeString(previewText(item.Prompt, 160))))
 			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", promptID))
 			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
 			b.WriteString("      </div>\n")
 			b.WriteString("      <div class=\"toggle-row\">\n")
 			b.WriteString("        <div class=\"block-label\">Response</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" aria-expanded=\"false\">Show response</button></div>\n", responseID, responseID))
+			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full response\" aria-label=\"Show full response\">Show response</button></div>\n", responseID, responseID, responsePreviewID))
 			b.WriteString("      </div>\n")
+			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", responsePreviewID, html.EscapeString(previewText(item.Response, 160))))
 			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", responseID))
 			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Response)))
 			b.WriteString("      </div>\n")
@@ -772,9 +778,14 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("      const cards=Array.from(document.querySelectorAll('.event-card'));\n")
 	b.WriteString("      const searchInput=document.getElementById('event-search');\n")
 	b.WriteString("      const matchCount=document.getElementById('match-count');\n")
+	b.WriteString("      const timestampNodes=Array.from(document.querySelectorAll('.js-timestamp'));\n")
 	b.WriteString("      function updateCount(){\n")
 	b.WriteString("        const visible=cards.filter(card=>!card.hidden).length;\n")
 	b.WriteString("        if(matchCount){matchCount.textContent='Showing '+visible+' of '+cards.length+' events';}\n")
+	b.WriteString("      }\n")
+	b.WriteString("      function formatTimestamps(){\n")
+	b.WriteString("        const formatter=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});\n")
+	b.WriteString("        timestampNodes.forEach(function(node){const raw=node.getAttribute('data-timestamp');if(!raw){return;}const date=new Date(raw);if(Number.isNaN(date.getTime())){return;}node.textContent=formatter.format(date);node.setAttribute('title',raw);});\n")
 	b.WriteString("      }\n")
 	b.WriteString("      function applyFilter(){\n")
 	b.WriteString("        const query=(searchInput&&searchInput.value||'').trim().toLowerCase();\n")
@@ -793,12 +804,16 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("        const toggle=event.target.closest('.toggle-btn');\n")
 	b.WriteString("        if(toggle){\n")
 	b.WriteString("          const target=document.getElementById(toggle.getAttribute('data-target'));\n")
+	b.WriteString("          const preview=document.getElementById(toggle.getAttribute('data-preview-target'));\n")
 	b.WriteString("          if(!target){return;}\n")
 	b.WriteString("          const expanded=toggle.getAttribute('aria-expanded')==='true';\n")
 	b.WriteString("          target.hidden=expanded;\n")
+	b.WriteString("          if(preview){preview.hidden=!expanded;}\n")
 	b.WriteString("          toggle.setAttribute('aria-expanded',String(!expanded));\n")
 	b.WriteString("          const label=target.id.indexOf('prompt-')===0?'prompt':'response';\n")
 	b.WriteString("          toggle.textContent=(expanded?'Show ':'Hide ')+label;\n")
+	b.WriteString("          toggle.setAttribute('title',(expanded?'Show full ':'Hide full ')+label);\n")
+	b.WriteString("          toggle.setAttribute('aria-label',(expanded?'Show full ':'Hide full ')+label);\n")
 	b.WriteString("          return;\n")
 	b.WriteString("        }\n")
 	b.WriteString("        const copyButton=event.target.closest('.copy-btn');\n")
@@ -811,6 +826,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("        }\n")
 	b.WriteString("      });\n")
 	b.WriteString("      if(searchInput){searchInput.addEventListener('input',applyFilter);}\n")
+	b.WriteString("      formatTimestamps();\n")
 	b.WriteString("      updateCount();\n")
 	b.WriteString("    })();\n")
 	b.WriteString("  </script>\n")
@@ -836,6 +852,17 @@ func exportSearchText(item exportItem) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+func previewText(value string, limit int) string {
+	normalized := strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	if normalized == "" {
+		return ""
+	}
+	if len(normalized) <= limit {
+		return normalized
+	}
+	return strings.TrimSpace(normalized[:limit]) + "..."
 }
 
 func checkpointBadges(item exportItem) []string {
