@@ -116,7 +116,7 @@ func TestExportMarkdownWritesArtifactDirectories(t *testing.T) {
 	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "decision", "Export scope", "Export intent artifacts.", ""); err != nil {
 		t.Fatalf("CreateArtifact intent: %v", err)
 	}
-	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassContext, "policy", "Release policy", "Never rewrite history.", ""); err != nil {
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "Release policy", "Never rewrite history.", ""); err != nil {
 		t.Fatalf("CreateArtifact context: %v", err)
 	}
 

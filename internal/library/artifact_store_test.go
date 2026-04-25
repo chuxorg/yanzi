@@ -27,7 +27,7 @@ func TestCreateArtifactAndListArtifacts(t *testing.T) {
 		t.Fatalf("expected intent artifact, got %q", artifact.Class)
 	}
 
-	_, err = CreateArtifact("alpha", ArtifactClassContext, "policy", "Release policy", "Never rewrite history.", "")
+	_, err = CreateContextArtifact("alpha", "process_rule", ContextScopeProject, "Release policy", "Never rewrite history.", "")
 	if err != nil {
 		t.Fatalf("CreateArtifact context: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestCreateArtifactAndListArtifacts(t *testing.T) {
 		t.Fatalf("unexpected intent artifact: %+v", intents[0])
 	}
 
-	contexts, err := ListArtifacts("alpha", ArtifactClassContext, "policy")
+	contexts, err := ListArtifacts("alpha", ArtifactClassContext, "process_rule")
 	if err != nil {
 		t.Fatalf("ListArtifacts context: %v", err)
 	}
@@ -64,12 +64,49 @@ func TestCreateArtifactRejectsInvalidType(t *testing.T) {
 		t.Fatalf("CreateProject: %v", err)
 	}
 
-	_, err := CreateArtifact("alpha", ArtifactClassContext, "note", "Bad context type", "content", "")
+	_, err := CreateContextArtifact("alpha", "architecture", ContextScopeProject, "Bad context type", "content", "")
 	if err == nil {
 		t.Fatal("expected validation error")
 	}
 	if !strings.Contains(err.Error(), "invalid context type") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCreateContextArtifactSupportsGlobalAndProjectScope(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	if _, err := CreateProject("alpha", ""); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
+	globalArtifact, err := CreateContextArtifact("", "note", ContextScopeGlobal, "Global note", "Shared context.", "")
+	if err != nil {
+		t.Fatalf("CreateContextArtifact global: %v", err)
+	}
+	if globalArtifact.Scope != ContextScopeGlobal {
+		t.Fatalf("expected global scope, got %q", globalArtifact.Scope)
+	}
+
+	projectArtifact, err := CreateContextArtifact("alpha", "coding_standard", ContextScopeProject, "Go style", "Return wrapped errors.", "")
+	if err != nil {
+		t.Fatalf("CreateContextArtifact project: %v", err)
+	}
+	if projectArtifact.Project != "alpha" {
+		t.Fatalf("expected project alpha, got %q", projectArtifact.Project)
+	}
+
+	visible, err := ListVisibleContextArtifacts("alpha", "", "", "")
+	if err != nil {
+		t.Fatalf("ListVisibleContextArtifacts: %v", err)
+	}
+	if len(visible) != 2 {
+		t.Fatalf("expected 2 visible context artifacts, got %d", len(visible))
 	}
 }
 
