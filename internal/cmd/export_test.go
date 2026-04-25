@@ -421,6 +421,9 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "id=\"event-search\"") || !strings.Contains(output, "Showing 3 of 3 events") {
 		t.Fatalf("missing search UI: %q", output)
 	}
+	if !strings.Contains(output, ".timeline::before") || !strings.Contains(output, "class=\"timeline-marker\"") {
+		t.Fatalf("missing timeline rail and markers: %q", output)
+	}
 
 	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
@@ -447,11 +450,40 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
 		t.Fatalf("missing copy controls: %q", output)
 	}
-	if !strings.Contains(output, "class=\"checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
 		t.Fatalf("checkpoint styling was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "timeline-entry-checkpoint .timeline-marker") || !strings.Contains(output, "class=\"timeline-divider\"") {
+		t.Fatalf("checkpoint boundary marker was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "class=\"timeline-entry event-card\"") || !strings.Contains(output, "class=\"capture timeline-card\"") {
+		t.Fatalf("capture timeline layout was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") || !strings.Contains(output, "2025-01-01\n00:00Z") {
+		t.Fatalf("timeline stamps or meta entry layout missing: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-muted\">Capture</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">Prompt</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">Response</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">Hash</span>") {
+		t.Fatalf("missing capture semantic badges: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">Role: engineer</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-accent\">Source: cli</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">Metadata</span>") {
+		t.Fatalf("missing role/source/metadata badges: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-strong\">Checkpoint</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-strong\">Boundary</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-strong\">Rehydration Anchor</span>") {
+		t.Fatalf("missing checkpoint semantic badges: %q", output)
 	}
 	if !strings.Contains(output, "data-search=\"capture 2025-01-01T00:00:01Z cap-1 engineer") {
 		t.Fatalf("missing capture search corpus: %q", output)
+	}
+	if !strings.Contains(output, "Role: engineer Source: cli Metadata") ||
+		!strings.Contains(output, "Checkpoint Boundary Rehydration Anchor Hash") {
+		t.Fatalf("badge text should be included in the search corpus: %q", output)
 	}
 	if !strings.Contains(output, "id=\"prompt-0\" class=\"content-block\" hidden") || !strings.Contains(output, "id=\"response-0\" class=\"content-block\" hidden") {
 		t.Fatalf("prompt/response blocks should be collapsible and hidden by default: %q", output)
@@ -495,6 +527,9 @@ func TestExportHTMLOmitsMetadataWhenOnlyProject(t *testing.T) {
 	output := string(data)
 	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
 		t.Fatalf("did not expect metadata table for project-only metadata: %q", output)
+	}
+	if strings.Contains(output, "Metadata</span>") {
+		t.Fatalf("did not expect metadata badge for project-only metadata: %q", output)
 	}
 }
 
