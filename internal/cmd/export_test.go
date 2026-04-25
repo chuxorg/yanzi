@@ -3,6 +3,7 @@ package cmd
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sort"
@@ -374,6 +375,101 @@ func TestExportHTMLNoActiveProject(t *testing.T) {
 	}
 }
 
+func TestExportHTMLOpenInvokesBrowser(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+
+	var openedPath string
+	original := openExportInBrowser
+	openExportInBrowser = func(path string) error {
+		openedPath = path
+		return nil
+	}
+	defer func() {
+		openExportInBrowser = original
+	}()
+
+	if err := RunExport([]string{"--format", "html", "--open"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+	if openedPath != "YANZI_LOG.html" {
+		t.Fatalf("expected browser open for YANZI_LOG.html, got %q", openedPath)
+	}
+	if _, err := os.Stat(filepath.Join(workdir, "YANZI_LOG.html")); err != nil {
+		t.Fatalf("expected html export file to exist: %v", err)
+	}
+}
+
+func TestExportHTMLOpenReturnsUsefulErrorAfterWritingFile(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+
+	original := openExportInBrowser
+	openExportInBrowser = func(path string) error {
+		return errors.New("launcher unavailable")
+	}
+	defer func() {
+		openExportInBrowser = original
+	}()
+
+	err := RunExport([]string{"--format", "html", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "open export in browser: launcher unavailable") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(workdir, "YANZI_LOG.html")); statErr != nil {
+		t.Fatalf("expected html export file to still exist: %v", statErr)
+	}
+}
+
+func TestExportMarkdownOpenRejected(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	err := RunExport([]string{"--format", "markdown", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--open is only supported with --format html") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestExportJSONOpenRejected(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	err := RunExport([]string{"--format", "json", "--open"}, "v1.0.0")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "--open is only supported with --format html") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -424,6 +520,12 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, ".timeline::before") || !strings.Contains(output, "class=\"timeline-marker\"") {
 		t.Fatalf("missing timeline rail and markers: %q", output)
 	}
+	if !strings.Contains(output, ".timeline-marker{position:absolute;left:-97px;top:20px;width:22px;height:22px") {
+		t.Fatalf("timeline markers were not reduced in size: %q", output)
+	}
+	if strings.Contains(output, "class=\"timeline-stamp\"") || strings.Contains(output, ".timeline-stamp{") {
+		t.Fatalf("timeline timestamp labels should not be rendered: %q", output)
+	}
 
 	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
@@ -450,6 +552,12 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
 		t.Fatalf("missing copy controls: %q", output)
 	}
+	if !strings.Contains(output, "class=\"preview-text\">line1 line2</div>") || !strings.Contains(output, "class=\"preview-text\">result ok</div>") {
+		t.Fatalf("missing prompt/response preview snippets: %q", output)
+	}
+	if !strings.Contains(output, "data-preview-target=\"prompt-preview-0\"") || !strings.Contains(output, "data-preview-target=\"response-preview-0\"") {
+		t.Fatalf("toggle buttons should be wired to previews: %q", output)
+	}
 	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
 		t.Fatalf("checkpoint styling was not rendered: %q", output)
 	}
@@ -459,7 +567,7 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "class=\"timeline-entry event-card\"") || !strings.Contains(output, "class=\"capture timeline-card\"") {
 		t.Fatalf("capture timeline layout was not rendered: %q", output)
 	}
-	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") || !strings.Contains(output, "2025-01-01\n00:00Z") {
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") {
 		t.Fatalf("timeline stamps or meta entry layout missing: %q", output)
 	}
 	if !strings.Contains(output, "<span class=\"badge badge-muted\">Capture</span>") ||
@@ -493,6 +601,15 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "<pre>result\nok</pre>") {
 		t.Fatalf("response pre block did not preserve whitespace: %q", output)
+	}
+	if !strings.Contains(output, "class=\"js-timestamp\" data-timestamp=\"2025-01-01T00:00:01Z\" title=\"2025-01-01T00:00:01Z\">2025-01-01T00:00:01Z</span>") {
+		t.Fatalf("missing raw timestamp tooltip hook: %q", output)
+	}
+	if !strings.Contains(output, "Intl.DateTimeFormat") || !strings.Contains(output, "formatTimestamps()") {
+		t.Fatalf("expected client-side timestamp formatting: %q", output)
+	}
+	if !strings.Contains(output, "min-width:110px;height:34px") {
+		t.Fatalf("expected consistent button styling: %q", output)
 	}
 	if !strings.Contains(output, "navigator.clipboard") || !strings.Contains(output, "document.execCommand('copy')") {
 		t.Fatalf("expected clipboard copy with fallback: %q", output)

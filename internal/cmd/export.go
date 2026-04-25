@@ -8,8 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"html"
+	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +20,8 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
+
+var openExportInBrowser = openBrowser
 
 type exportItemType string
 
@@ -51,15 +56,19 @@ func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
+	open := fs.Bool("open", false, "open generated html export in the default browser")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html>")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
-		return errors.New("usage: yanzi export --format <markdown|json|html>")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+	}
+	if *open && formatValue != "html" {
+		return errors.New("--open is only supported with --format html")
 	}
 
 	project, err := loadActiveProject()
@@ -113,6 +122,36 @@ func RunExport(args []string, cliVersion string) error {
 	}
 
 	fmt.Printf("Exported %s\n", path)
+	if *open {
+		if err := openExportInBrowser(path); err != nil {
+			return fmt.Errorf("open export in browser: %w", err)
+		}
+	}
+	return nil
+}
+
+func openBrowser(path string) error {
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return fmt.Errorf("resolve export path: %w", err)
+	}
+
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "darwin":
+		cmd = exec.Command("open", absPath)
+	case "linux":
+		cmd = exec.Command("xdg-open", absPath)
+	case "windows":
+		fileURL := (&url.URL{Scheme: "file", Path: filepath.ToSlash(absPath)}).String()
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", fileURL)
+	default:
+		return fmt.Errorf("unsupported platform: %s", runtime.GOOS)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -565,8 +604,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .timeline::before{content:\"\";position:absolute;left:38px;top:0;bottom:0;width:4px;border-radius:999px;background:linear-gradient(180deg,#c8d3e3 0%,#93a7c5 45%,#c8d3e3 100%)}\n")
 	b.WriteString("    .timeline-entry{position:relative}\n")
 	b.WriteString("    .timeline-entry[hidden]{display:none !important}\n")
-	b.WriteString("    .timeline-marker{position:absolute;left:-92px;top:18px;width:32px;height:32px;border-radius:999px;border:4px solid #fff;background:#9fb0c7;box-shadow:0 0 0 3px rgba(144,160,184,.45),0 8px 18px rgba(15,23,42,.12)}\n")
-	b.WriteString("    .timeline-stamp{position:absolute;left:-92px;top:58px;width:72px;font-size:.72rem;line-height:1.35;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}\n")
+	b.WriteString("    .timeline-marker{position:absolute;left:-97px;top:20px;width:22px;height:22px;border-radius:999px;border:3px solid #fff;background:#9fb0c7;box-shadow:0 0 0 2px rgba(144,160,184,.38),0 6px 14px rgba(15,23,42,.1)}\n")
 	b.WriteString("    .timeline-card,.capture,.checkpoint,.meta-event{box-shadow:var(--shadow)}\n")
 	b.WriteString("    .capture{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}\n")
 	b.WriteString("    .capture h3{margin:0 0 8px;font-size:1rem}\n")
@@ -578,9 +616,8 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .checkpoint h2{margin:0 0 6px;font-size:1.05rem;padding-right:120px}\n")
 	b.WriteString("    .checkpoint .label,.checkpoint .meta-line,.checkpoint .mono-inline{color:inherit}\n")
 	b.WriteString("    .meta-event{background:var(--meta-bg);border:1px dashed var(--border-strong);border-radius:14px;padding:12px 14px;color:#374151}\n")
-	b.WriteString("    .timeline-entry-checkpoint .timeline-marker{left:-98px;top:10px;width:44px;height:44px;background:radial-gradient(circle at 30% 30%,#fff4c3 0%,#f2c14e 45%,#8a6610 100%);box-shadow:0 0 0 4px rgba(242,193,78,.28),0 12px 24px rgba(15,23,42,.18)}\n")
-	b.WriteString("    .timeline-entry-checkpoint .timeline-stamp{top:64px;font-weight:700;color:#6a5320}\n")
-	b.WriteString("    .timeline-entry-meta .timeline-marker{background:#d8dee8;box-shadow:0 0 0 3px rgba(144,160,184,.35),0 6px 14px rgba(15,23,42,.08)}\n")
+	b.WriteString("    .timeline-entry-checkpoint .timeline-marker{left:-101px;top:14px;width:30px;height:30px;background:radial-gradient(circle at 30% 30%,#fff4c3 0%,#f2c14e 45%,#8a6610 100%);box-shadow:0 0 0 3px rgba(242,193,78,.24),0 10px 18px rgba(15,23,42,.15)}\n")
+	b.WriteString("    .timeline-entry-meta .timeline-marker{background:#d8dee8;box-shadow:0 0 0 2px rgba(144,160,184,.32),0 5px 10px rgba(15,23,42,.08)}\n")
 	b.WriteString("    .label{font-weight:600}\n")
 	b.WriteString("    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}\n")
 	b.WriteString("    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface-muted);font-size:.78rem;font-weight:600;letter-spacing:.01em;color:var(--muted)}\n")
@@ -592,19 +629,21 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    th,td{border:1px solid #e5e7eb;padding:4px 8px;font-size:.9rem;text-align:left}\n")
 	b.WriteString("    .field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}\n")
 	b.WriteString("    .mono-inline{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(15,23,42,.05);border-radius:6px;padding:2px 6px;max-width:100%;overflow-wrap:anywhere}\n")
-	b.WriteString("    .copy-btn,.toggle-btn{appearance:none;border:1px solid var(--border-strong);background:#fff;border-radius:8px;padding:6px 10px;font:inherit;font-size:.88rem;color:var(--text);cursor:pointer}\n")
+	b.WriteString("    .event-actions{gap:6px}\n")
+	b.WriteString("    .copy-btn,.toggle-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:110px;height:34px;border:1px solid var(--border);background:var(--surface-muted);border-radius:999px;padding:0 12px;font:inherit;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}\n")
 	b.WriteString("    .copy-btn:hover,.toggle-btn:hover,.search-input:focus{border-color:var(--accent)}\n")
 	b.WriteString("    .copy-btn:focus,.toggle-btn:focus,.search-input:focus{outline:2px solid rgba(15,118,110,.2);outline-offset:2px}\n")
 	b.WriteString("    .copy-btn[data-copied=\"true\"]{background:var(--accent-soft);border-color:var(--accent);color:#0f5132}\n")
 	b.WriteString("    .toggle-row{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}\n")
 	b.WriteString("    .block-label{font-weight:600;font-size:.95rem}\n")
+	b.WriteString("    .preview-text{margin:0 0 10px;padding:10px 12px;border:1px dashed #d7dde7;border-radius:10px;background:#fbfcfe;color:var(--muted);font-size:.92rem;white-space:pre-wrap}\n")
 	b.WriteString("    .content-block[hidden]{display:none !important}\n")
 	b.WriteString("    pre{margin:0;background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}\n")
 	b.WriteString("    .timeline-divider{position:relative;height:18px;margin:0}\n")
 	b.WriteString("    .timeline-divider::before{content:\"\";position:absolute;left:-54px;right:0;top:8px;border-top:1px dashed rgba(144,160,184,.55)}\n")
 	b.WriteString("    .empty-state{padding:18px;border:1px dashed var(--border-strong);border-radius:14px;text-align:center;color:var(--muted);background:rgba(255,255,255,.7)}\n")
-	b.WriteString("    @media (max-width:760px){.timeline{padding-left:76px}.timeline::before{left:28px}.timeline-marker{left:-76px}.timeline-stamp{left:-76px;width:58px;font-size:.68rem}.timeline-entry-checkpoint .timeline-marker{left:-82px}.timeline-divider::before{left:-44px}}\n")
-	b.WriteString("    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:-4px;top:-8px;width:20px;height:20px;border-width:3px}.timeline-stamp{position:static;width:auto;margin:0 0 8px 34px;font-size:.72rem;text-transform:none;letter-spacing:0}.timeline-entry-checkpoint .timeline-marker{left:-10px;top:-14px;width:30px;height:30px}.timeline-entry-checkpoint .timeline-stamp{margin-left:38px}.timeline-divider::before{left:12px}}\n")
+	b.WriteString("    @media (max-width:760px){.timeline{padding-left:76px}.timeline::before{left:28px}.timeline-marker{left:-79px;width:20px;height:20px}.timeline-entry-checkpoint .timeline-marker{left:-82px;width:26px;height:26px}.timeline-divider::before{left:-44px}}\n")
+	b.WriteString("    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:3px;top:-6px;width:16px;height:16px;border-width:2px}.timeline-entry-checkpoint .timeline-marker{left:0;top:-10px;width:22px;height:22px}.timeline-divider::before{left:12px}}\n")
 	b.WriteString("  </style>\n")
 	b.WriteString("</head>\n")
 	b.WriteString("<body>\n")
@@ -642,7 +681,6 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 		}
 		b.WriteString(fmt.Sprintf("    <div class=\"%s event-card\" data-search=\"%s\">\n", entryClass, searchText))
 		b.WriteString("      <div class=\"timeline-marker\" aria-hidden=\"true\"></div>\n")
-		b.WriteString(fmt.Sprintf("      <div class=\"timeline-stamp\">%s</div>\n", html.EscapeString(compactTimestamp(item.Timestamp))))
 		switch item.Kind {
 		case exportItemCheckpoint:
 			b.WriteString("      <div class=\"timeline-divider\" aria-hidden=\"true\"></div>\n")
@@ -656,11 +694,11 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
 			b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
-			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString("        </div>\n")
 			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint ID\" aria-label=\"Copy checkpoint ID\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint hash\" aria-label=\"Copy checkpoint hash\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
 			b.WriteString("        </div>\n")
 			b.WriteString("      </div>\n")
 			b.WriteString("      </section>\n")
@@ -670,11 +708,13 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			if strings.TrimSpace(item.Value) != "" {
 				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
 			}
-			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> %s</div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString("      </section>\n")
 		default:
 			promptID := fmt.Sprintf("prompt-%d", idx)
 			responseID := fmt.Sprintf("response-%d", idx)
+			promptPreviewID := fmt.Sprintf("prompt-preview-%d", idx)
+			responsePreviewID := fmt.Sprintf("response-preview-%d", idx)
 			b.WriteString("      <section class=\"capture timeline-card\">\n")
 			b.WriteString("      <div class=\"event-header\">\n")
 			b.WriteString("        <div class=\"event-main\">\n")
@@ -689,12 +729,12 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			b.WriteString("          </div>\n")
 			b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
-			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span>%s</span></div>\n", html.EscapeString(item.Timestamp)))
+			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Hash:</span> <code class=\"mono-inline\">%s</code></div>\n", html.EscapeString(item.Hash)))
 			b.WriteString("        </div>\n")
 			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\">Copy hash</button>\n", html.EscapeString(item.Hash)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture ID\" aria-label=\"Copy capture ID\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
+			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture hash\" aria-label=\"Copy capture hash\">Copy hash</button>\n", html.EscapeString(item.Hash)))
 			b.WriteString("        </div>\n")
 			b.WriteString("      </div>\n")
 			if len(item.Metadata) > 0 {
@@ -710,15 +750,17 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			}
 			b.WriteString("      <div class=\"toggle-row\">\n")
 			b.WriteString("        <div class=\"block-label\">Prompt</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" aria-expanded=\"false\">Show prompt</button></div>\n", promptID, promptID))
+			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full prompt\" aria-label=\"Show full prompt\">Show prompt</button></div>\n", promptID, promptID, promptPreviewID))
 			b.WriteString("      </div>\n")
+			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", promptPreviewID, html.EscapeString(previewText(item.Prompt, 160))))
 			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", promptID))
 			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
 			b.WriteString("      </div>\n")
 			b.WriteString("      <div class=\"toggle-row\">\n")
 			b.WriteString("        <div class=\"block-label\">Response</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" aria-expanded=\"false\">Show response</button></div>\n", responseID, responseID))
+			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full response\" aria-label=\"Show full response\">Show response</button></div>\n", responseID, responseID, responsePreviewID))
 			b.WriteString("      </div>\n")
+			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", responsePreviewID, html.EscapeString(previewText(item.Response, 160))))
 			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", responseID))
 			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Response)))
 			b.WriteString("      </div>\n")
@@ -733,9 +775,14 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("      const cards=Array.from(document.querySelectorAll('.event-card'));\n")
 	b.WriteString("      const searchInput=document.getElementById('event-search');\n")
 	b.WriteString("      const matchCount=document.getElementById('match-count');\n")
+	b.WriteString("      const timestampNodes=Array.from(document.querySelectorAll('.js-timestamp'));\n")
 	b.WriteString("      function updateCount(){\n")
 	b.WriteString("        const visible=cards.filter(card=>!card.hidden).length;\n")
 	b.WriteString("        if(matchCount){matchCount.textContent='Showing '+visible+' of '+cards.length+' events';}\n")
+	b.WriteString("      }\n")
+	b.WriteString("      function formatTimestamps(){\n")
+	b.WriteString("        const formatter=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});\n")
+	b.WriteString("        timestampNodes.forEach(function(node){const raw=node.getAttribute('data-timestamp');if(!raw){return;}const date=new Date(raw);if(Number.isNaN(date.getTime())){return;}node.textContent=formatter.format(date);node.setAttribute('title',raw);});\n")
 	b.WriteString("      }\n")
 	b.WriteString("      function applyFilter(){\n")
 	b.WriteString("        const query=(searchInput&&searchInput.value||'').trim().toLowerCase();\n")
@@ -754,12 +801,16 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("        const toggle=event.target.closest('.toggle-btn');\n")
 	b.WriteString("        if(toggle){\n")
 	b.WriteString("          const target=document.getElementById(toggle.getAttribute('data-target'));\n")
+	b.WriteString("          const preview=document.getElementById(toggle.getAttribute('data-preview-target'));\n")
 	b.WriteString("          if(!target){return;}\n")
 	b.WriteString("          const expanded=toggle.getAttribute('aria-expanded')==='true';\n")
 	b.WriteString("          target.hidden=expanded;\n")
+	b.WriteString("          if(preview){preview.hidden=!expanded;}\n")
 	b.WriteString("          toggle.setAttribute('aria-expanded',String(!expanded));\n")
 	b.WriteString("          const label=target.id.indexOf('prompt-')===0?'prompt':'response';\n")
 	b.WriteString("          toggle.textContent=(expanded?'Show ':'Hide ')+label;\n")
+	b.WriteString("          toggle.setAttribute('title',(expanded?'Show full ':'Hide full ')+label);\n")
+	b.WriteString("          toggle.setAttribute('aria-label',(expanded?'Show full ':'Hide full ')+label);\n")
 	b.WriteString("          return;\n")
 	b.WriteString("        }\n")
 	b.WriteString("        const copyButton=event.target.closest('.copy-btn');\n")
@@ -772,6 +823,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("        }\n")
 	b.WriteString("      });\n")
 	b.WriteString("      if(searchInput){searchInput.addEventListener('input',applyFilter);}\n")
+	b.WriteString("      formatTimestamps();\n")
 	b.WriteString("      updateCount();\n")
 	b.WriteString("    })();\n")
 	b.WriteString("  </script>\n")
@@ -799,6 +851,17 @@ func exportSearchText(item exportItem) string {
 	return strings.Join(parts, " ")
 }
 
+func previewText(value string, limit int) string {
+	normalized := strings.Join(strings.Fields(strings.TrimSpace(value)), " ")
+	if normalized == "" {
+		return ""
+	}
+	if len(normalized) <= limit {
+		return normalized
+	}
+	return strings.TrimSpace(normalized[:limit]) + "..."
+}
+
 func checkpointBadges(item exportItem) []string {
 	return []string{"Checkpoint", "Boundary", "Rehydration Anchor", "Hash"}
 }
@@ -815,12 +878,4 @@ func captureBadges(item exportItem) []string {
 		badges = append(badges, "Metadata")
 	}
 	return badges
-}
-
-func compactTimestamp(value string) string {
-	parsed, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		return value
-	}
-	return parsed.UTC().Format("2006-01-02\n15:04Z")
 }
