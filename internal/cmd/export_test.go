@@ -421,6 +421,9 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "id=\"event-search\"") || !strings.Contains(output, "Showing 3 of 3 events") {
 		t.Fatalf("missing search UI: %q", output)
 	}
+	if !strings.Contains(output, ".timeline::before") || !strings.Contains(output, "class=\"timeline-marker\"") {
+		t.Fatalf("missing timeline rail and markers: %q", output)
+	}
 
 	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
@@ -447,8 +450,17 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
 		t.Fatalf("missing copy controls: %q", output)
 	}
-	if !strings.Contains(output, "class=\"checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
 		t.Fatalf("checkpoint styling was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "timeline-entry-checkpoint .timeline-marker") || !strings.Contains(output, "class=\"timeline-divider\"") {
+		t.Fatalf("checkpoint boundary marker was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "class=\"timeline-entry event-card\"") || !strings.Contains(output, "class=\"capture timeline-card\"") {
+		t.Fatalf("capture timeline layout was not rendered: %q", output)
+	}
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") || !strings.Contains(output, "2025-01-01\n00:00Z") {
+		t.Fatalf("timeline stamps or meta entry layout missing: %q", output)
 	}
 	if !strings.Contains(output, "data-search=\"capture 2025-01-01T00:00:01Z cap-1 engineer") {
 		t.Fatalf("missing capture search corpus: %q", output)
