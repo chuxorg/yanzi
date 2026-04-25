@@ -520,11 +520,11 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, ".timeline::before") || !strings.Contains(output, "class=\"timeline-marker\"") {
 		t.Fatalf("missing timeline rail and markers: %q", output)
 	}
-	if !strings.Contains(output, ".timeline-marker{position:absolute;left:-88px;top:20px;width:22px;height:22px") {
+	if !strings.Contains(output, ".timeline-marker{position:absolute;left:-97px;top:20px;width:22px;height:22px") {
 		t.Fatalf("timeline markers were not reduced in size: %q", output)
 	}
-	if !strings.Contains(output, ".timeline-stamp{position:absolute;left:-92px;top:52px;width:84px") || !strings.Contains(output, "font-weight:700") || !strings.Contains(output, "white-space:nowrap") {
-		t.Fatalf("timeline timestamp styling was not strengthened: %q", output)
+	if strings.Contains(output, "class=\"timeline-stamp\"") || strings.Contains(output, ".timeline-stamp{") {
+		t.Fatalf("timeline timestamp labels should not be rendered: %q", output)
 	}
 
 	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
@@ -567,7 +567,7 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "class=\"timeline-entry event-card\"") || !strings.Contains(output, "class=\"capture timeline-card\"") {
 		t.Fatalf("capture timeline layout was not rendered: %q", output)
 	}
-	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") || !strings.Contains(output, "2025-01-01\n00:00Z") {
+	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") {
 		t.Fatalf("timeline stamps or meta entry layout missing: %q", output)
 	}
 	if !strings.Contains(output, "<span class=\"badge badge-muted\">Capture</span>") ||
