@@ -57,15 +57,17 @@ func RunExport(args []string, cliVersion string) error {
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
+	metaFilters := metaPairs{}
+	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
 	}
 	if *open && formatValue != "html" {
 		return errors.New("--open is only supported with --format html")
@@ -94,7 +96,7 @@ func RunExport(args []string, cliVersion string) error {
 	defer db.Close()
 
 	ctx := context.Background()
-	items, captureCount, err := loadExportItems(ctx, db, project)
+	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters))
 	if err != nil {
 		return err
 	}
@@ -117,7 +119,7 @@ func RunExport(args []string, cliVersion string) error {
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
-	if err := exportArtifactDirectories(project); err != nil {
+	if err := exportArtifactDirectories(project, map[string]string(metaFilters)); err != nil {
 		return err
 	}
 
@@ -155,7 +157,7 @@ func openBrowser(path string) error {
 	return nil
 }
 
-func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportItem, int, error) {
+func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilters map[string]string) ([]exportItem, int, error) {
 	intents := make([]exportItem, 0)
 	captureCount := 0
 
@@ -184,8 +186,16 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 		if strings.TrimSpace(meta["project"]) != project {
 			continue
 		}
+		if len(metaFilters) > 0 {
+			if !metadataMatchesAll(meta, metaFilters) {
+				continue
+			}
+		}
 
 		if isMetaCommandSource(sourceType) {
+			if len(metaFilters) > 0 {
+				continue
+			}
 			intents = append(intents, exportItem{
 				Kind:      exportItemMeta,
 				Timestamp: createdAt,
@@ -215,6 +225,9 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 	}
 
 	checkpoints := make([]exportItem, 0)
+	if len(metaFilters) > 0 {
+		return mergeChronological(intents, checkpoints), captureCount, nil
+	}
 	checkpointRows, err := db.QueryContext(ctx, `SELECT rowid, hash, summary, created_at
 		FROM checkpoints
 		WHERE project = ?
@@ -245,7 +258,14 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 	return mergeChronological(intents, checkpoints), captureCount, nil
 }
 
-func exportArtifactDirectories(project string) error {
+func exportArtifactDirectories(project string, metaFilters map[string]string) error {
+	if len(metaFilters) > 0 {
+		if err := writeArtifactDirectory("Intent", nil); err != nil {
+			return err
+		}
+		return writeArtifactDirectory("Context", nil)
+	}
+
 	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "")
 	if err != nil {
 		return err
@@ -347,6 +367,18 @@ func decodeStringMeta(metaText string) (map[string]string, error) {
 		return nil, err
 	}
 	return meta, nil
+}
+
+func metadataMatchesAll(meta, filters map[string]string) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for key, value := range filters {
+		if meta[key] != value {
+			return false
+		}
+	}
+	return true
 }
 
 func sortedMetaPairs(meta map[string]string) []string {

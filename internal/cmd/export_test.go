@@ -179,6 +179,36 @@ func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
 	}
 }
 
+func TestExportMarkdownMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "markdown"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "Canonical system rules") || !strings.Contains(output, "# System Rules") {
+		t.Fatalf("expected rule artifact content in markdown export: %q", output)
+	}
+	if strings.Contains(output, "General context note") || strings.Contains(output, "# Project Notes") {
+		t.Fatalf("did not expect non-rule artifact in markdown export: %q", output)
+	}
+	if strings.Contains(output, "## Checkpoint:") || strings.Contains(output, "### Event:") {
+		t.Fatalf("did not expect checkpoints or meta events in filtered export: %q", output)
+	}
+}
+
 func TestExportJSONNoActiveProject(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -357,6 +387,41 @@ func TestExportJSONNoEventsProducesEmptyArray(t *testing.T) {
 	}
 	if len(events) != 0 {
 		t.Fatalf("expected empty events array, got %d", len(events))
+	}
+}
+
+func TestExportJSONMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "json"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export json: %v", err)
+	}
+	events := payload["events"].([]any)
+	if len(events) != 1 {
+		t.Fatalf("expected 1 filtered event, got %d", len(events))
+	}
+	event := events[0].(map[string]any)
+	if event["type"] != "capture" {
+		t.Fatalf("expected filtered event to be capture, got %v", event["type"])
+	}
+	if event["response"] != "Canonical system rules" {
+		t.Fatalf("unexpected filtered capture response: %v", event["response"])
 	}
 }
 
@@ -650,6 +715,33 @@ func TestExportHTMLOmitsMetadataWhenOnlyProject(t *testing.T) {
 	}
 }
 
+func TestExportHTMLMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "html"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "Canonical system rules") || !strings.Contains(output, "Showing 1 of 1 events") {
+		t.Fatalf("expected filtered html export output: %q", output)
+	}
+	if strings.Contains(output, "General context note") {
+		t.Fatalf("did not expect non-rule artifact in html export: %q", output)
+	}
+}
+
 func TestExportMarkdownNoCapturesRecorded(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -800,5 +892,43 @@ func seedCheckpointForExport(t *testing.T, db *sql.DB, project, createdAt, summa
 	)
 	if err != nil {
 		t.Fatalf("seed checkpoint: %v", err)
+	}
+}
+
+func captureRuleArtifactsForExportTest(t *testing.T, workdir string) {
+	t.Helper()
+
+	systemRulesPath := filepath.Join(workdir, "SYSTEM_RULES.md")
+	if err := os.WriteFile(systemRulesPath, []byte("# System Rules\nAlways verify changes.\n"), 0o644); err != nil {
+		t.Fatalf("write SYSTEM_RULES.md: %v", err)
+	}
+	notesPath := filepath.Join(workdir, "project-notes.md")
+	if err := os.WriteFile(notesPath, []byte("# Project Notes\nGeneral context.\n"), 0o644); err != nil {
+		t.Fatalf("write project-notes.md: %v", err)
+	}
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "System Rules",
+		"--prompt-file", systemRulesPath,
+		"--response", "Canonical system rules",
+		"--meta", "type=context",
+		"--meta", "subtype=rules",
+		"--meta", "scope=global",
+		"--meta", "priority=critical",
+	}); err != nil {
+		t.Fatalf("RunCapture rules: %v", err)
+	}
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Project Note",
+		"--prompt-file", notesPath,
+		"--response", "General context note",
+		"--meta", "type=context",
+		"--meta", "subtype=note",
+		"--meta", "scope=project",
+	}); err != nil {
+		t.Fatalf("RunCapture note: %v", err)
 	}
 }
