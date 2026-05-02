@@ -57,6 +57,7 @@ func RunExport(args []string, cliVersion string) error {
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
+	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
@@ -96,7 +97,7 @@ func RunExport(args []string, cliVersion string) error {
 	defer db.Close()
 
 	ctx := context.Background()
-	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters))
+	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters), *includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func RunExport(args []string, cliVersion string) error {
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
-	if err := exportArtifactDirectories(project, map[string]string(metaFilters)); err != nil {
+	if err := exportArtifactDirectories(project, map[string]string(metaFilters), *includeDeleted); err != nil {
 		return err
 	}
 
@@ -157,11 +158,11 @@ func openBrowser(path string) error {
 	return nil
 }
 
-func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilters map[string]string) ([]exportItem, int, error) {
+func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilters map[string]string, includeDeleted bool) ([]exportItem, int, error) {
 	intents := make([]exportItem, 0)
 	captureCount := 0
 
-	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta
+	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta, metadata
 		FROM intents
 		WHERE source_type <> 'artifact'
 		ORDER BY created_at ASC, rowid ASC`)
@@ -175,15 +176,19 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilter
 			rowID                                                          int64
 			id, createdAt, author, sourceType, prompt, response, hashValue string
 			metaText                                                       sql.NullString
+			metadataText                                                   sql.NullString
 		)
-		if err := intentRows.Scan(&rowID, &id, &createdAt, &author, &sourceType, &prompt, &response, &hashValue, &metaText); err != nil {
+		if err := intentRows.Scan(&rowID, &id, &createdAt, &author, &sourceType, &prompt, &response, &hashValue, &metaText, &metadataText); err != nil {
 			return nil, 0, err
 		}
-		meta, err := decodeStringMeta(metaText.String)
+		meta, err := mergedIntentMetadata(metaText.String, metadataText.String)
 		if err != nil {
 			continue
 		}
 		if strings.TrimSpace(meta["project"]) != project {
+			continue
+		}
+		if !includeDeleted && isDeletedMetadata(meta) {
 			continue
 		}
 		if len(metaFilters) > 0 {
@@ -258,7 +263,7 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilter
 	return mergeChronological(intents, checkpoints), captureCount, nil
 }
 
-func exportArtifactDirectories(project string, metaFilters map[string]string) error {
+func exportArtifactDirectories(project string, metaFilters map[string]string, includeDeleted bool) error {
 	if len(metaFilters) > 0 {
 		if err := writeArtifactDirectory("Intent", nil); err != nil {
 			return err
@@ -266,7 +271,7 @@ func exportArtifactDirectories(project string, metaFilters map[string]string) er
 		return writeArtifactDirectory("Context", nil)
 	}
 
-	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "")
+	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "", includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -274,7 +279,7 @@ func exportArtifactDirectories(project string, metaFilters map[string]string) er
 		return err
 	}
 
-	contextArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassContext, "")
+	contextArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassContext, "", includeDeleted)
 	if err != nil {
 		return err
 	}

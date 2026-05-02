@@ -112,7 +112,7 @@ func createArtifact(db *sql.DB, projectID, class, artifactType, title, content, 
 }
 
 // ListArtifacts lists artifacts for a project and class, optionally filtered by type.
-func ListArtifacts(projectID, class, artifactType string) ([]Artifact, error) {
+func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error) {
 	if err := validateArtifactClassAndType(class, artifactType); err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func ListArtifacts(projectID, class, artifactType string) ([]Artifact, error) {
 		_ = db.Close()
 	}()
 
-	return listArtifacts(db, projectID, class, artifactType)
+	return listArtifacts(db, projectID, class, artifactType, includeDeleted)
 }
 
 func validateArtifactClassAndType(class, artifactType string) error {
@@ -155,7 +155,7 @@ func validateArtifactClassAndType(class, artifactType string) error {
 	}
 }
 
-func listArtifacts(db *sql.DB, projectID, class, artifactType string) ([]Artifact, error) {
+func listArtifacts(db *sql.DB, projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error) {
 	rows, err := db.Query(
 		`SELECT id, class, type, title, content, metadata, meta, created_at
 		FROM intents
@@ -187,16 +187,16 @@ func listArtifacts(db *sql.DB, projectID, class, artifactType string) ([]Artifac
 		); err != nil {
 			return nil, err
 		}
-		project, err := projectFromMeta(meta.String)
-		if err != nil || project != projectID {
+		fields, err := artifactSystemFieldsFromMeta(meta.String)
+		if err != nil || fields.Project != projectID {
 			continue
 		}
-		artifact.Project = project
+		if !includeDeleted && fields.Deleted {
+			continue
+		}
+		artifact.Project = fields.Project
 		if artifact.Class == ArtifactClassContext {
-			scope, err := contextScopeFromMeta(meta.String)
-			if err == nil {
-				artifact.Scope = scope
-			}
+			artifact.Scope = fields.Scope
 		}
 		if artifactType != "" && artifact.Type != artifactType {
 			continue
@@ -235,7 +235,7 @@ func contextScopeFromMeta(metaText string) (string, error) {
 }
 
 // ListVisibleContextArtifacts returns global context plus project context visible to the caller.
-func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string) ([]Artifact, error) {
+func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error) {
 	if artifactType != "" {
 		if _, ok := contextArtifactTypes[strings.TrimSpace(artifactType)]; !ok {
 			return nil, fmt.Errorf("invalid context type %q: allowed values are requirement, process_rule, coding_standard, reference, note", artifactType)
@@ -285,6 +285,9 @@ func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, proje
 		if err != nil {
 			continue
 		}
+		if !includeDeleted && fields.Deleted {
+			continue
+		}
 		artifact.Scope = fields.Scope
 		artifact.Project = fields.Project
 
@@ -309,7 +312,7 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 		return Artifact{}, errors.New("context id is required")
 	}
 
-	artifacts, err := ListVisibleContextArtifacts(activeProject, "", "", "")
+	artifacts, err := ListVisibleContextArtifacts(activeProject, "", "", "", true)
 	if err != nil {
 		return Artifact{}, err
 	}

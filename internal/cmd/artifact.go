@@ -108,7 +108,7 @@ func runIntentList(args []string) error {
 		return errors.New("no active project set")
 	}
 
-	artifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, *artifactType)
+	artifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, *artifactType, false)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func runContextList(args []string) error {
 		return err
 	}
 
-	artifacts, err := yanzilibrary.ListVisibleContextArtifacts(activeProject, *artifactType, *scope, *project)
+	artifacts, err := yanzilibrary.ListVisibleContextArtifacts(activeProject, *artifactType, *scope, *project, false)
 	if err != nil {
 		return err
 	}

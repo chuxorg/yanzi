@@ -138,8 +138,10 @@ func nowRFC3339Nano() string {
 }
 
 type artifactSystemFields struct {
-	Project string
-	Scope   string
+	Project   string
+	Scope     string
+	Deleted   bool
+	DeletedAt string
 }
 
 func artifactSystemFieldsFromMeta(metaText string) (artifactSystemFields, error) {
@@ -153,8 +155,10 @@ func artifactSystemFieldsFromMeta(metaText string) (artifactSystemFields, error)
 	}
 
 	fields := artifactSystemFields{
-		Project: strings.TrimSpace(payload["project"]),
-		Scope:   strings.TrimSpace(payload["scope"]),
+		Project:   strings.TrimSpace(payload["project"]),
+		Scope:     strings.TrimSpace(payload["scope"]),
+		Deleted:   strings.EqualFold(strings.TrimSpace(payload["deleted"]), "true"),
+		DeletedAt: strings.TrimSpace(payload["deleted_at"]),
 	}
 	if fields.Scope == "" {
 		if fields.Project != "" {

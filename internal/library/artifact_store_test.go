@@ -32,7 +32,7 @@ func TestCreateArtifactAndListArtifacts(t *testing.T) {
 		t.Fatalf("CreateArtifact context: %v", err)
 	}
 
-	intents, err := ListArtifacts("alpha", ArtifactClassIntent, "")
+	intents, err := ListArtifacts("alpha", ArtifactClassIntent, "", false)
 	if err != nil {
 		t.Fatalf("ListArtifacts intent: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestCreateArtifactAndListArtifacts(t *testing.T) {
 		t.Fatalf("unexpected intent artifact: %+v", intents[0])
 	}
 
-	contexts, err := ListArtifacts("alpha", ArtifactClassContext, "process_rule")
+	contexts, err := ListArtifacts("alpha", ArtifactClassContext, "process_rule", false)
 	if err != nil {
 		t.Fatalf("ListArtifacts context: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestCreateContextArtifactSupportsGlobalAndProjectScope(t *testing.T) {
 		t.Fatalf("expected project alpha, got %q", projectArtifact.Project)
 	}
 
-	visible, err := ListVisibleContextArtifacts("alpha", "", "", "")
+	visible, err := ListVisibleContextArtifacts("alpha", "", "", "", false)
 	if err != nil {
 		t.Fatalf("ListVisibleContextArtifacts: %v", err)
 	}

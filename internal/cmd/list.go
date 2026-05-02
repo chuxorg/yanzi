@@ -18,6 +18,7 @@ func RunList(args []string) error {
 	author := fs.String("author", "", "author filter")
 	source := fs.String("source", "", "source filter")
 	limit := fs.Int("limit", 20, "max records to return")
+	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
@@ -33,7 +34,7 @@ func RunList(args []string) error {
 	switch cfg.Mode {
 	case config.ModeHTTP:
 		cli := client.New(cfg.BaseURL)
-		resp, err := cli.ListIntents(context.Background(), *author, *source, *limit, map[string]string(metaFilters))
+		resp, err := cli.ListIntents(context.Background(), *author, *source, *limit, map[string]string(metaFilters), *includeDeleted)
 		if err != nil {
 			return fmt.Errorf("http request to %s failed: %w", cfg.BaseURL, err)
 		}
@@ -46,7 +47,7 @@ func RunList(args []string) error {
 		}
 		defer db.Close()
 
-		localIntents, err := listLocalIntents(ctx, db, *author, *source, *limit, map[string]string(metaFilters))
+		localIntents, err := listLocalIntents(ctx, db, *author, *source, *limit, map[string]string(metaFilters), *includeDeleted)
 		if err != nil {
 			return err
 		}
