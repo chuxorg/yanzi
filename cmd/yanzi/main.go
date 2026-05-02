@@ -59,6 +59,8 @@ func main() {
 		err = cmd.RunIntent(os.Args[2:])
 	case "context":
 		err = cmd.RunContext(os.Args[2:])
+	case "rules":
+		err = cmd.RunRules(os.Args[2:], version)
 	case "checkpoint":
 		err = cmd.RunCheckpoint(os.Args[2:])
 	case "rehydrate":
@@ -96,6 +98,7 @@ commands:
   project  Manage project context.
   intent  Manage intent artifacts.
   context  Manage context artifacts.
+  rules  Manage rule metadata wrappers.
   checkpoint  Manage checkpoints.
   rehydrate  Rehydrate active project context.
   export  Export active project history.
@@ -152,6 +155,11 @@ context args:
   list                  List visible context artifacts.
   show <id>             Show a context artifact by id.
 
+rules args:
+  add <file>            Capture a rules file with context metadata.
+  list                  List rule captures only.
+  export                Export rule captures only.
+
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
   list                   List checkpoints for the active project.
@@ -189,6 +197,9 @@ examples:
   yanzi context add --type process_rule --title "Release rule" --file ./policy.md
   yanzi context list --scope project
   yanzi context show abc123def456
+  yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
+  yanzi rules list --scope global
+  yanzi rules export --format markdown --profile default
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate
