@@ -51,6 +51,10 @@ func main() {
 		err = cmd.RunList(os.Args[2:])
 	case "show":
 		err = cmd.RunShow(os.Args[2:])
+	case "delete":
+		err = cmd.RunDelete(os.Args[2:])
+	case "restore":
+		err = cmd.RunRestore(os.Args[2:])
 	case "mode":
 		err = cmd.RunMode(os.Args[2:])
 	case "project":
@@ -92,6 +96,8 @@ commands:
   chain    Print an intent chain by id.
   list     List intent records.
   show     Show intent details by id.
+  delete   Tombstone an intent or artifact by id.
+  restore  Remove tombstone metadata by id.
   mode     Show or set runtime mode (local | http).
   project  Manage project context.
   intent  Manage intent artifacts.
@@ -126,10 +132,19 @@ list args:
   --author <name>         Optional author filter.
   --source <source>       Optional source filter.
   --meta k=v              Optional meta filter (repeatable; exact match; AND).
+  --include-deleted       Include tombstoned records.
   --limit <n>             Max records to return (default 20).
 
 show args:
   <intent-id>             Intent id to show.
+
+delete args:
+  <intent-id>             Intent or artifact id to tombstone.
+  --cascade               Also tombstone dependent chain records.
+  --force                 Allow tombstoning checkpoint-referenced artifacts.
+
+restore args:
+  <intent-id>             Intent or artifact id to restore.
 
 mode args:
   (no args)              Show current mode.
@@ -164,6 +179,7 @@ export args:
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
+  --include-deleted     Include tombstoned records.
 
 notes:
   mode set to http does not start libraryd.
@@ -177,6 +193,8 @@ examples:
   yanzi chain 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi list --limit 10
   yanzi show 01HZX9Q4X8N9JZ1K2G9N8M4V3P
+  yanzi delete 01HZX9Q4X8N9JZ1K2G9N8M4V3P --cascade
+  yanzi restore 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi mode
   yanzi mode local
   yanzi mode http
