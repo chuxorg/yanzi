@@ -147,8 +147,10 @@ intent args:
   list                  List intent artifacts.
 
 context args:
-  add --title "..."     Add a context artifact.
-  list                  List context artifacts.
+  add --type "..." --title "..." [--scope global|project]
+                        Add a context artifact.
+  list                  List visible context artifacts.
+  show <id>             Show a context artifact by id.
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
@@ -183,8 +185,9 @@ examples:
   yanzi project list
   yanzi intent add --title "Clarify export scope" --content "Export only deterministic artifacts."
   yanzi intent list --type decision
-  yanzi context add --type policy --title "Release rule" --file ./policy.md
-  yanzi context list --type policy
+  yanzi context add --type process_rule --title "Release rule" --file ./policy.md
+  yanzi context list --scope project
+  yanzi context show abc123def456
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate

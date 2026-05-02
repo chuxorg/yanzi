@@ -176,7 +176,9 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunCapture\(args \[\]string\) error](<#RunCapture>)
 - [func RunChain\(args \[\]string\) error](<#RunChain>)
 - [func RunCheckpoint\(args \[\]string\) error](<#RunCheckpoint>)
+- [func RunContext\(args \[\]string\) error](<#RunContext>)
 - [func RunExport\(args \[\]string, cliVersion string\) error](<#RunExport>)
+- [func RunIntent\(args \[\]string\) error](<#RunIntent>)
 - [func RunList\(args \[\]string\) error](<#RunList>)
 - [func RunMode\(args \[\]string\) error](<#RunMode>)
 - [func RunProject\(args \[\]string\) error](<#RunProject>)
@@ -212,14 +214,32 @@ func RunCheckpoint(args []string) error
 
 RunCheckpoint handles checkpoint subcommands.
 
+<a name="RunContext"></a>
+## func [RunContext](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/artifact.go#L17>)
+
+```go
+func RunContext(args []string) error
+```
+
+
+
 <a name="RunExport"></a>
-## func [RunExport](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/export.go#L48>)
+## func [RunExport](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/export.go#L55>)
 
 ```go
 func RunExport(args []string, cliVersion string) error
 ```
 
 RunExport writes deterministic project history logs.
+
+<a name="RunIntent"></a>
+## func [RunIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/artifact.go#L13>)
+
+```go
+func RunIntent(args []string) error
+```
+
+
 
 <a name="RunList"></a>
 ## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L15>)
@@ -366,12 +386,19 @@ import "github.com/chuxorg/yanzi/internal/library"
 
 ## Index
 
+- [Constants](<#constants>)
 - [Variables](<#variables>)
 - [func HashCheckpoint\(checkpoint Checkpoint\) \(string, error\)](<#HashCheckpoint>)
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
+- [type Artifact](<#Artifact>)
+  - [func CreateArtifact\(projectID, class, artifactType, title, content, metadata string\) \(Artifact, error\)](<#CreateArtifact>)
+  - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
+  - [func GetVisibleContextArtifact\(idPrefix, activeProject string\) \(Artifact, error\)](<#GetVisibleContextArtifact>)
+  - [func ListArtifacts\(projectID, class, artifactType string\) \(\[\]Artifact, error\)](<#ListArtifacts>)
+  - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
@@ -392,6 +419,19 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
 
+
+## Constants
+
+<a name="ArtifactClassIntent"></a>
+
+```go
+const (
+    ArtifactClassIntent  = "intent"
+    ArtifactClassContext = "context"
+    ContextScopeGlobal   = "global"
+    ContextScopeProject  = "project"
+)
+```
 
 ## Variables
 
@@ -445,6 +485,70 @@ func ResolvedDBPath() string
 ```
 
 ResolvedDBPath returns the most recently resolved database path.
+
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact.go#L40-L50>)
+
+Artifact represents an artifact stored in the intents ledger table.
+
+```go
+type Artifact struct {
+    ID        string
+    Class     string
+    Type      string
+    Scope     string
+    Project   string
+    Title     string
+    Content   string
+    Metadata  string
+    CreatedAt string
+}
+```
+
+<a name="CreateArtifact"></a>
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L12>)
+
+```go
+func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
+```
+
+CreateArtifact stores a new artifact for a project.
+
+<a name="CreateContextArtifact"></a>
+### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L33>)
+
+```go
+func CreateContextArtifact(projectID, artifactType, scope, title, content, metadata string) (Artifact, error)
+```
+
+CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
+
+<a name="GetVisibleContextArtifact"></a>
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L306>)
+
+```go
+func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
+```
+
+GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
+
+<a name="ListArtifacts"></a>
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L115>)
+
+```go
+func ListArtifacts(projectID, class, artifactType string) ([]Artifact, error)
+```
+
+ListArtifacts lists artifacts for a project and class, optionally filtered by type.
+
+<a name="ListVisibleContextArtifacts"></a>
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L238>)
+
+```go
+func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string) ([]Artifact, error)
+```
+
+ListVisibleContextArtifacts returns global context plus project context visible to the caller.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)
