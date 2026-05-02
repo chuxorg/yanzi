@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -158,7 +159,7 @@ func chainLocalIntent(ctx context.Context, db *sql.DB, id string) (chainResult, 
 	}, nil
 }
 
-func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, limit int, metaFilters map[string]string) ([]model.IntentRecord, error) {
+func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) ([]model.IntentRecord, error) {
 	fetchLimit := limit
 	if fetchLimit <= 0 {
 		fetchLimit = 20
@@ -170,7 +171,7 @@ func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, li
 		}
 	}
 
-	intents, err := listLocalIntentsFromDB(ctx, db, fetchLimit)
+	intents, err := listLocalIntentsFromDB(ctx, db, fetchLimit, includeDeleted)
 	if err != nil {
 		return nil, err
 	}
@@ -274,12 +275,12 @@ func dbGetIntentByHash(ctx context.Context, db *sql.DB, intentHash string) (mode
 	return record, nil
 }
 
-func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int) ([]model.IntentRecord, error) {
+func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int, includeDeleted bool) ([]model.IntentRecord, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC LIMIT ?`, limit)
+	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, metadata FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -291,6 +292,7 @@ func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int) ([]model
 		var title sql.NullString
 		var meta sql.NullString
 		var prevHash sql.NullString
+		var metadata sql.NullString
 		if err := rows.Scan(
 			&record.ID,
 			&record.CreatedAt,
@@ -302,14 +304,28 @@ func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int) ([]model
 			&meta,
 			&prevHash,
 			&record.Hash,
+			&metadata,
 		); err != nil {
 			return nil, err
 		}
 		if title.Valid {
 			record.Title = title.String
 		}
-		if meta.Valid && meta.String != "" {
-			record.Meta = []byte(meta.String)
+		if meta.Valid || metadata.Valid {
+			combinedMeta, err := mergedIntentMetadata(meta.String, metadata.String)
+			if err != nil {
+				return nil, err
+			}
+			if !includeDeleted && isDeletedMetadata(combinedMeta) {
+				continue
+			}
+			if len(combinedMeta) > 0 {
+				encodedMeta, err := json.Marshal(combinedMeta)
+				if err != nil {
+					return nil, fmt.Errorf("encode merged meta: %w", err)
+				}
+				record.Meta = encodedMeta
+			}
 		}
 		if prevHash.Valid {
 			record.PrevHash = prevHash.String

@@ -44,7 +44,7 @@ func TestListIntentsQueryParams(t *testing.T) {
 	t.Cleanup(srv.Close)
 
 	cli := New(srv.URL)
-	_, err := cli.ListIntents(context.Background(), "alice", "cli", 25, map[string]string{"team": "core"})
+	_, err := cli.ListIntents(context.Background(), "alice", "cli", 25, map[string]string{"team": "core"}, true)
 	if err != nil {
 		t.Fatalf("ListIntents error: %v", err)
 	}
@@ -60,6 +60,9 @@ func TestListIntentsQueryParams(t *testing.T) {
 	}
 	if gotQuery.Get("meta_team") != "core" {
 		t.Fatalf("expected meta_team=core, got %q", gotQuery.Get("meta_team"))
+	}
+	if gotQuery.Get("include_deleted") != "true" {
+		t.Fatalf("expected include_deleted=true, got %q", gotQuery.Get("include_deleted"))
 	}
 }
 

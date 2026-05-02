@@ -97,7 +97,7 @@ func (c *Client) ChainIntent(ctx context.Context, id string) (ChainResponse, err
 }
 
 // ListIntents calls GET /v0/intents.
-func (c *Client) ListIntents(ctx context.Context, author, source string, limit int, metaFilters map[string]string) (ListResponse, error) {
+func (c *Client) ListIntents(ctx context.Context, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) (ListResponse, error) {
 	var out ListResponse
 	params := url.Values{}
 	if author != "" {
@@ -108,6 +108,9 @@ func (c *Client) ListIntents(ctx context.Context, author, source string, limit i
 	}
 	for key, value := range metaFilters {
 		params.Set("meta_"+key, value)
+	}
+	if includeDeleted {
+		params.Set("include_deleted", "true")
 	}
 	if limit > 0 {
 		params.Set("limit", fmt.Sprintf("%d", limit))
