@@ -3,13 +3,44 @@
 [![QA Build](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml)
 [![Release](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
 
-Links: [yanzi.io](https://yanzi.io) | [chucksailer.me](https://chucksailer.me)
-Agent Setup: [Tell your AI Agent to use Yanzi (Codex, Copilot, etc.)](docs/agent-bootstrap.md)
-Tutorial: [Learn Yanzi step-by-step](docs/tutorial.md)
+**Docs:** [chuxorg.github.io/yanzi](https://chuxorg.github.io/yanzi) | [Quickstart](docs/quickstart.md) | [CLI Reference](docs/cli.md) | [AI Seed](docs/ai-seed.md)
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
-To get started with your favorite AI Agent, first provide the seed prompt from [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md), then continue with the [Agent Bootstrap](docs/agent-bootstrap.md) and the [Yanzi Tutorial](docs/tutorial.md).
+## Quick Start
+
+```sh
+# Install
+go install github.com/chuxorg/yanzi/cmd/yanzi@latest
+
+# Create a project and record your first capture
+yanzi project create "my-project"
+yanzi project use "my-project"
+yanzi capture --author "Ada" --prompt "What is the plan?" --response "Start with the data model."
+yanzi checkpoint create --summary "Initial scaffolding complete"
+
+# Export the log
+yanzi export --format markdown
+```
+
+For AI agent setup, see [docs/ai-seed.md](docs/ai-seed.md).
+For a step-by-step tutorial, see [docs/tutorial.md](docs/tutorial.md).
+
+## Using Yanzi With an AI Agent
+
+To use Yanzi with an AI coding agent (Codex, Copilot, Claude, etc.), provide the seed prompt at the start of the session:
+
+- [docs/ai-seed.md](docs/ai-seed.md)
+
+Recommended workflow:
+
+1. Open `docs/ai-seed.md` and copy the seed prompt.
+2. Paste it into your AI agent at the beginning of the session.
+3. Let the agent verify or install Yanzi.
+4. Let the agent read `README.md`, `docs/agent-bootstrap.md`, and `docs/tutorial.md`.
+5. Confirm or create an active Yanzi project before capture, checkpoint, or export workflows.
+
+The seed prompt tells the agent how to install Yanzi, check project state, and use the core workflows without inventing unsupported behavior.
 
 ## What Yanzi Is
 

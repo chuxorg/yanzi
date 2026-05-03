@@ -177,6 +177,8 @@ rules args:
   list                  List rule captures only.
   export                Export rule captures only; supports --compose for markdown and html.
 
+
+
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
   list                   List checkpoints for the active project.
@@ -219,10 +221,13 @@ examples:
   yanzi context add --type process_rule --title "Release rule" --file ./policy.md
   yanzi context list --scope project
   yanzi context show abc123def456
+  yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
   yanzi rules add ./SYSTEM_RULES.md --profile engineer
+  yanzi rules list --scope global
   yanzi rules list --profile engineer
-  yanzi rules export --format markdown --profile engineer
+  yanzi rules export --format markdown --profile default
   yanzi rules export --format markdown --compose --profile engineer
+  yanzi rules export --format html --compose --profile engineer
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate
