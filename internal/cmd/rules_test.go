@@ -182,3 +182,123 @@ func openRulesTestDB(t *testing.T, home string) *sql.DB {
 	}
 	return db
 }
+
+func TestRunRulesExportComposeSystemOnly(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
+	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
+	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)
+
+	if err := RunRules([]string{"add", systemRules}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add system: %v", err)
+	}
+	if err := RunRules([]string{"add", engineerRules, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add engineer: %v", err)
+	}
+
+	if err := RunRules([]string{"export", "--format", "markdown", "--compose"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules export compose: %v", err)
+	}
+	md, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read markdown export: %v", err)
+	}
+	output := string(md)
+	if !strings.Contains(output, "# SYSTEM RULES") || !strings.Contains(output, "# Global Rules") {
+		t.Fatalf("expected system rules section, got: %q", output)
+	}
+	if strings.Contains(output, "# PROFILE: engineer") || strings.Contains(output, "# Engineer Rules") {
+		t.Fatalf("did not expect profile rules without profile filter: %q", output)
+	}
+	if strings.Contains(output, "Metadata:") {
+		t.Fatalf("did not expect metadata noise in composed export: %q", output)
+	}
+}
+
+func TestRunRulesExportComposeIncludesProfileSection(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
+	reviewerRules := filepath.Join(workdir, "REVIEWER_RULES.md")
+	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
+	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)
+	_ = os.WriteFile(reviewerRules, []byte("# Reviewer Rules\nAsk for explicit sign-off.\n"), 0o644)
+
+	if err := RunRules([]string{"add", systemRules}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add system: %v", err)
+	}
+	if err := RunRules([]string{"add", engineerRules, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add engineer: %v", err)
+	}
+	if err := RunRules([]string{"add", reviewerRules, "--scope", "project", "--profile", "reviewer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add reviewer: %v", err)
+	}
+
+	if err := RunRules([]string{"export", "--format", "markdown", "--compose", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules export compose profile: %v", err)
+	}
+	md, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read markdown export: %v", err)
+	}
+	output := string(md)
+	systemIdx := strings.Index(output, "# SYSTEM RULES")
+	profileIdx := strings.Index(output, "# PROFILE: engineer")
+	globalIdx := strings.Index(output, "# Global Rules")
+	engineerIdx := strings.Index(output, "# Engineer Rules")
+	if systemIdx == -1 || profileIdx == -1 || globalIdx == -1 || engineerIdx == -1 {
+		t.Fatalf("missing composed sections: %q", output)
+	}
+	if !(systemIdx < profileIdx && globalIdx < engineerIdx) {
+		t.Fatalf("expected system rules before profile rules: %q", output)
+	}
+	if strings.Contains(output, "# Reviewer Rules") {
+		t.Fatalf("did not expect other profile rules in composed export: %q", output)
+	}
+	if strings.Contains(output, "Metadata:") {
+		t.Fatalf("did not expect metadata noise in composed export: %q", output)
+	}
+}
+
+func TestRunRulesExportComposeIgnoredForJSON(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
+	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)
+	if err := RunRules([]string{"add", engineerRules, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add engineer: %v", err)
+	}
+
+	if err := RunRules([]string{"export", "--format", "json", "--compose", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules export json compose: %v", err)
+	}
+	js, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read json export: %v", err)
+	}
+	output := string(js)
+	if !strings.Contains(output, `"schema_version": 1`) || !strings.Contains(output, `"profile": "engineer"`) {
+		t.Fatalf("expected standard json export shape, got: %q", output)
+	}
+	if strings.Contains(output, "# SYSTEM RULES") || strings.Contains(output, "# PROFILE: engineer") {
+		t.Fatalf("did not expect composed markdown structure in json export: %q", output)
+	}
+}

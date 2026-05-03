@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
@@ -132,6 +135,7 @@ func runRulesExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("rules export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
+	compose := fs.Bool("compose", false, "compose markdown output into system/profile sections")
 	scope := fs.String("scope", "", "rule scope (global|project)")
 	profile := fs.String("profile", "", "optional rule profile")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
@@ -139,7 +143,11 @@ func runRulesExport(args []string, cliVersion string) error {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: yanzi rules export --format <markdown|json|html> [--scope <global|project>] [--profile <name>]")
+		return errors.New("usage: yanzi rules export --format <markdown|json|html> [--scope <global|project>] [--profile <name>] [--compose]")
+	}
+
+	if *compose && strings.TrimSpace(*format) == "markdown" {
+		return runRulesComposeExport(cliVersion, strings.TrimSpace(*scope), strings.TrimSpace(*profile), *includeDeleted)
 	}
 
 	exportArgs := []string{
@@ -157,4 +165,111 @@ func runRulesExport(args []string, cliVersion string) error {
 		exportArgs = append(exportArgs, "--include-deleted")
 	}
 	return RunExport(exportArgs, cliVersion)
+}
+
+func runRulesComposeExport(cliVersion, scopeFilter, profileFilter string, includeDeleted bool) error {
+	project, err := loadActiveProject()
+	if err != nil {
+		return err
+	}
+	if project == "" {
+		return errors.New("no active project set")
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	if cfg.Mode != config.ModeLocal {
+		return errors.New("export is only available in local mode")
+	}
+
+	db, err := openLocalDB(cfg)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	items, _, err := loadExportItems(context.Background(), db, project, map[string]string{
+		"type":    "context",
+		"subtype": "rules",
+	}, includeDeleted)
+	if err != nil {
+		return err
+	}
+
+	content := []byte(renderComposedRulesMarkdown(project, cliVersion, time.Now().UTC(), items, scopeFilter, profileFilter))
+	path := filepath.Join(".", "YANZI_LOG.md")
+	if err := os.WriteFile(path, content, 0o644); err != nil {
+		return fmt.Errorf("write export file: %w", err)
+	}
+
+	fmt.Printf("Exported %s\n", path)
+	return nil
+}
+
+func renderComposedRulesMarkdown(project, cliVersion string, now time.Time, items []exportItem, scopeFilter, profileFilter string) string {
+	systemRules := make([]string, 0)
+	profileRules := make([]string, 0)
+
+	for _, item := range items {
+		if item.Kind != exportItemCapture {
+			continue
+		}
+
+		scope := strings.TrimSpace(item.Metadata["scope"])
+		profile := strings.TrimSpace(item.Metadata["profile"])
+
+		if includeComposedSystemRule(scope, profile, scopeFilter) {
+			systemRules = append(systemRules, strings.TrimRight(item.Prompt, "\n"))
+			continue
+		}
+		if profileFilter != "" && includeComposedProfileRule(scope, profile, scopeFilter, profileFilter) {
+			profileRules = append(profileRules, strings.TrimRight(item.Prompt, "\n"))
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString("# Yanzi Rules Export\n\n")
+	b.WriteString(fmt.Sprintf("Project: %s\n", project))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Version: %s\n\n", cliVersion))
+
+	b.WriteString("# SYSTEM RULES\n\n")
+	if len(systemRules) == 0 {
+		b.WriteString("No system rules.\n")
+	} else {
+		b.WriteString(strings.Join(systemRules, "\n\n---\n\n"))
+		b.WriteString("\n")
+	}
+
+	if profileFilter != "" {
+		b.WriteString("\n---\n\n")
+		b.WriteString(fmt.Sprintf("# PROFILE: %s\n\n", profileFilter))
+		if len(profileRules) == 0 {
+			b.WriteString("No profile rules.\n")
+		} else {
+			b.WriteString(strings.Join(profileRules, "\n\n---\n\n"))
+			b.WriteString("\n")
+		}
+	}
+
+	return b.String()
+}
+
+func includeComposedSystemRule(scope, profile, scopeFilter string) bool {
+	if scopeFilter != "" && scope != scopeFilter {
+		return false
+	}
+	return scope == yanzilibrary.ContextScopeGlobal || profile == ""
+}
+
+func includeComposedProfileRule(scope, profile, scopeFilter, profileFilter string) bool {
+	if profile != profileFilter {
+		return false
+	}
+	if scopeFilter != "" {
+		return scope == scopeFilter
+	}
+	return scope == yanzilibrary.ContextScopeProject
 }

@@ -78,6 +78,8 @@ Follow this protocol:
      - yanzi rules add <file>
      - yanzi rules list
      - yanzi rules export --format markdown|json|html
+     - yanzi rules export --format markdown --compose
+     - yanzi rules export --format markdown --compose --profile <name>
    - General listing and inspection:
      - yanzi list
      - yanzi show <id>
@@ -96,6 +98,8 @@ Follow this protocol:
      - yanzi rules add <file>
    - This is a UX wrapper over existing metadata capture and should be treated as a rule/context record, not a new schema concept.
    - Use rules list/export when the user wants only rule artifacts.
+   - If the user asks for a composed rules document (all rules concatenated in priority order), use:
+     - yanzi rules export --format markdown --compose
 
 11. Use exports appropriately.
    - Markdown export is for human-readable review.
