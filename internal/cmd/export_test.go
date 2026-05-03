@@ -793,8 +793,45 @@ func TestExportHTMLMetaFiltersRuleArtifacts(t *testing.T) {
 	if !strings.Contains(output, "Canonical system rules") || !strings.Contains(output, "Showing 1 of 1 events") {
 		t.Fatalf("expected filtered html export output: %q", output)
 	}
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">SYSTEM RULE</span>") {
+		t.Fatalf("expected system rule label in html export: %q", output)
+	}
+	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("did not expect full metadata table in rule html export: %q", output)
+	}
 	if strings.Contains(output, "General context note") {
 		t.Fatalf("did not expect non-rule artifact in html export: %q", output)
+	}
+}
+
+func TestExportHTMLShowsProfileRuleLabel(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	rulesPath := filepath.Join(workdir, "ENGINEER_RULES.md")
+	_ = os.WriteFile(rulesPath, []byte("Engineer rule body"), 0o644)
+	if err := RunRules([]string{"add", rulesPath, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add: %v", err)
+	}
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "html", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">PROFILE: engineer</span>") {
+		t.Fatalf("expected profile rule label in html export: %q", output)
+	}
+	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("did not expect full metadata table in profile rule html export: %q", output)
 	}
 }
 

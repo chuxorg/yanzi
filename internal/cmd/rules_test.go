@@ -246,3 +246,43 @@ func TestRunRulesExportComposeIgnoredForJSON(t *testing.T) {
 		t.Fatalf("did not expect composed markdown structure in json export: %q", output)
 	}
 }
+
+func TestRunRulesExportComposeIncludesHTMLSections(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
+	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
+	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)
+
+	if err := RunRules([]string{"add", systemRules}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add system: %v", err)
+	}
+	if err := RunRules([]string{"add", engineerRules, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add engineer: %v", err)
+	}
+
+	if err := RunRules([]string{"export", "--format", "html", "--compose", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules export compose html: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read html export: %v", err)
+	}
+	output := string(data)
+	systemIdx := strings.Index(output, "SYSTEM RULES")
+	profileIdx := strings.Index(output, "PROFILE: engineer")
+	globalIdx := strings.Index(output, "# Global Rules")
+	engineerIdx := strings.Index(output, "# Engineer Rules")
+	if systemIdx == -1 || profileIdx == -1 || globalIdx == -1 || engineerIdx == -1 {
+		t.Fatalf("missing composed html sections: %q", output)
+	}
+	if !(systemIdx < profileIdx && globalIdx < engineerIdx) {
+		t.Fatalf("expected system section before profile section: %q", output)
+	}
+}

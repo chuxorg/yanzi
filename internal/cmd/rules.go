@@ -135,7 +135,7 @@ func runRulesExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("rules export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
-	compose := fs.Bool("compose", false, "compose markdown output into system/profile sections")
+	compose := fs.Bool("compose", false, "compose markdown or html output into system/profile sections")
 	scope := fs.String("scope", "", "rule scope (global|project)")
 	profile := fs.String("profile", "", "optional rule profile")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
@@ -146,14 +146,15 @@ func runRulesExport(args []string, cliVersion string) error {
 		return errors.New("usage: yanzi rules export --format <markdown|json|html> [--scope <global|project>] [--profile <name>] [--compose]")
 	}
 
-	if *compose && strings.TrimSpace(*format) == "markdown" {
-		return runRulesComposeExport(cliVersion, strings.TrimSpace(*scope), strings.TrimSpace(*profile), *includeDeleted)
+	formatValue := strings.TrimSpace(*format)
+	if *compose && (formatValue == "markdown" || formatValue == "html") {
+		return runRulesComposeExport(cliVersion, formatValue, strings.TrimSpace(*scope), strings.TrimSpace(*profile), *includeDeleted)
 	}
 
 	exportArgs := []string{
 		"--meta", "type=context",
 		"--meta", "subtype=rules",
-		"--format", strings.TrimSpace(*format),
+		"--format", formatValue,
 	}
 	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
 		exportArgs = append(exportArgs, "--scope", trimmed)
@@ -167,7 +168,7 @@ func runRulesExport(args []string, cliVersion string) error {
 	return RunExport(exportArgs, cliVersion)
 }
 
-func runRulesComposeExport(cliVersion, scopeFilter, profileFilter string, includeDeleted bool) error {
+func runRulesComposeExport(cliVersion, formatValue, scopeFilter, profileFilter string, includeDeleted bool) error {
 	project, err := loadActiveProject()
 	if err != nil {
 		return err
@@ -198,8 +199,13 @@ func runRulesComposeExport(cliVersion, scopeFilter, profileFilter string, includ
 		return err
 	}
 
-	content := []byte(renderComposedRulesMarkdown(project, cliVersion, time.Now().UTC(), items, scopeFilter, profileFilter))
+	now := time.Now().UTC()
+	content := []byte(renderComposedRulesMarkdown(project, cliVersion, now, items, scopeFilter, profileFilter))
 	path := filepath.Join(".", "YANZI_LOG.md")
+	if formatValue == "html" {
+		path = filepath.Join(".", "YANZI_LOG.html")
+		content = []byte(renderComposedRulesHTML(project, cliVersion, now, items, scopeFilter, profileFilter))
+	}
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
@@ -255,6 +261,55 @@ func renderComposedRulesMarkdown(project, cliVersion string, now time.Time, item
 	}
 
 	return b.String()
+}
+
+type htmlRuleSection struct {
+	Title string
+	Items []exportItem
+}
+
+func renderComposedRulesHTML(project, cliVersion string, now time.Time, items []exportItem, scopeFilter, profileFilter string) string {
+	sections := make([]htmlRuleSection, 0, 2)
+	systemRules := make([]exportItem, 0)
+	profileRules := make([]exportItem, 0)
+
+	for _, item := range items {
+		if item.Kind != exportItemCapture {
+			continue
+		}
+
+		scope := strings.TrimSpace(item.Metadata["scope"])
+		profile := strings.TrimSpace(item.Metadata["profile"])
+
+		if includeComposedSystemRule(scope, profile, scopeFilter) {
+			systemRules = append(systemRules, item)
+			continue
+		}
+		if profileFilter != "" && includeComposedProfileRule(scope, profile, scopeFilter, profileFilter) {
+			profileRules = append(profileRules, item)
+		}
+	}
+
+	sections = append(sections, htmlRuleSection{
+		Title: "SYSTEM RULES",
+		Items: systemRules,
+	})
+	if profileFilter != "" {
+		sections = append(sections, htmlRuleSection{
+			Title: fmt.Sprintf("PROFILE: %s", profileFilter),
+			Items: profileRules,
+		})
+	}
+
+	return renderHTMLLog(project, cliVersion, now, flattenHTMLRuleSections(sections), sections...)
+}
+
+func flattenHTMLRuleSections(sections []htmlRuleSection) []exportItem {
+	items := make([]exportItem, 0)
+	for _, section := range sections {
+		items = append(items, section.Items...)
+	}
+	return items
 }
 
 func includeComposedSystemRule(scope, profile, scopeFilter string) bool {

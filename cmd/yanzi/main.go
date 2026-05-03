@@ -175,7 +175,7 @@ context args:
 rules args:
   add <file>            Capture a rules file with context metadata.
   list                  List rule captures only.
-  export                Export rule captures only; supports --compose for markdown.
+  export                Export rule captures only; supports --compose for markdown and html.
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
