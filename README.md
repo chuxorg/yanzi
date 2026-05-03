@@ -9,7 +9,37 @@ Tutorial: [Learn Yanzi step-by-step](docs/tutorial.md)
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
-To get started with your favorite AI Agent, first provide the seed prompt from [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md), then continue with the [Agent Bootstrap](docs/agent-bootstrap.md) and the [Yanzi Tutorial](docs/tutorial.md).
+To get started with your favorite AI agent, first provide the seed prompt from [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md), then continue with the [Agent Bootstrap](docs/agent-bootstrap.md) and the [Yanzi Tutorial](docs/tutorial.md).
+
+## Using Yanzi With an AI Agent
+
+If you want an AI coding agent to install, initialize, and use Yanzi correctly in this repository, start with the seed prompt:
+
+- [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md)
+
+Recommended workflow:
+
+1. Open `prompts/AI_AGENT_SEED.md`.
+2. Copy the full prompt contents.
+3. Paste the prompt into your AI agent at the beginning of the session.
+4. Let the agent verify or install Yanzi.
+5. Let the agent read `README.md`, `docs/agent-bootstrap.md`, and `docs/tutorial.md`.
+6. Confirm or create an active Yanzi project before capture, checkpoint, or export workflows.
+
+What the seed prompt is for:
+
+- It tells the agent how to verify installation and install Yanzi if needed.
+- It tells the agent how to check project state before logging work.
+- It introduces the main Yanzi workflows:
+  - `project create|use|current`
+  - `capture`
+  - `checkpoint`
+  - `rules add|list|export`
+  - `export`
+  - `rehydrate`
+- It tells the agent not to invent unsupported Yanzi behavior.
+
+If you are using an agent such as Codex or Copilot, the seed prompt should be the first Yanzi-specific instruction you provide in the session.
 
 ## What Yanzi Is
 
