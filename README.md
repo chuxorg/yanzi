@@ -7,6 +7,13 @@
 
 AI-assisted development generates decisions and reasoning that are often lost across chat sessions, commits, and ad hoc notes. Git captures code changes, but not the full decision trail behind those changes. Yanzi provides deterministic logging for AI-assisted development so decisions can be recovered, audited, and shared.
 
+- Though not a requirement, Yanzi is designed to work with AI Agents. 
+- Yanzi can be used by any AI Agent that has acess to terminal commands.
+- Yanzi has no AI itself, Yanzi is simply a datastore that is optimized to manage intent.
+- Yanzi allows the definition of Roles, exporting, checkpoints, rehydration and more
+
+Of course, you can also directly access Yanzi from the terminal. To do so see the quickstart below. 
+
 ## Quick Start
 
 ```sh
