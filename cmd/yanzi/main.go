@@ -175,7 +175,7 @@ context args:
 rules args:
   add <file>            Capture a rules file with context metadata.
   list                  List rule captures only.
-  export                Export rule captures only.
+  export                Export rule captures only; supports --compose for markdown.
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
@@ -222,6 +222,7 @@ examples:
   yanzi rules add ./SYSTEM_RULES.md --profile engineer
   yanzi rules list --profile engineer
   yanzi rules export --format markdown --profile engineer
+  yanzi rules export --format markdown --compose --profile engineer
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate
