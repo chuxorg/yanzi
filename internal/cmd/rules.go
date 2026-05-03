@@ -44,7 +44,6 @@ func runRulesAdd(args []string) error {
 
 	fs := flag.NewFlagSet("rules add", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-
 	scope := fs.String("scope", yanzilibrary.ContextScopeGlobal, "rule scope (global|project)")
 	priority := fs.String("priority", "", "rule priority")
 	profile := fs.String("profile", "", "optional rule profile")
@@ -59,6 +58,7 @@ func runRulesAdd(args []string) error {
 	} else if fs.NArg() != 0 {
 		return errors.New("usage: yanzi rules add <file> [--scope <global|project>] [--priority <value>] [--profile <name>]")
 	}
+
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("read rules file: %w", err)
@@ -102,25 +102,28 @@ func runRulesAdd(args []string) error {
 func runRulesList(args []string) error {
 	fs := flag.NewFlagSet("rules list", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-
-	profile := fs.String("profile", "", "optional rule profile")
 	scope := fs.String("scope", "", "rule scope (global|project)")
+	profile := fs.String("profile", "", "optional rule profile")
+	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: yanzi rules list [--profile <name>] [--scope <global|project>]")
+		return errors.New("usage: yanzi rules list [--scope <global|project>] [--profile <name>]")
 	}
 
 	listArgs := []string{
 		"--meta", "type=context",
 		"--meta", "subtype=rules",
 	}
+	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
+		listArgs = append(listArgs, "--meta", "scope="+trimmed)
+	}
 	if trimmed := strings.TrimSpace(*profile); trimmed != "" {
 		listArgs = append(listArgs, "--meta", "profile="+trimmed)
 	}
-	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
-		listArgs = append(listArgs, "--meta", "scope="+trimmed)
+	if *includeDeleted {
+		listArgs = append(listArgs, "--include-deleted")
 	}
 	return RunList(listArgs)
 }
@@ -128,15 +131,15 @@ func runRulesList(args []string) error {
 func runRulesExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("rules export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
-	profile := fs.String("profile", "", "optional rule profile")
 	scope := fs.String("scope", "", "rule scope (global|project)")
+	profile := fs.String("profile", "", "optional rule profile")
+	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: yanzi rules export --format <markdown|json|html> [--profile <name>] [--scope <global|project>]")
+		return errors.New("usage: yanzi rules export --format <markdown|json|html> [--scope <global|project>] [--profile <name>]")
 	}
 
 	exportArgs := []string{
@@ -144,11 +147,14 @@ func runRulesExport(args []string, cliVersion string) error {
 		"--meta", "subtype=rules",
 		"--format", strings.TrimSpace(*format),
 	}
+	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
+		exportArgs = append(exportArgs, "--meta", "scope="+trimmed)
+	}
 	if trimmed := strings.TrimSpace(*profile); trimmed != "" {
 		exportArgs = append(exportArgs, "--meta", "profile="+trimmed)
 	}
-	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
-		exportArgs = append(exportArgs, "--meta", "scope="+trimmed)
+	if *includeDeleted {
+		exportArgs = append(exportArgs, "--include-deleted")
 	}
 	return RunExport(exportArgs, cliVersion)
 }

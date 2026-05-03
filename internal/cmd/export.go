@@ -57,6 +57,7 @@ func RunExport(args []string, cliVersion string) error {
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
+	profile := fs.String("profile", "", "profile filter")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
@@ -65,6 +66,9 @@ func RunExport(args []string, cliVersion string) error {
 	}
 	if len(fs.Args()) != 0 {
 		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
+	}
+	if strings.TrimSpace(*profile) != "" {
+		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {

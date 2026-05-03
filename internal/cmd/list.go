@@ -17,12 +17,16 @@ func RunList(args []string) error {
 	fs.SetOutput(os.Stderr)
 	author := fs.String("author", "", "author filter")
 	source := fs.String("source", "", "source filter")
+	profile := fs.String("profile", "", "profile filter")
 	limit := fs.Int("limit", 20, "max records to return")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	if strings.TrimSpace(*profile) != "" {
+		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 
 	cfg, err := config.Load()
@@ -56,12 +60,31 @@ func RunList(args []string) error {
 		return fmt.Errorf("invalid mode: %s", cfg.Mode)
 	}
 
-	fmt.Println("ID\tCreated_At\tAuthor\tSource\tTitle")
+	fmt.Println("ID\tCreated_At\tAuthor\tSource\tTitle\tMetadata")
 	for _, intent := range intents {
-		fmt.Printf("%s\t%s\t%s\t%s\t%s\n", intent.ID, intent.CreatedAt, intent.Author, intent.SourceType, intent.Title)
+		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\n", intent.ID, intent.CreatedAt, intent.Author, intent.SourceType, intent.Title, formatListMetadata(intent.Meta))
 	}
 
 	return nil
+}
+
+func formatListMetadata(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	meta, err := decodeStringMeta(string(raw))
+	if err != nil {
+		return ""
+	}
+	meta = exportableMetadata(meta)
+	if len(meta) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(meta))
+	for _, key := range sortedMetaKeys(meta) {
+		parts = append(parts, key+"="+meta[key])
+	}
+	return strings.Join(parts, "; ")
 }
 
 type metaPairs map[string]string

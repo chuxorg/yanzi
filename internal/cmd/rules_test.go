@@ -16,6 +16,8 @@ func TestRunRulesAddCapturesRulesMetadata(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
 
 	rulesPath := filepath.Join(home, "SYSTEM_RULES.md")
 	if err := os.WriteFile(rulesPath, []byte("# Rules\nAlways verify.\n"), 0o644); err != nil {
@@ -23,7 +25,7 @@ func TestRunRulesAddCapturesRulesMetadata(t *testing.T) {
 	}
 
 	output, err := captureStdout(func() error {
-		return RunRules([]string{"add", rulesPath, "--priority", "critical"}, "v1.0.0")
+		return RunRules([]string{"add", rulesPath, "--priority", "critical", "--profile", "engineer"}, "v1.0.0")
 	})
 	if err != nil {
 		t.Fatalf("RunRules add: %v", err)
@@ -66,6 +68,9 @@ func TestRunRulesAddCapturesRulesMetadata(t *testing.T) {
 	}
 	if meta["priority"] != "critical" {
 		t.Fatalf("expected priority metadata, got %#v", meta)
+	}
+	if meta["profile"] != "engineer" {
+		t.Fatalf("expected profile metadata, got %#v", meta)
 	}
 }
 

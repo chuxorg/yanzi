@@ -122,6 +122,7 @@ capture args:
   --response-file <path>  Response file path (exclusive with --response).
   --title <title>         Optional title.
   --source <source>       Optional source type (default "cli").
+  --profile <name>        Optional profile label.
   --prev-hash <hash>      Optional previous hash.
   --meta key=value        Optional metadata (repeatable).
 
@@ -134,6 +135,7 @@ chain args:
 list args:
   --author <name>         Optional author filter.
   --source <source>       Optional source filter.
+  --profile <name>        Optional profile filter.
   --meta k=v              Optional meta filter (repeatable; exact match; AND).
   --include-deleted       Include tombstoned records.
   --limit <n>             Max records to return (default 20).
@@ -186,6 +188,7 @@ export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
+  --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
   --include-deleted     Include tombstoned records.
 
@@ -196,6 +199,7 @@ examples:
   yanzi --help
   yanzi --version
   yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt --meta lang=go
+  yanzi capture --author "Ada" --prompt "Hello" --response "World" --profile engineer
   yanzi capture --author "Ada" --prompt "Hello" --response "World"
   yanzi verify 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi chain 01HZX9Q4X8N9JZ1K2G9N8M4V3P
@@ -216,7 +220,9 @@ examples:
   yanzi context list --scope project
   yanzi context show abc123def456
   yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
+  yanzi rules add ./SYSTEM_RULES.md --profile engineer
   yanzi rules list --scope global
+  yanzi rules list --profile engineer
   yanzi rules export --format markdown --profile default
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
