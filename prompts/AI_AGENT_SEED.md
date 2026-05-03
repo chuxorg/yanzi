@@ -27,5 +27,12 @@ Initialization protocol:
    - @yanzi resume: resume capture/logging.
    - @yanzi export: trigger export intent/log workflow.
 
-6. Keep the explanation concise, then refer the user to this repository README for full usage and command details.
+6. If the user asks for a composed rules document, use:
+   - yanzi rules export --format markdown --compose
+   - yanzi rules export --format html --compose
+   - Optional profile-scoped composed export:
+     - yanzi rules export --format markdown --compose --profile <name>
+     - yanzi rules export --format html --compose --profile <name>
+
+7. Keep the explanation concise, then refer the user to this repository README for full usage and command details.
 ```

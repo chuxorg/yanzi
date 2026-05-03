@@ -57,15 +57,22 @@ func RunExport(args []string, cliVersion string) error {
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (required: markdown|json|html)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
+	profile := fs.String("profile", "", "profile filter")
+	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
+	metaFilters := metaPairs{}
+	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
+	}
+	if strings.TrimSpace(*profile) != "" {
+		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
 	}
 	if *open && formatValue != "html" {
 		return errors.New("--open is only supported with --format html")
@@ -94,7 +101,7 @@ func RunExport(args []string, cliVersion string) error {
 	defer db.Close()
 
 	ctx := context.Background()
-	items, captureCount, err := loadExportItems(ctx, db, project)
+	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters), *includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -117,7 +124,7 @@ func RunExport(args []string, cliVersion string) error {
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
-	if err := exportArtifactDirectories(project); err != nil {
+	if err := exportArtifactDirectories(project, map[string]string(metaFilters), *includeDeleted); err != nil {
 		return err
 	}
 
@@ -155,11 +162,11 @@ func openBrowser(path string) error {
 	return nil
 }
 
-func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportItem, int, error) {
+func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilters map[string]string, includeDeleted bool) ([]exportItem, int, error) {
 	intents := make([]exportItem, 0)
 	captureCount := 0
 
-	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta
+	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta, metadata
 		FROM intents
 		WHERE source_type <> 'artifact'
 		ORDER BY created_at ASC, rowid ASC`)
@@ -173,19 +180,31 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 			rowID                                                          int64
 			id, createdAt, author, sourceType, prompt, response, hashValue string
 			metaText                                                       sql.NullString
+			metadataText                                                   sql.NullString
 		)
-		if err := intentRows.Scan(&rowID, &id, &createdAt, &author, &sourceType, &prompt, &response, &hashValue, &metaText); err != nil {
+		if err := intentRows.Scan(&rowID, &id, &createdAt, &author, &sourceType, &prompt, &response, &hashValue, &metaText, &metadataText); err != nil {
 			return nil, 0, err
 		}
-		meta, err := decodeStringMeta(metaText.String)
+		meta, err := mergedIntentMetadata(metaText.String, metadataText.String)
 		if err != nil {
 			continue
 		}
 		if strings.TrimSpace(meta["project"]) != project {
 			continue
 		}
+		if !includeDeleted && isDeletedMetadata(meta) {
+			continue
+		}
+		if len(metaFilters) > 0 {
+			if !metadataMatchesAll(meta, metaFilters) {
+				continue
+			}
+		}
 
 		if isMetaCommandSource(sourceType) {
+			if len(metaFilters) > 0 {
+				continue
+			}
 			intents = append(intents, exportItem{
 				Kind:      exportItemMeta,
 				Timestamp: createdAt,
@@ -215,6 +234,9 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 	}
 
 	checkpoints := make([]exportItem, 0)
+	if len(metaFilters) > 0 {
+		return mergeChronological(intents, checkpoints), captureCount, nil
+	}
 	checkpointRows, err := db.QueryContext(ctx, `SELECT rowid, hash, summary, created_at
 		FROM checkpoints
 		WHERE project = ?
@@ -245,8 +267,15 @@ func loadExportItems(ctx context.Context, db *sql.DB, project string) ([]exportI
 	return mergeChronological(intents, checkpoints), captureCount, nil
 }
 
-func exportArtifactDirectories(project string) error {
-	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "")
+func exportArtifactDirectories(project string, metaFilters map[string]string, includeDeleted bool) error {
+	if len(metaFilters) > 0 {
+		if err := writeArtifactDirectory("Intent", nil); err != nil {
+			return err
+		}
+		return writeArtifactDirectory("Context", nil)
+	}
+
+	intentArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, "", includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -254,7 +283,7 @@ func exportArtifactDirectories(project string) error {
 		return err
 	}
 
-	contextArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassContext, "")
+	contextArtifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassContext, "", includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -347,6 +376,18 @@ func decodeStringMeta(metaText string) (map[string]string, error) {
 		return nil, err
 	}
 	return meta, nil
+}
+
+func metadataMatchesAll(meta, filters map[string]string) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	for key, value := range filters {
+		if meta[key] != value {
+			return false
+		}
+	}
+	return true
 }
 
 func sortedMetaPairs(meta map[string]string) []string {
@@ -565,7 +606,7 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 	return b, nil
 }
 
-func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem) string {
+func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem, sections ...htmlRuleSection) string {
 	totalEvents := len(items)
 	totalCaptures := 0
 	totalCheckpoints := 0
@@ -641,6 +682,8 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    pre{margin:0;background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}\n")
 	b.WriteString("    .timeline-divider{position:relative;height:18px;margin:0}\n")
 	b.WriteString("    .timeline-divider::before{content:\"\";position:absolute;left:-54px;right:0;top:8px;border-top:1px dashed rgba(144,160,184,.55)}\n")
+	b.WriteString("    .timeline-section{position:relative;margin:2px 0 4px}\n")
+	b.WriteString("    .timeline-section-label{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border-strong);background:rgba(255,255,255,.9);color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}\n")
 	b.WriteString("    .empty-state{padding:18px;border:1px dashed var(--border-strong);border-radius:14px;text-align:center;color:var(--muted);background:rgba(255,255,255,.7)}\n")
 	b.WriteString("    @media (max-width:760px){.timeline{padding-left:76px}.timeline::before{left:28px}.timeline-marker{left:-79px;width:20px;height:20px}.timeline-entry-checkpoint .timeline-marker{left:-82px;width:26px;height:26px}.timeline-divider::before{left:-44px}}\n")
 	b.WriteString("    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:3px;top:-6px;width:16px;height:16px;border-width:2px}.timeline-entry-checkpoint .timeline-marker{left:0;top:-10px;width:22px;height:22px}.timeline-divider::before{left:12px}}\n")
@@ -670,103 +713,115 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	if totalEvents == 0 {
 		b.WriteString("    <div class=\"empty-state\">No events recorded for this export.</div>\n")
 	}
+	if len(sections) == 0 {
+		sections = []htmlRuleSection{{Items: items}}
+	}
 
-	for idx, item := range items {
-		searchText := html.EscapeString(exportSearchText(item))
-		entryClass := "timeline-entry"
-		if item.Kind == exportItemCheckpoint {
-			entryClass += " timeline-entry-checkpoint"
-		} else if item.Kind == exportItemMeta {
-			entryClass += " timeline-entry-meta"
+	idx := 0
+	for _, section := range sections {
+		if strings.TrimSpace(section.Title) != "" {
+			b.WriteString("    <div class=\"timeline-section\">")
+			b.WriteString(fmt.Sprintf("<div class=\"timeline-section-label\">%s</div>", html.EscapeString(section.Title)))
+			b.WriteString("</div>\n")
 		}
-		b.WriteString(fmt.Sprintf("    <div class=\"%s event-card\" data-search=\"%s\">\n", entryClass, searchText))
-		b.WriteString("      <div class=\"timeline-marker\" aria-hidden=\"true\"></div>\n")
-		switch item.Kind {
-		case exportItemCheckpoint:
-			b.WriteString("      <div class=\"timeline-divider\" aria-hidden=\"true\"></div>\n")
-			b.WriteString("      <section class=\"checkpoint timeline-card\">\n")
-			b.WriteString("      <div class=\"event-header\">\n")
-			b.WriteString("        <div class=\"event-main\">\n")
-			b.WriteString("          <div class=\"badge-row\">\n")
-			for _, badge := range checkpointBadges(item) {
-				b.WriteString(fmt.Sprintf("            <span class=\"badge badge-strong\">%s</span>\n", html.EscapeString(badge)))
+		for _, item := range section.Items {
+			searchText := html.EscapeString(exportSearchText(item))
+			entryClass := "timeline-entry"
+			if item.Kind == exportItemCheckpoint {
+				entryClass += " timeline-entry-checkpoint"
+			} else if item.Kind == exportItemMeta {
+				entryClass += " timeline-entry-meta"
 			}
-			b.WriteString("          </div>\n")
-			b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
-			b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
-			b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
-			b.WriteString("        </div>\n")
-			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint ID\" aria-label=\"Copy checkpoint ID\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint hash\" aria-label=\"Copy checkpoint hash\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
-			b.WriteString("        </div>\n")
-			b.WriteString("      </div>\n")
-			b.WriteString("      </section>\n")
-		case exportItemMeta:
-			b.WriteString("      <section class=\"meta-event timeline-card\">\n")
-			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Event:</span> %s</div>\n", html.EscapeString(item.Command)))
-			if strings.TrimSpace(item.Value) != "" {
-				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
-			}
-			b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
-			b.WriteString("      </section>\n")
-		default:
-			promptID := fmt.Sprintf("prompt-%d", idx)
-			responseID := fmt.Sprintf("response-%d", idx)
-			promptPreviewID := fmt.Sprintf("prompt-preview-%d", idx)
-			responsePreviewID := fmt.Sprintf("response-preview-%d", idx)
-			b.WriteString("      <section class=\"capture timeline-card\">\n")
-			b.WriteString("      <div class=\"event-header\">\n")
-			b.WriteString("        <div class=\"event-main\">\n")
-			b.WriteString("          <div class=\"badge-row\">\n")
-			for _, badge := range captureBadges(item) {
-				className := "badge badge-muted"
-				if strings.HasPrefix(badge, "Role:") || strings.HasPrefix(badge, "Source:") {
-					className = "badge badge-accent"
+			b.WriteString(fmt.Sprintf("    <div class=\"%s event-card\" data-search=\"%s\">\n", entryClass, searchText))
+			b.WriteString("      <div class=\"timeline-marker\" aria-hidden=\"true\"></div>\n")
+			switch item.Kind {
+			case exportItemCheckpoint:
+				b.WriteString("      <div class=\"timeline-divider\" aria-hidden=\"true\"></div>\n")
+				b.WriteString("      <section class=\"checkpoint timeline-card\">\n")
+				b.WriteString("      <div class=\"event-header\">\n")
+				b.WriteString("        <div class=\"event-main\">\n")
+				b.WriteString("          <div class=\"badge-row\">\n")
+				for _, badge := range checkpointBadges(item) {
+					b.WriteString(fmt.Sprintf("            <span class=\"badge badge-strong\">%s</span>\n", html.EscapeString(badge)))
 				}
-				b.WriteString(fmt.Sprintf("            <span class=\"%s\">%s</span>\n", className, html.EscapeString(badge)))
-			}
-			b.WriteString("          </div>\n")
-			b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
-			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
-			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
-			b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Hash:</span> <code class=\"mono-inline\">%s</code></div>\n", html.EscapeString(item.Hash)))
-			b.WriteString("        </div>\n")
-			b.WriteString("        <div class=\"event-actions\">\n")
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture ID\" aria-label=\"Copy capture ID\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
-			b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture hash\" aria-label=\"Copy capture hash\">Copy hash</button>\n", html.EscapeString(item.Hash)))
-			b.WriteString("        </div>\n")
-			b.WriteString("      </div>\n")
-			if len(item.Metadata) > 0 {
-				keys := sortedMetaKeys(item.Metadata)
-				b.WriteString("      <table>\n")
-				b.WriteString("        <thead><tr><th>Metadata Key</th><th>Value</th></tr></thead>\n")
-				b.WriteString("        <tbody>\n")
-				for _, key := range keys {
-					b.WriteString(fmt.Sprintf("          <tr><td>%s</td><td>%s</td></tr>\n", html.EscapeString(key), html.EscapeString(item.Metadata[key])))
+				b.WriteString("          </div>\n")
+				b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
+				b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
+				b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString("        </div>\n")
+				b.WriteString("        <div class=\"event-actions\">\n")
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint ID\" aria-label=\"Copy checkpoint ID\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint hash\" aria-label=\"Copy checkpoint hash\">Copy hash</button>\n", html.EscapeString(item.CheckpointID)))
+				b.WriteString("        </div>\n")
+				b.WriteString("      </div>\n")
+				b.WriteString("      </section>\n")
+			case exportItemMeta:
+				b.WriteString("      <section class=\"meta-event timeline-card\">\n")
+				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Event:</span> %s</div>\n", html.EscapeString(item.Command)))
+				if strings.TrimSpace(item.Value) != "" {
+					b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
 				}
-				b.WriteString("        </tbody>\n")
-				b.WriteString("      </table>\n")
+				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString("      </section>\n")
+			default:
+				promptID := fmt.Sprintf("prompt-%d", idx)
+				responseID := fmt.Sprintf("response-%d", idx)
+				promptPreviewID := fmt.Sprintf("prompt-preview-%d", idx)
+				responsePreviewID := fmt.Sprintf("response-preview-%d", idx)
+				b.WriteString("      <section class=\"capture timeline-card\">\n")
+				b.WriteString("      <div class=\"event-header\">\n")
+				b.WriteString("        <div class=\"event-main\">\n")
+				b.WriteString("          <div class=\"badge-row\">\n")
+				for _, badge := range captureBadges(item) {
+					className := "badge badge-muted"
+					if badge == "SYSTEM RULE" || strings.HasPrefix(badge, "PROFILE:") || strings.HasPrefix(badge, "Role:") || strings.HasPrefix(badge, "Source:") {
+						className = "badge badge-accent"
+					}
+					b.WriteString(fmt.Sprintf("            <span class=\"%s\">%s</span>\n", className, html.EscapeString(badge)))
+				}
+				b.WriteString("          </div>\n")
+				b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
+				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
+				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Hash:</span> <code class=\"mono-inline\">%s</code></div>\n", html.EscapeString(item.Hash)))
+				b.WriteString("        </div>\n")
+				b.WriteString("        <div class=\"event-actions\">\n")
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture ID\" aria-label=\"Copy capture ID\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture hash\" aria-label=\"Copy capture hash\">Copy hash</button>\n", html.EscapeString(item.Hash)))
+				b.WriteString("        </div>\n")
+				b.WriteString("      </div>\n")
+				if len(item.Metadata) > 0 && !isRuleArtifact(item) {
+					keys := sortedMetaKeys(item.Metadata)
+					b.WriteString("      <table>\n")
+					b.WriteString("        <thead><tr><th>Metadata Key</th><th>Value</th></tr></thead>\n")
+					b.WriteString("        <tbody>\n")
+					for _, key := range keys {
+						b.WriteString(fmt.Sprintf("          <tr><td>%s</td><td>%s</td></tr>\n", html.EscapeString(key), html.EscapeString(item.Metadata[key])))
+					}
+					b.WriteString("        </tbody>\n")
+					b.WriteString("      </table>\n")
+				}
+				b.WriteString("      <div class=\"toggle-row\">\n")
+				b.WriteString("        <div class=\"block-label\">Prompt</div>\n")
+				b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full prompt\" aria-label=\"Show full prompt\">Show prompt</button></div>\n", promptID, promptID, promptPreviewID))
+				b.WriteString("      </div>\n")
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", promptPreviewID, html.EscapeString(previewText(item.Prompt, 160))))
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", promptID))
+				b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
+				b.WriteString("      </div>\n")
+				b.WriteString("      <div class=\"toggle-row\">\n")
+				b.WriteString("        <div class=\"block-label\">Response</div>\n")
+				b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full response\" aria-label=\"Show full response\">Show response</button></div>\n", responseID, responseID, responsePreviewID))
+				b.WriteString("      </div>\n")
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", responsePreviewID, html.EscapeString(previewText(item.Response, 160))))
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", responseID))
+				b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Response)))
+				b.WriteString("      </div>\n")
+				b.WriteString("      </section>\n")
 			}
-			b.WriteString("      <div class=\"toggle-row\">\n")
-			b.WriteString("        <div class=\"block-label\">Prompt</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full prompt\" aria-label=\"Show full prompt\">Show prompt</button></div>\n", promptID, promptID, promptPreviewID))
-			b.WriteString("      </div>\n")
-			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", promptPreviewID, html.EscapeString(previewText(item.Prompt, 160))))
-			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", promptID))
-			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
-			b.WriteString("      </div>\n")
-			b.WriteString("      <div class=\"toggle-row\">\n")
-			b.WriteString("        <div class=\"block-label\">Response</div>\n")
-			b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full response\" aria-label=\"Show full response\">Show response</button></div>\n", responseID, responseID, responsePreviewID))
-			b.WriteString("      </div>\n")
-			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", responsePreviewID, html.EscapeString(previewText(item.Response, 160))))
-			b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", responseID))
-			b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Response)))
-			b.WriteString("      </div>\n")
-			b.WriteString("      </section>\n")
+			b.WriteString("    </div>\n")
+			idx++
 		}
-		b.WriteString("    </div>\n")
 	}
 
 	b.WriteString("  </section>\n")
@@ -868,14 +923,26 @@ func checkpointBadges(item exportItem) []string {
 
 func captureBadges(item exportItem) []string {
 	badges := []string{"Capture", "Prompt", "Response", "Hash"}
+	if isRuleArtifact(item) {
+		profile := strings.TrimSpace(item.Metadata["profile"])
+		if profile == "" {
+			badges = append([]string{"SYSTEM RULE"}, badges...)
+		} else {
+			badges = append([]string{fmt.Sprintf("PROFILE: %s", profile)}, badges...)
+		}
+	}
 	if strings.TrimSpace(item.Role) != "" {
 		badges = append(badges, fmt.Sprintf("Role: %s", item.Role))
 	}
 	if strings.TrimSpace(item.Source) != "" {
 		badges = append(badges, fmt.Sprintf("Source: %s", item.Source))
 	}
-	if len(item.Metadata) > 0 {
+	if len(item.Metadata) > 0 && !isRuleArtifact(item) {
 		badges = append(badges, "Metadata")
 	}
 	return badges
+}
+
+func isRuleArtifact(item exportItem) bool {
+	return strings.TrimSpace(item.Metadata["type"]) == "context" && strings.TrimSpace(item.Metadata["subtype"]) == "rules"
 }

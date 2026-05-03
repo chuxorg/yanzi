@@ -51,6 +51,10 @@ func main() {
 		err = cmd.RunList(os.Args[2:])
 	case "show":
 		err = cmd.RunShow(os.Args[2:])
+	case "delete":
+		err = cmd.RunDelete(os.Args[2:])
+	case "restore":
+		err = cmd.RunRestore(os.Args[2:])
 	case "mode":
 		err = cmd.RunMode(os.Args[2:])
 	case "project":
@@ -59,6 +63,8 @@ func main() {
 		err = cmd.RunIntent(os.Args[2:])
 	case "context":
 		err = cmd.RunContext(os.Args[2:])
+	case "rules":
+		err = cmd.RunRules(os.Args[2:], version)
 	case "checkpoint":
 		err = cmd.RunCheckpoint(os.Args[2:])
 	case "rehydrate":
@@ -92,10 +98,13 @@ commands:
   chain    Print an intent chain by id.
   list     List intent records.
   show     Show intent details by id.
+  delete   Tombstone an intent or artifact by id.
+  restore  Remove tombstone metadata by id.
   mode     Show or set runtime mode (local | http).
   project  Manage project context.
   intent  Manage intent artifacts.
   context  Manage context artifacts.
+  rules  Manage rule metadata wrappers.
   checkpoint  Manage checkpoints.
   rehydrate  Rehydrate active project context.
   export  Export active project history.
@@ -113,6 +122,7 @@ capture args:
   --response-file <path>  Response file path (exclusive with --response).
   --title <title>         Optional title.
   --source <source>       Optional source type (default "cli").
+  --profile <name>        Optional profile label.
   --prev-hash <hash>      Optional previous hash.
   --meta key=value        Optional metadata (repeatable).
 
@@ -125,11 +135,21 @@ chain args:
 list args:
   --author <name>         Optional author filter.
   --source <source>       Optional source filter.
+  --profile <name>        Optional profile filter.
   --meta k=v              Optional meta filter (repeatable; exact match; AND).
+  --include-deleted       Include tombstoned records.
   --limit <n>             Max records to return (default 20).
 
 show args:
   <intent-id>             Intent id to show.
+
+delete args:
+  <intent-id>             Intent or artifact id to tombstone.
+  --cascade               Also tombstone dependent chain records.
+  --force                 Allow tombstoning checkpoint-referenced artifacts.
+
+restore args:
+  <intent-id>             Intent or artifact id to restore.
 
 mode args:
   (no args)              Show current mode.
@@ -147,8 +167,15 @@ intent args:
   list                  List intent artifacts.
 
 context args:
-  add --title "..."     Add a context artifact.
-  list                  List context artifacts.
+  add --type "..." --title "..." [--scope global|project]
+                        Add a context artifact.
+  list                  List visible context artifacts.
+  show <id>             Show a context artifact by id.
+
+rules args:
+  add <file>            Capture a rules file with context metadata.
+  list                  List rule captures only.
+  export                Export rule captures only; supports --compose for markdown and html.
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
@@ -161,6 +188,9 @@ export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
+  --profile <name>      Optional profile filter.
+  --meta key=value      Optional metadata filter (repeatable; exact match; AND).
+  --include-deleted     Include tombstoned records.
 
 notes:
   mode set to http does not start libraryd.
@@ -169,11 +199,14 @@ examples:
   yanzi --help
   yanzi --version
   yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt --meta lang=go
+  yanzi capture --author "Ada" --prompt "Hello" --response "World" --profile engineer
   yanzi capture --author "Ada" --prompt "Hello" --response "World"
   yanzi verify 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi chain 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi list --limit 10
   yanzi show 01HZX9Q4X8N9JZ1K2G9N8M4V3P
+  yanzi delete 01HZX9Q4X8N9JZ1K2G9N8M4V3P --cascade
+  yanzi restore 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi mode
   yanzi mode local
   yanzi mode http
@@ -183,12 +216,18 @@ examples:
   yanzi project list
   yanzi intent add --title "Clarify export scope" --content "Export only deterministic artifacts."
   yanzi intent list --type decision
-  yanzi context add --type policy --title "Release rule" --file ./policy.md
-  yanzi context list --type policy
+  yanzi context add --type process_rule --title "Release rule" --file ./policy.md
+  yanzi context list --scope project
+  yanzi context show abc123def456
+  yanzi rules add ./SYSTEM_RULES.md --profile engineer
+  yanzi rules list --profile engineer
+  yanzi rules export --format markdown --profile engineer
+  yanzi rules export --format markdown --compose --profile engineer
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
   yanzi rehydrate
   yanzi export --format markdown
+  yanzi export --meta type=context --meta subtype=rules --format markdown
   yanzi export --format json
   yanzi export --format html
   yanzi version`)

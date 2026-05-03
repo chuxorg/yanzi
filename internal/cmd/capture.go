@@ -26,6 +26,7 @@ func RunCapture(args []string) error {
 		title      = fs.String("title", "", "optional title")
 		author     = fs.String("author", "", "required author")
 		source     = fs.String("source", "cli", "source type")
+		profile    = fs.String("profile", "", "optional profile label")
 		promptFlag = stringFlag{help: "prompt text (exclusive with --prompt-file)"}
 		promptFile = fs.String("prompt-file", "", "prompt file path (exclusive with --prompt)")
 		respFlag   = stringFlag{help: "response text (exclusive with --response-file)"}
@@ -95,6 +96,12 @@ func RunCapture(args []string) error {
 	meta, err := metaPairs.ToJSON()
 	if err != nil {
 		return err
+	}
+	if strings.TrimSpace(*profile) != "" {
+		meta, err = attachMetadataValue(meta, "profile", strings.TrimSpace(*profile))
+		if err != nil {
+			return err
+		}
 	}
 	activeProject, err := loadActiveProject()
 	if err != nil {
@@ -193,6 +200,22 @@ func (k *kvPairs) ToJSON() (json.RawMessage, error) {
 		obj[parts[0]] = parts[1]
 	}
 	b, err := json.Marshal(obj)
+	if err != nil {
+		return nil, fmt.Errorf("encode meta: %w", err)
+	}
+	return json.RawMessage(b), nil
+}
+
+func attachMetadataValue(meta json.RawMessage, key, value string) (json.RawMessage, error) {
+	payload := map[string]string{}
+	if len(meta) > 0 {
+		if err := json.Unmarshal(meta, &payload); err != nil {
+			return nil, fmt.Errorf("decode meta: %w", err)
+		}
+	}
+	payload[key] = value
+
+	b, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("encode meta: %w", err)
 	}

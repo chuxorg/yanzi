@@ -116,7 +116,7 @@ func TestExportMarkdownWritesArtifactDirectories(t *testing.T) {
 	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "decision", "Export scope", "Export intent artifacts.", ""); err != nil {
 		t.Fatalf("CreateArtifact intent: %v", err)
 	}
-	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassContext, "policy", "Release policy", "Never rewrite history.", ""); err != nil {
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "Release policy", "Never rewrite history.", ""); err != nil {
 		t.Fatalf("CreateArtifact context: %v", err)
 	}
 
@@ -176,6 +176,64 @@ func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
 	metaBlock := "Metadata:\n  area: auth\n  decision_type: refactor\n  tags: migration,security\n"
 	if !strings.Contains(output, metaBlock) {
 		t.Fatalf("expected sorted metadata block, got: %q", output)
+	}
+}
+
+func TestExportMarkdownIncludesProfileMetadata(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-profile", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt", "response", map[string]string{
+		"project": "alpha",
+		"profile": "engineer",
+	})
+
+	if err := RunExport([]string{"--format", "markdown", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	if !strings.Contains(string(data), "Metadata:\n  profile: engineer\n") {
+		t.Fatalf("expected profile metadata block, got: %q", string(data))
+	}
+}
+
+func TestExportMarkdownMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "markdown"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "Canonical system rules") || !strings.Contains(output, "# System Rules") {
+		t.Fatalf("expected rule artifact content in markdown export: %q", output)
+	}
+	if strings.Contains(output, "General context note") || strings.Contains(output, "# Project Notes") {
+		t.Fatalf("did not expect non-rule artifact in markdown export: %q", output)
+	}
+	if strings.Contains(output, "## Checkpoint:") || strings.Contains(output, "### Event:") {
+		t.Fatalf("did not expect checkpoints or meta events in filtered export: %q", output)
 	}
 }
 
@@ -287,6 +345,34 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	}
 }
 
+func TestExportJSONIncludesProfileMetadata(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-profile", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt", "response", map[string]string{
+		"project": "alpha",
+		"profile": "engineer",
+	})
+
+	if err := RunExport([]string{"--format", "json", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	if !strings.Contains(string(data), `"profile": "engineer"`) {
+		t.Fatalf("expected profile metadata in json export: %q", string(data))
+	}
+}
+
 func TestExportJSONOmitMetadataWhenOnlyProjectAndAllowNullMetaValue(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -357,6 +443,41 @@ func TestExportJSONNoEventsProducesEmptyArray(t *testing.T) {
 	}
 	if len(events) != 0 {
 		t.Fatalf("expected empty events array, got %d", len(events))
+	}
+}
+
+func TestExportJSONMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "json"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export json: %v", err)
+	}
+	events := payload["events"].([]any)
+	if len(events) != 1 {
+		t.Fatalf("expected 1 filtered event, got %d", len(events))
+	}
+	event := events[0].(map[string]any)
+	if event["type"] != "capture" {
+		t.Fatalf("expected filtered event to be capture, got %v", event["type"])
+	}
+	if event["response"] != "Canonical system rules" {
+		t.Fatalf("unexpected filtered capture response: %v", event["response"])
 	}
 }
 
@@ -650,6 +771,70 @@ func TestExportHTMLOmitsMetadataWhenOnlyProject(t *testing.T) {
 	}
 }
 
+func TestExportHTMLMetaFiltersRuleArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	captureRuleArtifactsForExportTest(t, workdir)
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "html"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "Canonical system rules") || !strings.Contains(output, "Showing 1 of 1 events") {
+		t.Fatalf("expected filtered html export output: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">SYSTEM RULE</span>") {
+		t.Fatalf("expected system rule label in html export: %q", output)
+	}
+	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("did not expect full metadata table in rule html export: %q", output)
+	}
+	if strings.Contains(output, "General context note") {
+		t.Fatalf("did not expect non-rule artifact in html export: %q", output)
+	}
+}
+
+func TestExportHTMLShowsProfileRuleLabel(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	rulesPath := filepath.Join(workdir, "ENGINEER_RULES.md")
+	_ = os.WriteFile(rulesPath, []byte("Engineer rule body"), 0o644)
+	if err := RunRules([]string{"add", rulesPath, "--scope", "project", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add: %v", err)
+	}
+
+	if err := RunExport([]string{"--meta", "type=context", "--meta", "subtype=rules", "--format", "html", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.html"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">PROFILE: engineer</span>") {
+		t.Fatalf("expected profile rule label in html export: %q", output)
+	}
+	if strings.Contains(output, "<th>Metadata Key</th><th>Value</th>") {
+		t.Fatalf("did not expect full metadata table in profile rule html export: %q", output)
+	}
+}
+
 func TestExportMarkdownNoCapturesRecorded(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -800,5 +985,43 @@ func seedCheckpointForExport(t *testing.T, db *sql.DB, project, createdAt, summa
 	)
 	if err != nil {
 		t.Fatalf("seed checkpoint: %v", err)
+	}
+}
+
+func captureRuleArtifactsForExportTest(t *testing.T, workdir string) {
+	t.Helper()
+
+	systemRulesPath := filepath.Join(workdir, "SYSTEM_RULES.md")
+	if err := os.WriteFile(systemRulesPath, []byte("# System Rules\nAlways verify changes.\n"), 0o644); err != nil {
+		t.Fatalf("write SYSTEM_RULES.md: %v", err)
+	}
+	notesPath := filepath.Join(workdir, "project-notes.md")
+	if err := os.WriteFile(notesPath, []byte("# Project Notes\nGeneral context.\n"), 0o644); err != nil {
+		t.Fatalf("write project-notes.md: %v", err)
+	}
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "System Rules",
+		"--prompt-file", systemRulesPath,
+		"--response", "Canonical system rules",
+		"--meta", "type=context",
+		"--meta", "subtype=rules",
+		"--meta", "scope=global",
+		"--meta", "priority=critical",
+	}); err != nil {
+		t.Fatalf("RunCapture rules: %v", err)
+	}
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Project Note",
+		"--prompt-file", notesPath,
+		"--response", "General context note",
+		"--meta", "type=context",
+		"--meta", "subtype=note",
+		"--meta", "scope=project",
+	}); err != nil {
+		t.Fatalf("RunCapture note: %v", err)
 	}
 }

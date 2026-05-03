@@ -14,6 +14,8 @@ import (
 const (
 	ArtifactClassIntent  = "intent"
 	ArtifactClassContext = "context"
+	ContextScopeGlobal   = "global"
+	ContextScopeProject  = "project"
 )
 
 var (
@@ -26,12 +28,11 @@ var (
 		"note":           {},
 	}
 	contextArtifactTypes = map[string]struct{}{
-		"architecture": {},
-		"standard":     {},
-		"sop":          {},
-		"requirement":  {},
-		"policy":       {},
-		"constraint":   {},
+		"requirement":     {},
+		"process_rule":    {},
+		"coding_standard": {},
+		"reference":       {},
+		"note":            {},
 	}
 )
 
@@ -40,16 +41,15 @@ type Artifact struct {
 	ID        string
 	Class     string
 	Type      string
+	Scope     string
+	Project   string
 	Title     string
 	Content   string
 	Metadata  string
 	CreatedAt string
 }
 
-func validateArtifactInput(projectID, class, artifactType, title, content string) error {
-	if strings.TrimSpace(projectID) == "" {
-		return errors.New("project is required")
-	}
+func validateArtifactInput(projectID, class, artifactType, title, content, scope string) error {
 	classValue := strings.TrimSpace(class)
 	if classValue != ArtifactClassIntent && classValue != ArtifactClassContext {
 		return fmt.Errorf("invalid artifact class %q: allowed values are intent, context", class)
@@ -65,25 +65,51 @@ func validateArtifactInput(projectID, class, artifactType, title, content string
 	var allowed map[string]struct{}
 	switch classValue {
 	case ArtifactClassIntent:
+		if strings.TrimSpace(projectID) == "" {
+			return errors.New("project is required")
+		}
 		allowed = intentArtifactTypes
 	case ArtifactClassContext:
+		if err := validateContextScope(scope); err != nil {
+			return err
+		}
+		if strings.TrimSpace(scope) == ContextScopeProject && strings.TrimSpace(projectID) == "" {
+			return errors.New("project is required for project-scoped context")
+		}
 		allowed = contextArtifactTypes
 	}
 	if _, ok := allowed[typeValue]; !ok {
 		if classValue == ArtifactClassIntent {
 			return fmt.Errorf("invalid intent type %q: allowed values are prompt, decision, task, change_request, checkpoint, note", artifactType)
 		}
-		return fmt.Errorf("invalid context type %q: allowed values are architecture, standard, sop, requirement, policy, constraint", artifactType)
+		return fmt.Errorf("invalid context type %q: allowed values are requirement, process_rule, coding_standard, reference, note", artifactType)
 	}
 	return nil
 }
 
-func artifactSystemMeta(projectID string) (string, error) {
-	payload, err := json.Marshal(map[string]string{"project": strings.TrimSpace(projectID)})
+func validateContextScope(scope string) error {
+	switch strings.TrimSpace(scope) {
+	case ContextScopeGlobal, ContextScopeProject:
+		return nil
+	default:
+		return fmt.Errorf("invalid context scope %q: allowed values are global, project", scope)
+	}
+}
+
+func artifactSystemMeta(projectID, scope string) (string, error) {
+	payload := map[string]string{}
+	if project := strings.TrimSpace(projectID); project != "" {
+		payload["project"] = project
+	}
+	if scopeValue := strings.TrimSpace(scope); scopeValue != "" {
+		payload["scope"] = scopeValue
+	}
+
+	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("encode artifact project metadata: %w", err)
 	}
-	return string(payload), nil
+	return string(payloadJSON), nil
 }
 
 func newArtifactID() (string, error) {
@@ -109,4 +135,37 @@ func hashArtifact(id, createdAt, class, artifactType, title, content, metadata s
 
 func nowRFC3339Nano() string {
 	return time.Now().UTC().Format(time.RFC3339Nano)
+}
+
+type artifactSystemFields struct {
+	Project   string
+	Scope     string
+	Deleted   bool
+	DeletedAt string
+}
+
+func artifactSystemFieldsFromMeta(metaText string) (artifactSystemFields, error) {
+	if metaText == "" {
+		return artifactSystemFields{}, nil
+	}
+
+	var payload map[string]string
+	if err := json.Unmarshal([]byte(metaText), &payload); err != nil {
+		return artifactSystemFields{}, err
+	}
+
+	fields := artifactSystemFields{
+		Project:   strings.TrimSpace(payload["project"]),
+		Scope:     strings.TrimSpace(payload["scope"]),
+		Deleted:   strings.EqualFold(strings.TrimSpace(payload["deleted"]), "true"),
+		DeletedAt: strings.TrimSpace(payload["deleted_at"]),
+	}
+	if fields.Scope == "" {
+		if fields.Project != "" {
+			fields.Scope = ContextScopeProject
+		} else {
+			fields.Scope = ContextScopeGlobal
+		}
+	}
+	return fields, nil
 }
