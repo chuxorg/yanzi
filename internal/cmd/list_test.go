@@ -63,3 +63,48 @@ func TestRunListMetaFiltersRuleArtifacts(t *testing.T) {
 		t.Fatalf("did not expect non-rule artifact in list output: %q", output)
 	}
 }
+
+func TestRunListProfileFilterAndMetadataVisibility(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Engineer Note",
+		"--prompt", "prompt",
+		"--response", "response",
+		"--profile", "engineer",
+		"--meta", "area=auth",
+	}); err != nil {
+		t.Fatalf("RunCapture engineer: %v", err)
+	}
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Reviewer Note",
+		"--prompt", "prompt",
+		"--response", "response",
+		"--profile", "reviewer",
+	}); err != nil {
+		t.Fatalf("RunCapture reviewer: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunList([]string{"--profile", "engineer"})
+	})
+	if err != nil {
+		t.Fatalf("RunList: %v", err)
+	}
+	if !strings.Contains(output, "ID\tCreated_At\tAuthor\tSource\tTitle\tMetadata") {
+		t.Fatalf("expected metadata column in list output: %q", output)
+	}
+	if !strings.Contains(output, "Engineer Note") || !strings.Contains(output, "profile=engineer") {
+		t.Fatalf("expected engineer profile metadata in list output: %q", output)
+	}
+	if strings.Contains(output, "Reviewer Note") || strings.Contains(output, "profile=reviewer") {
+		t.Fatalf("did not expect reviewer record in filtered list output: %q", output)
+	}
+}
