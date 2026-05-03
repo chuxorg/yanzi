@@ -179,6 +179,34 @@ func TestExportMarkdownRendersSortedMetadata(t *testing.T) {
 	}
 }
 
+func TestExportMarkdownIncludesProfileMetadata(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-profile", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt", "response", map[string]string{
+		"project": "alpha",
+		"profile": "engineer",
+	})
+
+	if err := RunExport([]string{"--format", "markdown", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	if !strings.Contains(string(data), "Metadata:\n  profile: engineer\n") {
+		t.Fatalf("expected profile metadata block, got: %q", string(data))
+	}
+}
+
 func TestExportMarkdownMetaFiltersRuleArtifacts(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -314,6 +342,34 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	decisionIdx := strings.Index(jsonText, "\"decision_type\": \"refactor\"")
 	if areaIdx == -1 || decisionIdx == -1 || areaIdx > decisionIdx {
 		t.Fatalf("expected sorted metadata keys in output json, got: %s", jsonText)
+	}
+}
+
+func TestExportJSONIncludesProfileMetadata(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+
+	db := openConfiguredDBForExportTest(t)
+	defer db.Close()
+	seedProject(t, db, "alpha")
+	seedIntentWithMeta(t, db, "cap-profile", "2025-01-01T00:00:01Z", "engineer", "cli", "prompt", "response", map[string]string{
+		"project": "alpha",
+		"profile": "engineer",
+	})
+
+	if err := RunExport([]string{"--format", "json", "--profile", "engineer"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	if !strings.Contains(string(data), `"profile": "engineer"`) {
+		t.Fatalf("expected profile metadata in json export: %q", string(data))
 	}
 }
 
