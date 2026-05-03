@@ -54,6 +54,9 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "context  Manage context artifacts.") {
 		t.Fatalf("expected context command description, got: %s", output)
 	}
+	if !strings.Contains(output, "rules  Manage rule metadata wrappers.") {
+		t.Fatalf("expected rules command description, got: %s", output)
+	}
 	if !strings.Contains(output, "--meta key=value") {
 		t.Fatalf("expected capture metadata help text, got: %s", output)
 	}
