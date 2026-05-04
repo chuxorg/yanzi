@@ -4,7 +4,7 @@ Purpose: provide deterministic operating rules for AI agents using the Yanzi CLI
 
 Before using this guide with an AI agent, provide the agent with the seed prompt from:
 
-- [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md)
+- [AI_AGENT_SEED.md](../prompts/AI_AGENT_SEED.md)
 
 For a full user-facing walkthrough of projects, captures, checkpoints, export formats, and the HTML UI, see:
 
@@ -220,6 +220,5 @@ yanzi rehydrate
 ```
 
 This reconstructs the current project state from the most recent checkpoint and recorded artifacts.
-
 
 
