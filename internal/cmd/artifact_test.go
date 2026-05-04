@@ -101,6 +101,24 @@ func TestRunContextRejectsInvalidType(t *testing.T) {
 	}
 }
 
+func TestRunContextAcceptsTypeAlias(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
+
+	output, err := captureStdout(func() error {
+		return RunContext([]string{"add", "--type", "governance", "--title", "Release Rule", "--content", "Never rewrite history."})
+	})
+	if err != nil {
+		t.Fatalf("RunContext add: %v", err)
+	}
+	if !strings.Contains(output, "\tprocess_rule\tproject\talpha\tRelease Rule\t") {
+		t.Fatalf("expected canonical context type in output: %q", output)
+	}
+}
+
 func TestRunContextRejectsInvalidScope(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

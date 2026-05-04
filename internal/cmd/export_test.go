@@ -804,6 +804,38 @@ func TestExportHTMLMetaFiltersRuleArtifacts(t *testing.T) {
 	}
 }
 
+func TestExportClaudeContext(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	if _, err := yanzilibrary.CreateContextArtifact("", "process_rule", yanzilibrary.ContextScopeGlobal, "System Rules", "Never rewrite history.", `{"owner":"ops"}`); err != nil {
+		t.Fatalf("CreateContextArtifact global: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "reference", yanzilibrary.ContextScopeProject, "API Reference", "https://example.test", ""); err != nil {
+		t.Fatalf("CreateContextArtifact project: %v", err)
+	}
+
+	if err := RunExport([]string{"--format", "claude-context"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "CLAUDE_CONTEXT.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "# Claude Context") || !strings.Contains(output, "## process_rule") || !strings.Contains(output, "## reference") {
+		t.Fatalf("expected grouped claude context export: %q", output)
+	}
+	if !strings.Contains(output, "- Scope: global") || !strings.Contains(output, "Never rewrite history.") {
+		t.Fatalf("expected minimal context metadata and content: %q", output)
+	}
+}
+
 func TestExportHTMLShowsProfileRuleLabel(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)

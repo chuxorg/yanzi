@@ -55,7 +55,7 @@ type exportItem struct {
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	format := fs.String("format", "", "export format (required: markdown|json|html)")
+	format := fs.String("format", "", "export format (required: markdown|json|html|claude-context)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
 	profile := fs.String("profile", "", "profile filter")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
@@ -65,17 +65,20 @@ func RunExport(args []string, cliVersion string) error {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--meta key=value ...] [--open]")
 	}
 	if strings.TrimSpace(*profile) != "" {
 		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 	formatValue := strings.TrimSpace(*format)
-	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" {
-		return errors.New("usage: yanzi export --format <markdown|json|html> [--meta key=value ...] [--open]")
+	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" && formatValue != "claude-context" {
+		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--meta key=value ...] [--open]")
 	}
 	if *open && formatValue != "html" {
 		return errors.New("--open is only supported with --format html")
+	}
+	if formatValue == "claude-context" && (len(metaFilters) > 0 || strings.TrimSpace(*profile) != "") {
+		return errors.New("--meta and --profile are not supported with --format claude-context")
 	}
 
 	project, err := loadActiveProject()
@@ -119,6 +122,14 @@ func RunExport(args []string, cliVersion string) error {
 	if formatValue == "html" {
 		path = filepath.Join(".", "YANZI_LOG.html")
 		content = []byte(renderHTMLLog(project, cliVersion, now, items))
+	}
+	if formatValue == "claude-context" {
+		path = filepath.Join(".", "CLAUDE_CONTEXT.md")
+		artifacts, err := yanzilibrary.ListVisibleContextArtifacts(project, "", "", "", false)
+		if err != nil {
+			return err
+		}
+		content = []byte(renderClaudeContext(project, cliVersion, now, artifacts))
 	}
 
 	if err := os.WriteFile(path, content, 0o644); err != nil {
@@ -466,6 +477,44 @@ func mergeChronological(intents, checkpoints []exportItem) []exportItem {
 		j++
 	}
 	return merged
+}
+
+func renderClaudeContext(project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact) string {
+	grouped := make(map[string][]yanzilibrary.Artifact)
+	orderedTypes := make([]string, 0)
+	for _, artifact := range artifacts {
+		artifactType := strings.TrimSpace(artifact.Type)
+		if _, ok := grouped[artifactType]; !ok {
+			orderedTypes = append(orderedTypes, artifactType)
+		}
+		grouped[artifactType] = append(grouped[artifactType], artifact)
+	}
+	sort.Strings(orderedTypes)
+
+	var b strings.Builder
+	b.WriteString("# Claude Context\n\n")
+	b.WriteString(fmt.Sprintf("Project: %s\n", project))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Version: %s\n", cliVersion))
+	if len(artifacts) == 0 {
+		b.WriteString("\n\n_No context artifacts available._\n")
+		return b.String()
+	}
+	for _, artifactType := range orderedTypes {
+		b.WriteString(fmt.Sprintf("\n\n## %s\n", artifactType))
+		for _, artifact := range grouped[artifactType] {
+			b.WriteString(fmt.Sprintf("\n### %s\n", artifact.Title))
+			b.WriteString(fmt.Sprintf("- Type: %s\n", artifact.Type))
+			b.WriteString(fmt.Sprintf("- Scope: %s\n", artifact.Scope))
+			if metadata := strings.TrimSpace(artifact.Metadata); metadata != "" {
+				b.WriteString(fmt.Sprintf("- Metadata: %s\n", metadata))
+			}
+			b.WriteString("\n")
+			b.WriteString(strings.TrimRight(artifact.Content, "\n"))
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }
 
 func renderMarkdownLog(project, cliVersion string, now time.Time, items []exportItem, captureCount int) string {

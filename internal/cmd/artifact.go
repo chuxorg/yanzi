@@ -165,6 +165,7 @@ func runContextAdd(args []string) error {
 	if strings.TrimSpace(*artifactType) == "" {
 		return errors.New("--type is required")
 	}
+	*artifactType = normalizeContextType(*artifactType)
 	if strings.TrimSpace(*title) == "" {
 		return errors.New("--title is required")
 	}
@@ -222,6 +223,7 @@ func runContextList(args []string) error {
 	if len(fs.Args()) != 0 {
 		return errors.New("usage: yanzi context list [--type <type>] [--scope <global|project>] [--project <name>]")
 	}
+	*artifactType = normalizeContextType(*artifactType)
 
 	activeProject, err := loadActiveProject()
 	if err != nil {
