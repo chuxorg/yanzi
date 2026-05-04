@@ -6,7 +6,7 @@ This tutorial walks through the normal Yanzi workflow from project setup to capt
 
 If you are using Yanzi with an AI coding agent, first give the agent the seed prompt from:
 
-- [AI_AGENT_SEED.md](/Users/developer/projects/chuxorg/chux-yanzi-cli/prompts/AI_AGENT_SEED.md)
+- [AI_AGENT_SEED.md](../prompts/AI_AGENT_SEED.md)
 
 That file tells the agent how to initialize Yanzi, verify installation, and understand the `@yanzi` protocol lines.
 
