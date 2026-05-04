@@ -122,6 +122,28 @@ func TestRehydrateNoArtifacts(t *testing.T) {
 	}
 }
 
+func TestRehydrateDryRun(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedCheckpointWithArtifacts(t, db, "alpha", "2025-01-01T00:00:00Z", "first checkpoint", []string{"ctx-1", "ctx-2"})
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{"--dry-run"})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate dry-run: %v", err)
+	}
+	if !strings.Contains(output, "Checkpoints to load: 1") || !strings.Contains(output, "Context count: 2") || !strings.Contains(output, "Last checkpoint summary: first checkpoint") {
+		t.Fatalf("unexpected dry-run output: %q", output)
+	}
+}
+
 func TestRehydrateNoActiveProject(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -169,17 +191,22 @@ func openTestDB(t *testing.T, dir string) *sql.DB {
 
 func seedCheckpoint(t *testing.T, db *sql.DB, project, createdAt, summary string) {
 	t.Helper()
+	seedCheckpointWithArtifacts(t, db, project, createdAt, summary, []string{})
+}
+
+func seedCheckpointWithArtifacts(t *testing.T, db *sql.DB, project, createdAt, summary string, artifactIDs []string) {
+	t.Helper()
 	checkpoint := yanzilibrary.Checkpoint{
 		Project:     project,
 		Summary:     summary,
 		CreatedAt:   createdAt,
-		ArtifactIDs: []string{},
+		ArtifactIDs: artifactIDs,
 	}
 	hashValue, err := yanzilibrary.HashCheckpoint(checkpoint)
 	if err != nil {
 		t.Fatalf("hash checkpoint: %v", err)
 	}
-	artifactIDs, err := json.Marshal([]string{})
+	artifactIDsJSON, err := json.Marshal(artifactIDs)
 	if err != nil {
 		t.Fatalf("encode artifacts: %v", err)
 	}
@@ -190,7 +217,7 @@ func seedCheckpoint(t *testing.T, db *sql.DB, project, createdAt, summary string
 		project,
 		summary,
 		createdAt,
-		string(artifactIDs),
+		string(artifactIDsJSON),
 		nil,
 	)
 	if err != nil {

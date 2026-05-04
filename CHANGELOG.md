@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.6.0]
+
+### Commands
+- Added `bootstrap` command for ordered context loading from `.yanzi/bootstrap.yaml`
+- Added message channel wrappers: `message send`, `message list`, `message pull`
+- Added `export --format claude-context` for direct prompt injection workflows
+- Added `rehydrate --dry-run` preview mode
+- Added `types list --json` and type alias support including `governance -> process_rule`
+
+### Documentation
+- README updated with agent usability release highlights
+
 ## [2.5.0]
 
 ### Commands

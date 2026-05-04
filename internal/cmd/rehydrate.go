@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -13,8 +14,14 @@ import (
 
 // RunRehydrate renders the latest checkpoint and artifacts since.
 func RunRehydrate(args []string) error {
-	if len(args) != 0 {
-		return errors.New("usage: yanzi rehydrate")
+	fs := flag.NewFlagSet("rehydrate", flag.ContinueOnError)
+	fs.SetOutput(os.Stderr)
+	dryRun := fs.Bool("dry-run", false, "preview what rehydrate would load")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if fs.NArg() != 0 {
+		return errors.New("usage: yanzi rehydrate [--dry-run]")
 	}
 
 	project, err := loadActiveProject()
@@ -49,6 +56,13 @@ func RunRehydrate(args []string) error {
 			return errors.New("no checkpoint found for active project")
 		}
 		return err
+	}
+	if *dryRun {
+		fmt.Printf("Project: %s\n", payload.Project)
+		fmt.Printf("Checkpoints to load: %d\n", 1)
+		fmt.Printf("Context count: %d\n", len(payload.LatestCheckpoint.ArtifactIDs))
+		fmt.Printf("Last checkpoint summary: %s\n", payload.LatestCheckpoint.Summary)
+		return nil
 	}
 
 	intents := payload.IntentsSince

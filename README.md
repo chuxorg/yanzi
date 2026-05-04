@@ -110,6 +110,21 @@ yanzi checkpoint create --summary "Initial state"
 
 During development, agents can record captures and checkpoints as work progresses, then export logs when needed.
 
+## Agent Usability Layer
+
+Yanzi `v2.6.0` adds a thin agent usability layer on top of the existing CLI-first model:
+
+```sh
+yanzi bootstrap --dry-run
+yanzi message send --to codex --from operator --channel execution --file ready.md
+yanzi message pull --to codex --channel execution
+yanzi export --format claude-context
+```
+
+- `bootstrap` validates and loads ordered context documents from `.yanzi/bootstrap.yaml`
+- `message` stores routed agent notes using the existing capture flow
+- `claude-context` export produces clean markdown for direct prompt injection
+
 ## Agent Protocol
 
 Yanzi is designed for AI-agent workflows that use explicit control lines, for example:
