@@ -63,8 +63,14 @@ func main() {
 		err = cmd.RunIntent(os.Args[2:])
 	case "context":
 		err = cmd.RunContext(os.Args[2:])
+	case "bootstrap":
+		err = cmd.RunBootstrap(os.Args[2:])
 	case "rules":
 		err = cmd.RunRules(os.Args[2:], version)
+	case "types":
+		err = cmd.RunTypes(os.Args[2:])
+	case "message":
+		err = cmd.RunMessage(os.Args[2:])
 	case "checkpoint":
 		err = cmd.RunCheckpoint(os.Args[2:])
 	case "rehydrate":
@@ -104,7 +110,10 @@ commands:
   project  Manage project context.
   intent  Manage intent artifacts.
   context  Manage context artifacts.
+  bootstrap  Load ordered context documents from .yanzi/bootstrap.yaml.
   rules  Manage rule metadata wrappers.
+  types  List canonical artifact types and aliases.
+  message  Manage thin message wrappers.
   checkpoint  Manage checkpoints.
   rehydrate  Rehydrate active project context.
   export  Export active project history.
@@ -172,10 +181,21 @@ context args:
   list                  List visible context artifacts.
   show <id>             Show a context artifact by id.
 
+bootstrap args:
+  --dry-run             Validate .yanzi/bootstrap.yaml without loading documents.
+
 rules args:
   add <file>            Capture a rules file with context metadata.
   list                  List rule captures only.
   export                Export rule captures only; supports --compose for markdown and html.
+
+types args:
+  list --json           Show canonical types and alias mappings.
+
+message args:
+  send                  Capture a message note with routing metadata.
+  list                  List stored message notes.
+  pull                  Pull stored message notes as markdown.
 
 
 
@@ -185,11 +205,13 @@ checkpoint args:
 
 rehydrate args:
   (no args)             Rehydrate the active project context.
+  --dry-run             Preview the checkpoint/context load without rehydrating.
 
 export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
+  --format claude-context Generates CLAUDE_CONTEXT.md in project root.
   --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
   --include-deleted     Include tombstoned records.
@@ -219,22 +241,28 @@ examples:
   yanzi intent add --title "Clarify export scope" --content "Export only deterministic artifacts."
   yanzi intent list --type decision
   yanzi context add --type process_rule --title "Release rule" --file ./policy.md
+  yanzi context add --type governance --title "Release rule" --file ./policy.md
   yanzi context list --scope project
   yanzi context show abc123def456
+  yanzi bootstrap --dry-run
   yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
   yanzi rules add ./SYSTEM_RULES.md --profile engineer
   yanzi rules list --scope global
   yanzi rules list --profile engineer
+  yanzi types list --json
+  yanzi message send --to codex --from operator --channel execution --file ./ready.md
+  yanzi message pull --to codex --channel execution
   yanzi rules export --format markdown --profile default
   yanzi rules export --format markdown --compose --profile engineer
   yanzi rules export --format html --compose --profile engineer
   yanzi checkpoint create --summary "Weekly snapshot"
   yanzi checkpoint list
-  yanzi rehydrate
+  yanzi rehydrate --dry-run
   yanzi export --format markdown
   yanzi export --meta type=context --meta subtype=rules --format markdown
   yanzi export --format json
   yanzi export --format html
+  yanzi export --format claude-context
   yanzi version`)
 }
 

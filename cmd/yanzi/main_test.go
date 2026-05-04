@@ -54,14 +54,26 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "context  Manage context artifacts.") {
 		t.Fatalf("expected context command description, got: %s", output)
 	}
+	if !strings.Contains(output, "bootstrap  Load ordered context documents") {
+		t.Fatalf("expected bootstrap command description, got: %s", output)
+	}
 	if !strings.Contains(output, "rules  Manage rule metadata wrappers.") {
 		t.Fatalf("expected rules command description, got: %s", output)
+	}
+	if !strings.Contains(output, "types  List canonical artifact types and aliases.") {
+		t.Fatalf("expected types command description, got: %s", output)
+	}
+	if !strings.Contains(output, "message  Manage thin message wrappers.") {
+		t.Fatalf("expected message command description, got: %s", output)
 	}
 	if !strings.Contains(output, "--profile <name>") {
 		t.Fatalf("expected profile help text, got: %s", output)
 	}
 	if !strings.Contains(output, "--meta key=value") {
 		t.Fatalf("expected capture metadata help text, got: %s", output)
+	}
+	if !strings.Contains(output, "--format claude-context") {
+		t.Fatalf("expected claude-context help text, got: %s", output)
 	}
 }
 
