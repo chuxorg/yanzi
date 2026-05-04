@@ -1,3 +1,3 @@
-# AI Seed
+# Changelog
 
 Coming soon.
