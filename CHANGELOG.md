@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.6.1]
+
+- Fixed Homebrew formula to correctly install v2.6.0 binaries
+- Improved installation reliability
+
 ## [2.6.0]
 
 ### Commands
