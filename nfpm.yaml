@@ -2,7 +2,7 @@
 name: yanzi
 arch: amd64
 platform: linux
-version: 2.6.1
+version: 2.7.0
 section: default
 priority: optional
 maintainer: chuxorg

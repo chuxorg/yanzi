@@ -11,7 +11,7 @@ brew install chuxorg/yanzi/yanzi
 yanzi --version
 ```
 
-Current Homebrew formula check on May 5, 2026 showed `stable 2.6.0`. The repository `VERSION` file is `2.6.1`, so formula and source may differ until the next release publish.
+Current Homebrew formula check on May 5, 2026 showed `stable 2.6.0`. The repository `VERSION` file is `2.7.0`, so formula and source may differ until the next release publish.
 
 ## Linux
 
