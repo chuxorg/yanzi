@@ -1,16 +1,14 @@
 # Rehydrate
 
-Rehydration reconstructs the current state of a project.
+`yanzi rehydrate` works on the active project.
 
-Steps:
+It does four things:
 
-1. Load active project
-2. Locate latest checkpoint
-3. Retrieve artifacts created after checkpoint
-4. Return ordered sequence
+1. load the active project
+2. find the latest checkpoint
+3. read captures recorded after that checkpoint
+4. print the ordered result
 
-Rehydrate does not summarize or reinterpret artifacts.
+`yanzi rehydrate --dry-run` prints a summary instead of the full list.
 
-It simply reconstructs the artifact chain.
-
-This guarantees deterministic behavior.
+If the active project has no checkpoint, the command returns `no checkpoint found for active project`.
