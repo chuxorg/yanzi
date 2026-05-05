@@ -4,6 +4,7 @@
 
 - Fixed Homebrew formula to correctly install v2.6.0 binaries
 - Improved installation reliability
+- Added Debian `.deb` and Windows `.zip` release artifacts
 
 ## [2.6.0]
 

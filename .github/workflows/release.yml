@@ -39,12 +39,22 @@ jobs:
         with:
           go-version: "1.22"
 
+      - name: Install nfpm
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.43.1
+
       - name: Build release binaries
         run: |
           mkdir -p dist
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION_NO_V="${TAG#v}"
           GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ steps.version.outputs.tag }}" -o dist/yanzi-linux-amd64 ./cmd/yanzi
           GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ steps.version.outputs.tag }}" -o dist/yanzi-darwin-amd64 ./cmd/yanzi
           GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ steps.version.outputs.tag }}" -o dist/yanzi-darwin-arm64 ./cmd/yanzi
+          mkdir -p dist/windows
+          GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=${{ steps.version.outputs.tag }}" -o dist/windows/yanzi.exe ./cmd/yanzi
+          (cd dist/windows && zip -q -r ../yanzi-windows-amd64.zip yanzi.exe)
+          sed -i "s/^version: .*/version: ${VERSION_NO_V}/" nfpm.yaml
+          "$(go env GOPATH)/bin/nfpm" pkg --config nfpm.yaml --packager deb --target dist/
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
