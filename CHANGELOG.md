@@ -1,9 +1,17 @@
 # Changelog
 
+## [2.7.0]
+
+- Added Debian (.deb) distribution
+- Added Windows (.zip) distribution
+- Rewrote documentation for clarity and accuracy
+- Introduced website-ready documentation structure
+
 ## [2.6.1]
 
 - Fixed Homebrew formula to correctly install v2.6.0 binaries
 - Improved installation reliability
+- Added Debian `.deb` and Windows `.zip` release artifacts
 
 ## [2.6.0]
 
