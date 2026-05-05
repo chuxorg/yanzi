@@ -1,224 +1,123 @@
 # Yanzi Agent Bootstrap
 
-Purpose: provide deterministic operating rules for AI agents using the Yanzi CLI.
+Purpose: define the current Yanzi command surface and operating rules for AI agents working in a repository that uses Yanzi.
 
-Before using this guide with an AI agent, provide the agent with the seed prompt from:
+Before use, provide the agent seed prompt from:
 
 - [AI_AGENT_SEED.md](../prompts/AI_AGENT_SEED.md)
 
-For a full user-facing walkthrough of projects, captures, checkpoints, export formats, and the HTML UI, see:
+For the user-facing walkthrough, see:
 
-- [Yanzi Tutorial](./tutorial.md)
+- [Quickstart](./quickstart.md)
+- [CLI Reference](./cli.md)
 
-## 1. Role Declaration
-- Agents must declare role at session start:
-  - `Role: Engineer`
-- If no role is declared, default role is `Engineer`.
+## Role Declaration
 
-## 2. Meta-Command Grammar
-- Meta-commands must:
-  - start at the beginning of the line
-  - use prefix `@yanzi`
-  - be single-line commands
+- agents should declare a role at session start
+- if no role is declared, default to `Engineer`
+
+## Meta-Command Grammar
+
+- meta-commands start at the beginning of the line
+- meta-commands use the prefix `@yanzi`
+- meta-commands are single-line commands
 
 Supported meta-commands:
+
 - `@yanzi pause`
 - `@yanzi resume`
 - `@yanzi checkpoint "Summary"`
 - `@yanzi export`
 - `@yanzi role <RoleName>`
 
-## 3. State Rules
-- Pause affects capture only.
-- Meta-commands are allowed while paused.
-- State-changing commands must acknowledge execution.
-- Meta-commands must be captured as intent events.
+## State Rules
 
-## 4. Capture Expectations
-- Major structural decisions must be checkpointed.
-- Role switches must be explicit.
-- Avoid silent structural changes.
+- pause affects capture only
+- meta-commands are allowed while paused
+- state-changing commands should acknowledge execution
+- major structural decisions should be checkpointed
 
-## 5. CLI Command Surface (Current)
+## Current Command Surface
+
 Primary usage:
+
 - `yanzi <command> [args]`
 
 Commands:
-- `capture` create a new intent record
-- `verify` verify an intent by id
-- `chain` print intent chain by id
-- `list` list intent records
-- `show` show intent details by id
-- `mode` show/set runtime mode (`local|http`)
-- `project` manage project context
-- `checkpoint` manage checkpoints
-- `rehydrate` rehydrate active project context
-- `export` export active project history
-- `version` print CLI version
 
-## 6. CLI Arguments (Current)
-Capture:
-- `--author <name>` required
-- `--prompt <text>` exclusive with `--prompt-file`
-- `--prompt-file <path>` exclusive with `--prompt`
-- `--response <text>` exclusive with `--response-file`
-- `--response-file <path>` exclusive with `--response`
-- `--title <title>` optional
-- `--source <source>` optional; default `cli`
-- `--prev-hash <hash>` optional
-- `--meta key=value` optional, repeatable
-  - duplicate keys: last value wins
-  - malformed value without `=`: returns error
+- `capture`
+- `verify`
+- `chain`
+- `list`
+- `show`
+- `delete`
+- `restore`
+- `mode`
+- `project`
+- `intent`
+- `context`
+- `bootstrap`
+- `rules`
+- `types`
+- `message`
+- `checkpoint`
+- `rehydrate`
+- `export`
+- `version`
 
-List:
-- `--author <name>` optional
-- `--source <source>` optional
-- `--meta k=v` optional, repeatable, exact match, AND semantics
-- `--limit <n>` optional, default `20`
+## Current Examples
 
-Verify:
-- `yanzi verify <intent-id>`
+Capture with files:
 
-Chain:
-- `yanzi chain <intent-id>`
-
-Show:
-- `yanzi show <intent-id>`
-
-Mode:
-- `yanzi mode`
-- `yanzi mode local`
-- `yanzi mode http`
-
-Project:
-- `yanzi project create <name>`
-- `yanzi project use <name>`
-- `yanzi project current`
-- `yanzi project list`
-
-Checkpoint:
-- `yanzi checkpoint create --summary "..."` for active project
-- `yanzi checkpoint list` for active project
-
-Rehydrate:
-- `yanzi rehydrate`
-
-Export:
-- `yanzi export --format markdown`
-
-Version:
-- `yanzi version`
-- `yanzi --version`
-
-## 7. Canonical Agent Examples
-Capture with files and metadata:
 ```bash
 yanzi capture \
   --author "Ada" \
   --prompt-file prompt.txt \
   --response-file response.txt \
-  --meta area=auth \
-  --meta decision_type=refactor \
-  --meta tags=migration,security
+  --meta area=auth
 ```
 
-Capture with inline content:
+Create a checkpoint:
+
 ```bash
-yanzi capture --author "Ada" --prompt "Hello" --response "World"
+yanzi checkpoint create --summary "refactor complete"
 ```
 
-List captures with metadata filters:
+Pull handoff notes:
+
 ```bash
-yanzi list --meta area=auth --meta decision_type=refactor --limit 10
+yanzi message pull --to codex --channel handoff
 ```
 
-Export project log:
+Export project state:
+
 ```bash
 yanzi export --format markdown
 ```
 
-## 8. Output and Behavior Notes
-- Export ordering is chronological.
-- Metadata is optional and should not change capture ordering.
-- Runtime `mode http` does not start `libraryd`.
-- Keep outputs deterministic and machine-auditable.
+## Install Check
 
-## Ensure Yanzi Is Installed
-
-This repository uses **Yanzi** to track development intent and checkpoints during AI-assisted work.
-Before proceeding with development tasks, ensure that the `yanzi` CLI is installed and available in the system PATH.
-
-### 1. Check if Yanzi is installed
-
-Run:
+Verify the CLI first:
 
 ```bash
-yanzi version
+yanzi --version
 ```
 
-If the command returns a version number, Yanzi is already installed and ready to use and disregard the rest of this prompt. 
+If it is missing, install from:
 
-If there was no version returned do the following:
+- Homebrew: `brew install chuxorg/yanzi/yanzi`
+- Releases: https://github.com/chuxorg/yanzi/releases
 
-### 2. Install Yanzi (if not installed)
-
-If the command is not found, install Yanzi from the official releases page:
-
-https://github.com/chuxorg/chux-yanzi-cli/releases
-
-Download the archive that matches your operating system.
-
-Example installation (macOS / Linux):
+## Project Setup
 
 ```bash
-curl -L https://github.com/chuxorg/chux-yanzi-cli/releases/latest/download/yanzi_darwin_arm64.tar.gz -o yanzi.tar.gz
-tar -xzf yanzi.tar.gz
-sudo mv yanzi /usr/local/bin/
-```
-
-You may need to select a different archive depending on your platform.
-
----
-
-### 3. Verify installation
-
-Confirm the CLI is available:
-
-```bash
-yanzi version
-```
-
-The command should return the installed version.
-
----
-
-### 4. Initialize a Yanzi development project
-
-Once installed, initialize a project for tracking development work in this repository:
-
-```bash
-yanzi project create "cli-development"
-yanzi project use "cli-development"
-```
-
----
-
-### 5. Record development checkpoints
-
-Before significant changes, record a checkpoint describing the work being done:
-
-```bash
+yanzi project create cli-development
+yanzi project use cli-development
 yanzi checkpoint create --summary "starting development session"
 ```
 
-Checkpoints make it possible to reconstruct development state later.
-
-If context is lost during development, use:
+If context is lost:
 
 ```bash
 yanzi rehydrate
 ```
-
-This reconstructs the current project state from the most recent checkpoint and recorded artifacts.
-
-

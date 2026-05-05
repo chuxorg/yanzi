@@ -33,9 +33,13 @@ Release workflow behavior:
   - linux/amd64
   - darwin/amd64
   - darwin/arm64
+  - windows/amd64
 - Embeds version via:
   - `-ldflags "-X main.version=<tag>"`
-- Creates a GitHub release and uploads built binaries.
+- Packages:
+  - `yanzi_$(cat VERSION)_amd64.deb` via `nfpm`
+  - `yanzi-windows-amd64.zip` containing `yanzi.exe`
+- Creates a GitHub release and uploads built binaries plus distribution archives.
 
 ## Operator Steps
 1. Land feature work into `development` via PR.

@@ -3,162 +3,79 @@
 [![QA Build](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/ci.yml)
 [![Release](https://github.com/chuxorg/yanzi/actions/workflows/release.yml/badge.svg)](https://github.com/chuxorg/yanzi/actions/workflows/release.yml)
 
-> Intent Integrity for AI-Assisted Development
+Yanzi is a CLI for recording intent, storing context, creating checkpoints, and rehydrating AI-assisted work.
 
----
+## What It Does
 
-## The Problem
+Yanzi stores project history locally in SQLite. The main workflow is:
 
-AI-assisted development has changed how software is built.
+- capture prompt and response pairs
+- add context documents or notes
+- create checkpoints at stable boundaries
+- rehydrate the active project from the latest checkpoint
 
-We no longer write every line of code — we collaborate with AI agents.
+It does not orchestrate agents or modify your code for you.
 
-But this introduces a critical failure:
+## Install
 
-**Intent is ephemeral.**
-
-* Prompts are not stored
-* Decisions are not preserved
-* Context is lost between sessions
-* Agents drift from original goals
-
----
-
-## The Insight
-
-This is not an AI problem.
-
-It is a **state management problem**.
-
-There is no system of record for:
-
-* What we asked
-* Why we asked it
-* What the AI decided
-
----
-
-## The Solution: Yanzi
-
-Yanzi introduces:
-
-**Intent as a first-class artifact**
-
-Every AI interaction becomes:
-
-* Structured
-* Immutable
-* Chronological
-* Verifiable
-
----
-
-## What Yanzi Is
-
-* Local-first CLI
-* Append-only ledger of intent
-* Deterministic recovery system
-* Agent-agnostic
-
----
-
-## What Yanzi Is Not
-
-* Not an orchestrator
-* Not a framework
-* Not tied to any AI vendor
-* Not automating decisions
-
----
-
-## Core Concepts
-
-### Intent
-
-Prompt + response pair
-
-### Context
-
-Rules, standards, references
-
-### Checkpoints
-
-Stable recovery points
-
-### Rehydration
-
-Reconstructs working state
-
----
-
-## Why It Matters
-
-Without Yanzi:
-
-* You guess where you left off
-* You re-explain context
-* Agents behave inconsistently
-
-With Yanzi:
-
-* State is deterministic
-* Context is preserved
-* Workflows are reproducible
-
----
-
-## Example
-
-Without Yanzi:
-AI deletes a production database with no trace.
-
-With Yanzi:
-
-* Rule exists: "Do not drop production database"
-* Context persists
-* Behavior is predictable
-
----
-
-## Quick Start
+macOS:
 
 ```bash
 brew install chuxorg/yanzi/yanzi
 ```
 
+Linux:
+
 ```bash
-yanzi project create my-project
-yanzi capture --prompt-file prompt.txt --response-file response.txt
-yanzi checkpoint create --summary "Initial state"
-yanzi rehydrate
+sudo dpkg -i yanzi_*.deb
 ```
 
----
+Windows:
 
-## Documentation
+1. Download `yanzi-windows-amd64.zip` from the latest release.
+2. Extract `yanzi.exe`.
+3. Add the extract directory to `PATH`.
 
-See full documentation:
+Technical docs: https://chuxorg.github.io/yanzi/
 
-* [/docs](docs/index.md)
-* [/docs/whitepaper.md](docs/whitepaper.md)
+## Quickstart
 
----
+Create and select a project:
 
-## Philosophy
+```bash
+yanzi project create demo
+yanzi project use demo
+```
 
-Yanzi focuses on:
+Capture a prompt and response:
 
-**Preserving intent, not orchestrating it**
+```bash
+yanzi capture \
+  --author "Ada" \
+  --prompt "Summarize the current task" \
+  --response "Add distribution docs and validate examples."
+```
 
----
+Create a checkpoint and preview rehydration:
 
-## Status
+```bash
+yanzi checkpoint create --summary "Initial project state"
+yanzi rehydrate --dry-run
+```
 
-Active development
-Local-first
-Production-focused
+Optional message example:
 
----
+```bash
+yanzi message send --to claude --from ada --channel handoff --content "Review the latest checkpoint."
+yanzi message pull --to claude --channel handoff
+```
+
+## Docs
+
+- Website and overview: https://chuxorg.github.io/yanzi/
+- Quickstart: [docs/quickstart.md](docs/quickstart.md)
+- CLI reference: [docs/cli.md](docs/cli.md)
+- Install: [docs/install.md](docs/install.md)
 
 ## License
 
