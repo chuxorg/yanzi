@@ -1,5 +1,5 @@
 site_name: Yanzi CLI
-site_description: Yanzi CLI documentation
+site_description: Technical documentation for Yanzi
 repo_name: chuxorg/yanzi
 repo_url: https://github.com/chuxorg/yanzi
 
@@ -11,7 +11,13 @@ plugins:
 
 nav:
   - Home: index.md
-  - Tutorial: tutorial.md
+  - How It Works: how-it-works.md
+  - Use Yanzi: use-yanzi.md
+  - Install: install.md
+  - Quickstart: quickstart.md
+  - CLI Reference: cli.md
+  - Rehydrate: rehydrate.md
+  - Architecture: architecture.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
   - Code Documentation: dev/CODE_DOCUMENTATION.md
