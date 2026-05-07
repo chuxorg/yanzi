@@ -48,11 +48,17 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "export  Export active project history.") {
 		t.Fatalf("expected export command description, got: %s", output)
 	}
+	if !strings.Contains(output, "init  Create or bind a project to the current directory.") {
+		t.Fatalf("expected init command description, got: %s", output)
+	}
 	if !strings.Contains(output, "intent  Manage intent artifacts.") {
 		t.Fatalf("expected intent command description, got: %s", output)
 	}
 	if !strings.Contains(output, "context  Manage context artifacts.") {
 		t.Fatalf("expected context command description, got: %s", output)
+	}
+	if !strings.Contains(output, "pack  Apply or export portable context packs.") {
+		t.Fatalf("expected pack command description, got: %s", output)
 	}
 	if !strings.Contains(output, "bootstrap  Load ordered context documents") {
 		t.Fatalf("expected bootstrap command description, got: %s", output)
