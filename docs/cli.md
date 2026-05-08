@@ -47,20 +47,15 @@ yanzi project list
 
 ## capture
 
-Record a prompt and response pair.
+### Problem
 
-Flags:
+Prompt and response history is easy to lose when work happens across terminals, editors, and agent sessions.
 
-- `--author <name>` required
-- `--prompt <text>` or `--prompt-file <path>` required
-- `--response <text>` or `--response-file <path>` required
-- `--title <title>` optional
-- `--source <source>` optional, default `cli`
-- `--profile <name>` optional
-- `--prev-hash <hash>` optional
-- `--meta key=value` optional and repeatable
+### Solution
 
-Examples:
+`yanzi capture` stores one prompt/response pair as a durable record.
+
+### Example
 
 ```bash
 yanzi capture \
@@ -75,35 +70,83 @@ yanzi capture \
   --meta area=docs
 ```
 
+### Flags
+
+- `--author <name>` required
+- `--prompt <text>` or `--prompt-file <path>` required
+- `--response <text>` or `--response-file <path>` required
+- `--title <title>` optional
+- `--source <source>` optional, default `cli`
+- `--profile <name>` optional
+- `--prev-hash <hash>` optional
+- `--meta key=value` optional and repeatable
+
 ## checkpoint
 
-Create or list checkpoints for the active project.
+### Problem
+
+Replaying all project history from the beginning is unnecessary when a stable boundary already exists.
+
+### Solution
+
+`yanzi checkpoint` records named project boundaries and lists them later.
+
+### Example
 
 ```bash
 yanzi checkpoint create --summary "Initial project state"
 yanzi checkpoint list
 ```
 
+### Flags
+
+- `create --summary "..."` required summary for a new checkpoint
+- `list` no flags
+
 ## rehydrate
 
-Load the latest checkpoint and the captures recorded after it.
+### Problem
 
-Flags:
+Agents need the current project state without manually reconstructing it from every earlier record.
 
-- `--dry-run` preview what would load
+### Solution
 
-Examples:
+`yanzi rehydrate` loads the latest checkpoint and the intent records that follow it.
+
+### Example
 
 ```bash
 yanzi rehydrate --dry-run
 yanzi rehydrate
 ```
 
+### Flags
+
+- `--dry-run` preview what would load
+
 ## export
 
-Write project history or filtered context to a file in the current working directory.
+### Problem
 
-Flags:
+Sometimes the full timeline is needed. In other cases, only a filtered subset of stored context is needed.
+
+### Solution
+
+`yanzi export` writes project history or filtered context to files in the current working directory.
+
+### Example
+
+```bash
+yanzi export --format markdown
+yanzi export --format json
+yanzi export --format html --open
+yanzi export --format claude-context
+yanzi export --type process_rule --meta role=engineer
+yanzi export --fields title,content
+yanzi export --type process_rule --meta role=engineer --fields title,content --limit 5
+```
+
+### Flags
 
 - `--format <markdown|json|html|claude-context>` optional
 - `--type <type[,type...]>` optional context type filter
@@ -121,53 +164,6 @@ Outputs:
 - `YANZI_LOG.json`
 - `YANZI_LOG.html`
 - `CLAUDE_CONTEXT.md`
-
-Examples:
-
-```bash
-yanzi export --format markdown
-yanzi export --format json
-yanzi export --format html --open
-yanzi export --format claude-context
-```
-
-## Retrieving Context
-
-Yanzi supports filtering and retrieving stored context using:
-
-- `--type`
-- `--meta`
-- `--fields`
-- `--order`
-- `--limit`
-
-Get engineering rules:
-
-```bash
-yanzi export --type process_rule --meta role=engineer
-```
-
-Limit output:
-
-```bash
-yanzi export --limit 5
-```
-
-Select fields:
-
-```bash
-yanzi export --fields title,content
-```
-
-Combined:
-
-```bash
-yanzi export \
-  --type process_rule \
-  --meta role=engineer \
-  --fields title,content \
-  --limit 5
-```
 
 Yanzi does not interpret or rank results. It only filters and returns stored data.
 
@@ -191,7 +187,28 @@ export args:
 
 ## message
 
-Store and retrieve handoff notes as message captures.
+### Problem
+
+Independent agents or operators need a shared note channel without introducing a separate messaging service.
+
+### Solution
+
+`yanzi message` stores handoff notes as captures with message metadata.
+
+### Example
+
+```bash
+yanzi message send \
+  --to claude \
+  --from operator \
+  --channel handoff \
+  --content "Continue from the latest checkpoint."
+
+yanzi message list --to claude --channel handoff
+yanzi message pull --to claude --channel handoff
+```
+
+### Flags
 
 Subcommands:
 
@@ -222,18 +239,27 @@ Subcommands:
 - `--channel <name>` optional
 - `--include-deleted` optional
 
-Examples:
+## pack
+
+### Problem
+
+Projects often need the same set of stored rules and reference context more than once.
+
+### Solution
+
+`yanzi pack` applies or exports portable context bundles without changing existing records.
+
+### Example
 
 ```bash
-yanzi message send \
-  --to claude \
-  --from operator \
-  --channel handoff \
-  --content "Continue from the latest checkpoint."
-
-yanzi message list --to claude --channel handoff
-yanzi message pull --to claude --channel handoff
+yanzi pack apply vibe-coder.yaml
+yanzi pack export --output ./packs/project.yaml
 ```
+
+### Flags
+
+- `apply <file>` required
+- `export --output <file>` required
 
 ## context
 

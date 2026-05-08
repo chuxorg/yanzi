@@ -17,7 +17,24 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 )
 
-// RunCapture posts a new intent record to the library API.
+// RunCapture stores one prompt/response pair as an intent record.
+//
+// Problem:
+// Captured AI work is easy to lose when prompts and responses only exist in
+// transient chat sessions.
+//
+// Solution:
+// RunCapture accepts CLI arguments that describe one prompt/response pair and
+// writes the record in local mode or posts it in HTTP mode.
+//
+// Arguments:
+//
+//	args contains the capture flags, including author, prompt, response, and
+//	optional metadata.
+//
+// Example:
+//
+//	yanzi capture --author "Ada" --prompt "What changed?" --response "Updated docs."
 func RunCapture(args []string) error {
 	fs := flag.NewFlagSet("capture", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

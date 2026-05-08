@@ -27,6 +27,23 @@ type packEntry struct {
 	Scope string `yaml:"scope,omitempty"`
 }
 
+// RunPack applies or exports portable context packs.
+//
+// Problem:
+// Reusing the same stored context across projects is tedious when each item
+// must be added manually.
+//
+// Solution:
+// RunPack exposes `apply` for idempotent pack loading and `export` for
+// producing a pack definition plus sidecar files from visible context.
+//
+// Arguments:
+//
+//	args starts with `apply` or `export` followed by the corresponding flags.
+//
+// Example:
+//
+//	yanzi pack apply vibe-coder.yaml
 func RunPack(args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: yanzi pack <apply|export> [args]")

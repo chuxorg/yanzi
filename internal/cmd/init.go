@@ -13,6 +13,24 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 )
 
+// RunInit creates or reuses a project and binds it to the current directory.
+//
+// Problem:
+// Local project setup is error-prone when project creation, activation, and
+// directory binding are done as separate steps.
+//
+// Solution:
+// RunInit ensures a project exists, writes .yanzi/project in the current
+// directory, and makes that project active.
+//
+// Arguments:
+//
+//	args may contain one optional project name; otherwise the current directory
+//	name is used.
+//
+// Example:
+//
+//	yanzi init demo
 func RunInit(args []string) error {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

@@ -12,6 +12,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Problem: problem.md
   - How It Works: how-it-works.md
   - Use Yanzi: use-yanzi.md
   - CLI: cli.md
@@ -24,11 +25,12 @@ nav:
       - Retrieval: use-cases/retrieval.md
   - Rehydrate: rehydrate.md
   - Architecture: architecture.md
+  - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
   - Code Documentation: dev/CODE_DOCUMENTATION.md
   - Branch Protection: dev/BRANCH_PROTECTION.md
-  - API:
+  - Generated API:
       - Overview: api/index.md
       - CLI Package: api/cmd.md
       - Internal Packages: api/internal.md

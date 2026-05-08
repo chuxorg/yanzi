@@ -27,7 +27,15 @@ type Config struct {
 	BaseURL string `yaml:"base_url"`
 }
 
-// Load reads ~/.yanzi/config.yaml and returns defaults if missing.
+// Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
+//
+// Problem:
+// The CLI needs one deterministic source of truth for local and optional HTTP
+// runtime settings.
+//
+// Solution:
+// Load reads the config file, applies defaults, trims values, and validates
+// mode-specific requirements before returning.
 func Load() (Config, error) {
 	cfg := Config{
 		Mode: ModeLocal,
