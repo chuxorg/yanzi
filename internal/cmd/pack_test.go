@@ -117,3 +117,42 @@ func TestRunPackExportWritesYamlAndSidecars(t *testing.T) {
 		}
 	}
 }
+
+func TestRunPackApplyAddsPackMetadata(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	withCwd(t, home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	if err := os.MkdirAll(filepath.Join(home, ".yanzi"), 0o700); err != nil {
+		t.Fatalf("mkdir .yanzi: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(home, ".yanzi", "project"), []byte("alpha\n"), 0o644); err != nil {
+		t.Fatalf("write project binding: %v", err)
+	}
+
+	contentPath := filepath.Join(home, "rules.md")
+	if err := os.WriteFile(contentPath, []byte("Never rewrite history."), 0o644); err != nil {
+		t.Fatalf("write content: %v", err)
+	}
+	packPath := filepath.Join(home, "vibe-coder.yaml")
+	packYAML := "name: vibe-coder\nseed: engineer\nversion: 1.0\ncontext:\n  - type: process_rule\n    title: System Rules\n    file: rules.md\n"
+	if err := os.WriteFile(packPath, []byte(packYAML), 0o644); err != nil {
+		t.Fatalf("write pack: %v", err)
+	}
+
+	if err := RunPack([]string{"apply", packPath}); err != nil {
+		t.Fatalf("RunPack apply: %v", err)
+	}
+
+	artifacts, err := yanzilibrary.ListVisibleContextArtifacts("alpha", "process_rule", "", "", false)
+	if err != nil {
+		t.Fatalf("list visible artifacts: %v", err)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("expected 1 artifact, got %d", len(artifacts))
+	}
+	if !strings.Contains(artifacts[0].Metadata, "\"pack\":\"vibe-coder\"") || !strings.Contains(artifacts[0].Metadata, "\"seed\":\"engineer\"") {
+		t.Fatalf("expected pack metadata on artifact, got %q", artifacts[0].Metadata)
+	}
+}

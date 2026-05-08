@@ -836,6 +836,155 @@ func TestExportClaudeContext(t *testing.T) {
 	}
 }
 
+func TestExportDefaultsToClaudeContextAndPackMetaFilter(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	if err := os.MkdirAll(filepath.Join(workdir, ".yanzi"), 0o700); err != nil {
+		t.Fatalf("mkdir .yanzi: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(workdir, ".yanzi", "project"), []byte("alpha\n"), 0o644); err != nil {
+		t.Fatalf("write project binding: %v", err)
+	}
+
+	packPath := filepath.Join(workdir, "vibe-coder.yaml")
+	contentPath := filepath.Join(workdir, "go.md")
+	if err := os.WriteFile(contentPath, []byte("Return wrapped errors."), 0o644); err != nil {
+		t.Fatalf("write content: %v", err)
+	}
+	packYAML := "name: vibe-coder\nversion: 1.0\ncontext:\n  - type: coding_standard\n    title: Go Standards\n    file: go.md\n"
+	if err := os.WriteFile(packPath, []byte(packYAML), 0o644); err != nil {
+		t.Fatalf("write pack: %v", err)
+	}
+	if err := RunPack([]string{"apply", packPath}); err != nil {
+		t.Fatalf("RunPack apply: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "reference", yanzilibrary.ContextScopeProject, "API Reference", "https://example.test", ""); err != nil {
+		t.Fatalf("CreateContextArtifact: %v", err)
+	}
+
+	if err := RunExport([]string{"--meta", "pack=vibe-coder"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "CLAUDE_CONTEXT.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "Go Standards") {
+		t.Fatalf("expected pack artifact in export: %q", output)
+	}
+	if strings.Contains(output, "API Reference") {
+		t.Fatalf("did not expect non-pack artifact in export: %q", output)
+	}
+}
+
+func TestExportClaudeContextRespectsRetrievalFilters(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "Second Rule", "Second body", `{"role":"engineer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact second: %v", err)
+	}
+	time.Sleep(time.Nanosecond)
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "First Rule", "First body", `{"role":"engineer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact first: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "coding_standard", yanzilibrary.ContextScopeProject, "Go Standards", "Return wrapped errors.", `{"role":"engineer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact coding standard: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "reference", yanzilibrary.ContextScopeProject, "Skip Me", "https://example.test", `{"role":"reviewer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact reference: %v", err)
+	}
+
+	if err := RunExport([]string{
+		"--format", "claude-context",
+		"--type", "process_rule,coding_standard",
+		"--meta", "role=engineer",
+		"--fields", "title,content",
+		"--order", "created_at",
+		"--limit", "3",
+	}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "CLAUDE_CONTEXT.md"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	output := string(data)
+	if !strings.Contains(output, "# Claude Context") {
+		t.Fatalf("expected claude-context header: %q", output)
+	}
+	if strings.Contains(output, "- Type:") || strings.Contains(output, "- Scope:") {
+		t.Fatalf("did not expect filtered-out fields in output: %q", output)
+	}
+	if strings.Contains(output, "Skip Me") {
+		t.Fatalf("did not expect mismatched metadata artifact: %q", output)
+	}
+	idxSecond := strings.Index(output, "## Second Rule")
+	idxFirst := strings.Index(output, "## First Rule")
+	idxGo := strings.Index(output, "## Go Standards")
+	if idxSecond == -1 || idxFirst == -1 || idxGo == -1 {
+		t.Fatalf("missing expected artifacts: %q", output)
+	}
+	if !(idxSecond < idxFirst && idxFirst < idxGo) {
+		t.Fatalf("expected created_at ordering in output: %q", output)
+	}
+}
+
+func TestExportContextJSONFieldsAndLimit(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	createTestProject(t, "alpha")
+
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "Rule A", "Alpha", `{"role":"engineer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact A: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "process_rule", yanzilibrary.ContextScopeProject, "Rule B", "Beta", `{"role":"engineer"}`); err != nil {
+		t.Fatalf("CreateContextArtifact B: %v", err)
+	}
+
+	if err := RunExport([]string{
+		"--format", "json",
+		"--type", "process_rule",
+		"--fields", "title,content",
+		"--limit", "1",
+	}, "v1.0.0"); err != nil {
+		t.Fatalf("RunExport: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(workdir, "YANZI_LOG.json"))
+	if err != nil {
+		t.Fatalf("read export: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(data, &payload); err != nil {
+		t.Fatalf("unmarshal export: %v", err)
+	}
+	artifacts, ok := payload["artifacts"].([]any)
+	if !ok || len(artifacts) != 1 {
+		t.Fatalf("expected one artifact entry, got %#v", payload["artifacts"])
+	}
+	record, ok := artifacts[0].(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected artifact payload: %#v", artifacts[0])
+	}
+	if len(record) != 2 || record["title"] == nil || record["content"] == nil {
+		t.Fatalf("expected only requested fields, got %#v", record)
+	}
+}
+
 func TestExportHTMLShowsProfileRuleLabel(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)

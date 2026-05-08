@@ -51,13 +51,26 @@ type exportItem struct {
 	Value   string
 }
 
+type contextExportQuery struct {
+	TypeFilters map[string]struct{}
+	MetaFilters map[string]string
+	Fields      []string
+	FieldSet    map[string]struct{}
+	Order       string
+	Limit       int
+}
+
 // RunExport writes deterministic project history logs.
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
-	format := fs.String("format", "", "export format (required: markdown|json|html|claude-context)")
+	format := fs.String("format", "", "export format (markdown|json|html|claude-context)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
 	profile := fs.String("profile", "", "profile filter")
+	typeFlag := fs.String("type", "", "context type filter (comma-separated)")
+	fieldsFlag := fs.String("fields", "", "fields to include (comma-separated)")
+	orderFlag := fs.String("order", "", "order field (created_at|updated_at)")
+	limit := fs.Int("limit", 0, "max records to return after filtering")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
@@ -65,21 +78,26 @@ func RunExport(args []string, cliVersion string) error {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--meta key=value ...] [--open]")
+		return errors.New("usage: yanzi export [--format <markdown|json|html|claude-context>] [--type <type[,type...]>] [--meta key=value ...] [--fields <field[,field...]>] [--order <created_at|updated_at>] [--limit <n>] [--open]")
 	}
 	if strings.TrimSpace(*profile) != "" {
 		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 	formatValue := strings.TrimSpace(*format)
+	if formatValue == "" {
+		formatValue = "claude-context"
+	}
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" && formatValue != "claude-context" {
-		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--meta key=value ...] [--open]")
+		return errors.New("usage: yanzi export [--format <markdown|json|html|claude-context>] [--type <type[,type...]>] [--meta key=value ...] [--fields <field[,field...]>] [--order <created_at|updated_at>] [--limit <n>] [--open]")
 	}
 	if *open && formatValue != "html" {
 		return errors.New("--open is only supported with --format html")
 	}
-	if formatValue == "claude-context" && (len(metaFilters) > 0 || strings.TrimSpace(*profile) != "") {
-		return errors.New("--meta and --profile are not supported with --format claude-context")
+	query, err := buildContextExportQuery(*typeFlag, map[string]string(metaFilters), *fieldsFlag, *orderFlag, *limit)
+	if err != nil {
+		return err
 	}
+	retrievalMode := formatValue == "claude-context" || contextExportQueryEnabled(query)
 
 	project, err := loadActiveProject()
 	if err != nil {
@@ -103,13 +121,51 @@ func RunExport(args []string, cliVersion string) error {
 	}
 	defer db.Close()
 
+	now := time.Now().UTC()
+	if retrievalMode {
+		artifacts, err := loadFilteredContextArtifacts(project, query, *includeDeleted)
+		if err != nil {
+			return err
+		}
+		path := filepath.Join(".", "CLAUDE_CONTEXT.md")
+		var content []byte
+		switch formatValue {
+		case "markdown":
+			path = filepath.Join(".", "YANZI_LOG.md")
+			content = []byte(renderContextMarkdownExport("Yanzi Context Export", project, cliVersion, now, artifacts, query))
+		case "json":
+			path = filepath.Join(".", "YANZI_LOG.json")
+			content, err = renderContextJSONExport(project, cliVersion, now, artifacts, query)
+			if err != nil {
+				return err
+			}
+		case "html":
+			path = filepath.Join(".", "YANZI_LOG.html")
+			content = []byte(renderContextHTMLExport(project, cliVersion, now, artifacts, query))
+		default:
+			content = []byte(renderContextMarkdownExport("Claude Context", project, cliVersion, now, artifacts, query))
+		}
+		if err := os.WriteFile(path, content, 0o644); err != nil {
+			return fmt.Errorf("write export file: %w", err)
+		}
+		if err := exportFilteredContextArtifacts(artifacts); err != nil {
+			return err
+		}
+		fmt.Printf("Exported %s\n", path)
+		if *open {
+			if err := openExportInBrowser(path); err != nil {
+				return fmt.Errorf("open export in browser: %w", err)
+			}
+		}
+		return nil
+	}
+
 	ctx := context.Background()
 	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters), *includeDeleted)
 	if err != nil {
 		return err
 	}
 
-	now := time.Now().UTC()
 	path := filepath.Join(".", "YANZI_LOG.md")
 	content := []byte(renderMarkdownLog(project, cliVersion, now, items, captureCount))
 	if formatValue == "json" {
@@ -123,15 +179,6 @@ func RunExport(args []string, cliVersion string) error {
 		path = filepath.Join(".", "YANZI_LOG.html")
 		content = []byte(renderHTMLLog(project, cliVersion, now, items))
 	}
-	if formatValue == "claude-context" {
-		path = filepath.Join(".", "CLAUDE_CONTEXT.md")
-		artifacts, err := yanzilibrary.ListVisibleContextArtifacts(project, "", "", "", false)
-		if err != nil {
-			return err
-		}
-		content = []byte(renderClaudeContext(project, cliVersion, now, artifacts))
-	}
-
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
 	}
@@ -146,6 +193,162 @@ func RunExport(args []string, cliVersion string) error {
 		}
 	}
 	return nil
+}
+
+func buildContextExportQuery(typeValue string, metaFilters map[string]string, fieldsValue, orderValue string, limit int) (contextExportQuery, error) {
+	typeFilters, err := parseContextTypeFilters(typeValue)
+	if err != nil {
+		return contextExportQuery{}, err
+	}
+	fields, fieldSet, err := parseContextExportFields(fieldsValue)
+	if err != nil {
+		return contextExportQuery{}, err
+	}
+	order := strings.TrimSpace(orderValue)
+	switch order {
+	case "", "created_at", "updated_at":
+	default:
+		return contextExportQuery{}, errors.New("invalid --order value (expected created_at or updated_at)")
+	}
+	if limit < 0 {
+		return contextExportQuery{}, errors.New("--limit must be >= 0")
+	}
+	return contextExportQuery{
+		TypeFilters: typeFilters,
+		MetaFilters: metaFilters,
+		Fields:      fields,
+		FieldSet:    fieldSet,
+		Order:       order,
+		Limit:       limit,
+	}, nil
+}
+
+func contextExportQueryEnabled(query contextExportQuery) bool {
+	return len(query.TypeFilters) > 0 || len(query.Fields) > 0 || strings.TrimSpace(query.Order) != "" || query.Limit > 0
+}
+
+func parseContextTypeFilters(value string) (map[string]struct{}, error) {
+	result := map[string]struct{}{}
+	for _, raw := range strings.Split(strings.TrimSpace(value), ",") {
+		trimmed := normalizeContextType(strings.TrimSpace(raw))
+		if trimmed == "" {
+			continue
+		}
+		if !isSupportedContextType(trimmed) {
+			return nil, fmt.Errorf("invalid context type %q: allowed values are requirement, process_rule, coding_standard, reference, note", trimmed)
+		}
+		result[trimmed] = struct{}{}
+	}
+	return result, nil
+}
+
+func parseContextExportFields(value string) ([]string, map[string]struct{}, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil, nil
+	}
+	allowed := map[string]struct{}{
+		"id":         {},
+		"title":      {},
+		"type":       {},
+		"scope":      {},
+		"project":    {},
+		"content":    {},
+		"metadata":   {},
+		"created_at": {},
+		"updated_at": {},
+	}
+	fields := make([]string, 0)
+	fieldSet := make(map[string]struct{})
+	for _, raw := range strings.Split(value, ",") {
+		field := strings.TrimSpace(raw)
+		if field == "" {
+			continue
+		}
+		if _, ok := allowed[field]; !ok {
+			return nil, nil, fmt.Errorf("invalid --fields value %q", field)
+		}
+		if _, ok := fieldSet[field]; ok {
+			continue
+		}
+		fieldSet[field] = struct{}{}
+		fields = append(fields, field)
+	}
+	if len(fields) == 0 {
+		return nil, nil, errors.New("--fields requires at least one field")
+	}
+	return fields, fieldSet, nil
+}
+
+func isSupportedContextType(value string) bool {
+	for _, candidate := range contextTypeCatalog {
+		if candidate == value {
+			return true
+		}
+	}
+	return false
+}
+
+func loadFilteredContextArtifacts(project string, query contextExportQuery, includeDeleted bool) ([]yanzilibrary.Artifact, error) {
+	artifacts, err := yanzilibrary.ListVisibleContextArtifacts(project, "", "", "", includeDeleted)
+	if err != nil {
+		return nil, err
+	}
+
+	filtered := make([]yanzilibrary.Artifact, 0, len(artifacts))
+	for _, artifact := range artifacts {
+		if len(query.TypeFilters) > 0 {
+			if _, ok := query.TypeFilters[strings.TrimSpace(artifact.Type)]; !ok {
+				continue
+			}
+		}
+		metadata, err := decodeStringMeta(artifact.Metadata)
+		if err != nil {
+			continue
+		}
+		if len(query.MetaFilters) > 0 && !metadataMatchesAll(metadata, query.MetaFilters) {
+			continue
+		}
+		filtered = append(filtered, artifact)
+	}
+
+	sortContextArtifacts(filtered, query.Order)
+	if query.Limit > 0 && len(filtered) > query.Limit {
+		filtered = filtered[:query.Limit]
+	}
+	return filtered, nil
+}
+
+func sortContextArtifacts(artifacts []yanzilibrary.Artifact, order string) {
+	if len(artifacts) < 2 {
+		return
+	}
+	sort.SliceStable(artifacts, func(i, j int) bool {
+		left := contextArtifactOrderValue(artifacts[i], order)
+		right := contextArtifactOrderValue(artifacts[j], order)
+		if left != right {
+			return left < right
+		}
+		if artifacts[i].Title != artifacts[j].Title {
+			return artifacts[i].Title < artifacts[j].Title
+		}
+		return artifacts[i].ID < artifacts[j].ID
+	})
+}
+
+func contextArtifactOrderValue(artifact yanzilibrary.Artifact, order string) string {
+	switch strings.TrimSpace(order) {
+	case "", "created_at", "updated_at":
+		return artifact.CreatedAt
+	default:
+		return artifact.CreatedAt
+	}
+}
+
+func exportFilteredContextArtifacts(artifacts []yanzilibrary.Artifact) error {
+	if err := writeArtifactDirectory("Intent", nil); err != nil {
+		return err
+	}
+	return writeArtifactDirectory("Context", artifacts)
 }
 
 func openBrowser(path string) error {
@@ -479,7 +682,39 @@ func mergeChronological(intents, checkpoints []exportItem) []exportItem {
 	return merged
 }
 
-func renderClaudeContext(project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact) string {
+func renderContextMarkdownExport(title, project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact, query contextExportQuery) string {
+	var b strings.Builder
+	b.WriteString("# ")
+	b.WriteString(title)
+	b.WriteString("\n\n")
+	b.WriteString(fmt.Sprintf("Project: %s\n", project))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Version: %s\n", cliVersion))
+	if len(artifacts) == 0 {
+		b.WriteString("\n\n_No context artifacts available._\n")
+		return b.String()
+	}
+	if title == "Claude Context" && len(query.Fields) == 0 {
+		return renderDefaultClaudeContextMarkdown(b.String(), artifacts)
+	}
+	for i, artifact := range artifacts {
+		b.WriteString("\n\n")
+		b.WriteString(contextArtifactHeading(i, artifact, query.FieldSet))
+		b.WriteString("\n")
+		for _, field := range contextFieldsForRender(query) {
+			block := renderContextFieldMarkdown(field, artifact)
+			if block == "" {
+				continue
+			}
+			b.WriteString("\n")
+			b.WriteString(block)
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
+}
+
+func renderDefaultClaudeContextMarkdown(header string, artifacts []yanzilibrary.Artifact) string {
 	grouped := make(map[string][]yanzilibrary.Artifact)
 	orderedTypes := make([]string, 0)
 	for _, artifact := range artifacts {
@@ -492,14 +727,7 @@ func renderClaudeContext(project, cliVersion string, now time.Time, artifacts []
 	sort.Strings(orderedTypes)
 
 	var b strings.Builder
-	b.WriteString("# Claude Context\n\n")
-	b.WriteString(fmt.Sprintf("Project: %s\n", project))
-	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
-	b.WriteString(fmt.Sprintf("Version: %s\n", cliVersion))
-	if len(artifacts) == 0 {
-		b.WriteString("\n\n_No context artifacts available._\n")
-		return b.String()
-	}
+	b.WriteString(header)
 	for _, artifactType := range orderedTypes {
 		b.WriteString(fmt.Sprintf("\n\n## %s\n", artifactType))
 		for _, artifact := range grouped[artifactType] {
@@ -515,6 +743,201 @@ func renderClaudeContext(project, cliVersion string, now time.Time, artifacts []
 		}
 	}
 	return b.String()
+}
+
+func contextArtifactHeading(index int, artifact yanzilibrary.Artifact, fieldSet map[string]struct{}) string {
+	if len(fieldSet) == 0 {
+		return fmt.Sprintf("## %s", artifact.Title)
+	}
+	if _, ok := fieldSet["title"]; ok && strings.TrimSpace(artifact.Title) != "" {
+		return fmt.Sprintf("## %s", artifact.Title)
+	}
+	return fmt.Sprintf("## Artifact %d", index+1)
+}
+
+func contextFieldsForRender(query contextExportQuery) []string {
+	if len(query.Fields) > 0 {
+		return query.Fields
+	}
+	return []string{"title", "type", "scope", "project", "metadata", "content", "created_at"}
+}
+
+func renderContextFieldMarkdown(field string, artifact yanzilibrary.Artifact) string {
+	switch field {
+	case "id":
+		return fmt.Sprintf("- ID: %s", artifact.ID)
+	case "title":
+		return fmt.Sprintf("- Title: %s", artifact.Title)
+	case "type":
+		return fmt.Sprintf("- Type: %s", artifact.Type)
+	case "scope":
+		return fmt.Sprintf("- Scope: %s", artifact.Scope)
+	case "project":
+		return fmt.Sprintf("- Project: %s", displayProject(artifact.Project))
+	case "created_at":
+		return fmt.Sprintf("- Created At: %s", artifact.CreatedAt)
+	case "updated_at":
+		return fmt.Sprintf("- Updated At: %s", artifact.CreatedAt)
+	case "metadata":
+		metadata := renderArtifactMetadataMarkdown(artifact.Metadata)
+		if metadata == "" {
+			return ""
+		}
+		return metadata
+	case "content":
+		return renderArtifactContentMarkdown(artifact.Content)
+	default:
+		return ""
+	}
+}
+
+func renderArtifactMetadataMarkdown(raw string) string {
+	decoded, err := decodeStringMeta(raw)
+	if err != nil || len(decoded) == 0 {
+		return ""
+	}
+	lines := []string{"### Metadata"}
+	for _, key := range sortedMetaKeys(decoded) {
+		lines = append(lines, fmt.Sprintf("- %s: %s", key, decoded[key]))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func renderArtifactContentMarkdown(content string) string {
+	var b strings.Builder
+	b.WriteString("### Content\n")
+	b.WriteString("```text\n")
+	b.WriteString(content)
+	if !strings.HasSuffix(content, "\n") {
+		b.WriteString("\n")
+	}
+	b.WriteString("```")
+	return b.String()
+}
+
+type jsonContextExport struct {
+	SchemaVersion int              `json:"schema_version"`
+	Project       string           `json:"project"`
+	ExportedAt    string           `json:"exported_at"`
+	Version       string           `json:"version"`
+	Artifacts     []map[string]any `json:"artifacts"`
+}
+
+func renderContextJSONExport(project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact, query contextExportQuery) ([]byte, error) {
+	payload := jsonContextExport{
+		SchemaVersion: 1,
+		Project:       project,
+		ExportedAt:    now.Format(time.RFC3339),
+		Version:       cliVersion,
+		Artifacts:     make([]map[string]any, 0, len(artifacts)),
+	}
+	fields := contextFieldsForRender(query)
+	for _, artifact := range artifacts {
+		record := make(map[string]any, len(fields))
+		for _, field := range fields {
+			record[field] = contextArtifactFieldValue(field, artifact)
+		}
+		payload.Artifacts = append(payload.Artifacts, record)
+	}
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("encode context json export: %w", err)
+	}
+	return append(data, '\n'), nil
+}
+
+func contextArtifactFieldValue(field string, artifact yanzilibrary.Artifact) any {
+	switch field {
+	case "id":
+		return artifact.ID
+	case "title":
+		return artifact.Title
+	case "type":
+		return artifact.Type
+	case "scope":
+		return artifact.Scope
+	case "project":
+		return artifact.Project
+	case "content":
+		return artifact.Content
+	case "metadata":
+		decoded, err := decodeStringMeta(artifact.Metadata)
+		if err != nil || len(decoded) == 0 {
+			return nil
+		}
+		return decoded
+	case "created_at":
+		return artifact.CreatedAt
+	case "updated_at":
+		return artifact.CreatedAt
+	default:
+		return nil
+	}
+}
+
+func renderContextHTMLExport(project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact, query contextExportQuery) string {
+	var b strings.Builder
+	b.WriteString("<!doctype html>\n<html lang=\"en\">\n<head>\n")
+	b.WriteString("  <meta charset=\"utf-8\">\n")
+	b.WriteString("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n")
+	b.WriteString("  <title>Yanzi Context Export</title>\n")
+	b.WriteString("  <style>body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;margin:0;background:#f6f8fb;color:#172033}main{max-width:960px;margin:0 auto;padding:24px 16px 40px}header,article{background:#fff;border:1px solid #d7dee8;border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,.06)}header{padding:18px;margin-bottom:16px}article{padding:16px;margin-bottom:14px}h1,h2,h3{margin:0 0 10px}pre{background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap}ul{margin:8px 0;padding-left:20px}.muted{color:#526075}</style>\n")
+	b.WriteString("</head>\n<body>\n<main>\n")
+	b.WriteString("  <header>\n")
+	b.WriteString("    <h1>Yanzi Context Export</h1>\n")
+	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Project: %s</div>\n", html.EscapeString(project)))
+	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Exported: %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
+	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Version: %s</div>\n", html.EscapeString(cliVersion)))
+	b.WriteString("  </header>\n")
+	if len(artifacts) == 0 {
+		b.WriteString("  <article><p class=\"muted\">No context artifacts available.</p></article>\n")
+	} else {
+		for i, artifact := range artifacts {
+			b.WriteString("  <article>\n")
+			b.WriteString(fmt.Sprintf("    <h2>%s</h2>\n", html.EscapeString(strings.TrimPrefix(contextArtifactHeading(i, artifact, query.FieldSet), "## "))))
+			for _, field := range contextFieldsForRender(query) {
+				b.WriteString(renderContextFieldHTML(field, artifact))
+			}
+			b.WriteString("  </article>\n")
+		}
+	}
+	b.WriteString("</main>\n</body>\n</html>\n")
+	return b.String()
+}
+
+func renderContextFieldHTML(field string, artifact yanzilibrary.Artifact) string {
+	switch field {
+	case "content":
+		return fmt.Sprintf("    <h3>Content</h3>\n    <pre>%s</pre>\n", html.EscapeString(artifact.Content))
+	case "metadata":
+		decoded, err := decodeStringMeta(artifact.Metadata)
+		if err != nil || len(decoded) == 0 {
+			return ""
+		}
+		var b strings.Builder
+		b.WriteString("    <h3>Metadata</h3>\n    <ul>\n")
+		for _, key := range sortedMetaKeys(decoded) {
+			b.WriteString(fmt.Sprintf("      <li><strong>%s:</strong> %s</li>\n", html.EscapeString(key), html.EscapeString(decoded[key])))
+		}
+		b.WriteString("    </ul>\n")
+		return b.String()
+	case "title":
+		return fmt.Sprintf("    <p><strong>Title:</strong> %s</p>\n", html.EscapeString(artifact.Title))
+	case "id":
+		return fmt.Sprintf("    <p><strong>ID:</strong> %s</p>\n", html.EscapeString(artifact.ID))
+	case "type":
+		return fmt.Sprintf("    <p><strong>Type:</strong> %s</p>\n", html.EscapeString(artifact.Type))
+	case "scope":
+		return fmt.Sprintf("    <p><strong>Scope:</strong> %s</p>\n", html.EscapeString(artifact.Scope))
+	case "project":
+		return fmt.Sprintf("    <p><strong>Project:</strong> %s</p>\n", html.EscapeString(displayProject(artifact.Project)))
+	case "created_at":
+		return fmt.Sprintf("    <p><strong>Created At:</strong> %s</p>\n", html.EscapeString(artifact.CreatedAt))
+	case "updated_at":
+		return fmt.Sprintf("    <p><strong>Updated At:</strong> %s</p>\n", html.EscapeString(artifact.CreatedAt))
+	default:
+		return ""
+	}
 }
 
 func renderMarkdownLog(project, cliVersion string, now time.Time, items []exportItem, captureCount int) string {
