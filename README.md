@@ -73,9 +73,9 @@ yanzi message pull --to claude --channel handoff
 ## Docs
 
 - Website and overview: https://chuxorg.github.io/yanzi/
-- Quickstart: [docs/quickstart.md](docs/quickstart.md)
-- CLI reference: [docs/cli.md](docs/cli.md)
-- Install: [docs/install.md](docs/install.md)
+- Quickstart: https://chuxorg.github.io/yanzi/quickstart/
+- CLI reference: https://chuxorg.github.io/yanzi/cli/
+- Install: https://chuxorg.github.io/yanzi/install/
 
 ## License
 

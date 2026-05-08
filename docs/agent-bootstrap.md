@@ -2,9 +2,9 @@
 
 Purpose: define the current Yanzi command surface and operating rules for AI agents working in a repository that uses Yanzi.
 
-Before use, provide the agent seed prompt from:
+Before use, provide the agent seed prompt from the repository:
 
-- [AI_AGENT_SEED.md](../prompts/AI_AGENT_SEED.md)
+- https://github.com/chuxorg/yanzi/blob/master/prompts/AI_AGENT_SEED.md
 
 For the user-facing walkthrough, see:
 

@@ -14,7 +14,7 @@ import "github.com/chuxorg/yanzi/internal/client"
   - [func \(c \*Client\) ChainIntent\(ctx context.Context, id string\) \(ChainResponse, error\)](<#Client.ChainIntent>)
   - [func \(c \*Client\) CreateIntent\(ctx context.Context, req CreateIntentRequest\) \(IntentRecord, error\)](<#Client.CreateIntent>)
   - [func \(c \*Client\) GetIntent\(ctx context.Context, id string\) \(IntentRecord, error\)](<#Client.GetIntent>)
-  - [func \(c \*Client\) ListIntents\(ctx context.Context, author, source string, limit int, metaFilters map\[string\]string\) \(ListResponse, error\)](<#Client.ListIntents>)
+  - [func \(c \*Client\) ListIntents\(ctx context.Context, author, source string, limit int, metaFilters map\[string\]string, includeDeleted bool\) \(ListResponse, error\)](<#Client.ListIntents>)
   - [func \(c \*Client\) VerifyIntent\(ctx context.Context, id string\) \(VerifyResponse, error\)](<#Client.VerifyIntent>)
 - [type CreateIntentRequest](<#CreateIntentRequest>)
 - [type IntentRecord](<#IntentRecord>)
@@ -49,16 +49,18 @@ type Client struct {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L61>)
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L64>)
 
 ```go
 func New(baseURL string) *Client
 ```
 
-New creates a client using the provided base URL.
+New creates an HTTP client for a Yanzi base URL.
+
+The returned client trims any trailing slash from baseURL and sets a default request timeout. It is used when the CLI runs in HTTP mode.
 
 <a name="Client.ChainIntent"></a>
-### func \(\*Client\) [ChainIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L90>)
+### func \(\*Client\) [ChainIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L93>)
 
 ```go
 func (c *Client) ChainIntent(ctx context.Context, id string) (ChainResponse, error)
@@ -67,7 +69,7 @@ func (c *Client) ChainIntent(ctx context.Context, id string) (ChainResponse, err
 ChainIntent calls GET /v0/intents/\{id\}/chain.
 
 <a name="Client.CreateIntent"></a>
-### func \(\*Client\) [CreateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L71>)
+### func \(\*Client\) [CreateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L74>)
 
 ```go
 func (c *Client) CreateIntent(ctx context.Context, req CreateIntentRequest) (IntentRecord, error)
@@ -76,7 +78,7 @@ func (c *Client) CreateIntent(ctx context.Context, req CreateIntentRequest) (Int
 CreateIntent posts a new intent record.
 
 <a name="Client.GetIntent"></a>
-### func \(\*Client\) [GetIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L126>)
+### func \(\*Client\) [GetIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L132>)
 
 ```go
 func (c *Client) GetIntent(ctx context.Context, id string) (IntentRecord, error)
@@ -85,16 +87,16 @@ func (c *Client) GetIntent(ctx context.Context, id string) (IntentRecord, error)
 GetIntent calls GET /v0/intents/\{id\}.
 
 <a name="Client.ListIntents"></a>
-### func \(\*Client\) [ListIntents](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L100>)
+### func \(\*Client\) [ListIntents](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L103>)
 
 ```go
-func (c *Client) ListIntents(ctx context.Context, author, source string, limit int, metaFilters map[string]string) (ListResponse, error)
+func (c *Client) ListIntents(ctx context.Context, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) (ListResponse, error)
 ```
 
 ListIntents calls GET /v0/intents.
 
 <a name="Client.VerifyIntent"></a>
-### func \(\*Client\) [VerifyIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L80>)
+### func \(\*Client\) [VerifyIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/client/client.go#L83>)
 
 ```go
 func (c *Client) VerifyIntent(ctx context.Context, id string) (VerifyResponse, error)
@@ -163,26 +165,62 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 
 ## Index
 
+- [func RunBootstrap\(args \[\]string\) error](<#RunBootstrap>)
 - [func RunCapture\(args \[\]string\) error](<#RunCapture>)
 - [func RunChain\(args \[\]string\) error](<#RunChain>)
 - [func RunCheckpoint\(args \[\]string\) error](<#RunCheckpoint>)
+- [func RunContext\(args \[\]string\) error](<#RunContext>)
+- [func RunDelete\(args \[\]string\) error](<#RunDelete>)
 - [func RunExport\(args \[\]string, cliVersion string\) error](<#RunExport>)
+- [func RunInit\(args \[\]string\) error](<#RunInit>)
+- [func RunIntent\(args \[\]string\) error](<#RunIntent>)
 - [func RunList\(args \[\]string\) error](<#RunList>)
+- [func RunMessage\(args \[\]string\) error](<#RunMessage>)
 - [func RunMode\(args \[\]string\) error](<#RunMode>)
+- [func RunPack\(args \[\]string\) error](<#RunPack>)
 - [func RunProject\(args \[\]string\) error](<#RunProject>)
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
+- [func RunRestore\(args \[\]string\) error](<#RunRestore>)
+- [func RunRules\(args \[\]string, cliVersion string\) error](<#RunRules>)
 - [func RunShow\(args \[\]string\) error](<#RunShow>)
+- [func RunTypes\(args \[\]string\) error](<#RunTypes>)
 - [func RunVerify\(args \[\]string\) error](<#RunVerify>)
 
 
+<a name="RunBootstrap"></a>
+## func [RunBootstrap](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/bootstrap.go#L30>)
+
+```go
+func RunBootstrap(args []string) error
+```
+
+
+
 <a name="RunCapture"></a>
-## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L21>)
+## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L38>)
 
 ```go
 func RunCapture(args []string) error
 ```
 
-RunCapture posts a new intent record to the library API.
+RunCapture stores one prompt/response pair as an intent record.
+
+Problem: Captured AI work is easy to lose when prompts and responses only exist in transient chat sessions.
+
+Solution: RunCapture accepts CLI arguments that describe one prompt/response pair and writes the record in local mode or posts it in HTTP mode.
+
+Arguments:
+
+```
+args contains the capture flags, including author, prompt, response, and
+optional metadata.
+```
+
+Example:
+
+```
+yanzi capture --author "Ada" --prompt "What changed?" --response "Updated docs."
+```
 
 <a name="RunChain"></a>
 ## func [RunChain](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/chain.go#L15>)
@@ -194,22 +232,108 @@ func RunChain(args []string) error
 RunChain prints the intent chain from oldest to newest.
 
 <a name="RunCheckpoint"></a>
-## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L15>)
+## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L31>)
 
 ```go
 func RunCheckpoint(args []string) error
 ```
 
-RunCheckpoint handles checkpoint subcommands.
+RunCheckpoint manages checkpoint creation and listing for the active project.
+
+Problem: Reloading a project from the beginning is unnecessary when a stable boundary already exists.
+
+Solution: RunCheckpoint provides \`create\` and \`list\` subcommands for append\-only project checkpoint records.
+
+Arguments:
+
+```
+args starts with `create` or `list` followed by that subcommand's flags.
+```
+
+Example:
+
+```
+yanzi checkpoint create --summary "Initial project state"
+```
+
+<a name="RunContext"></a>
+## func [RunContext](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/artifact.go#L17>)
+
+```go
+func RunContext(args []string) error
+```
+
+
+
+<a name="RunDelete"></a>
+## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L15>)
+
+```go
+func RunDelete(args []string) error
+```
+
+RunDelete tombstones an intent or artifact by id.
 
 <a name="RunExport"></a>
-## func [RunExport](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/export.go#L48>)
+## func [RunExport](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/export.go#L81>)
 
 ```go
 func RunExport(args []string, cliVersion string) error
 ```
 
-RunExport writes deterministic project history logs.
+RunExport writes deterministic project exports for history or filtered context.
+
+Problem: Callers sometimes need a full timeline export and sometimes need a filtered retrieval of stored context only.
+
+Solution: RunExport supports log formats and context retrieval formats, with explicit filters for type, metadata, field selection, ordering, and limits.
+
+Arguments:
+
+```
+args contains export flags such as format, filters, and output behavior;
+cliVersion is written into the rendered export headers.
+```
+
+Example:
+
+```
+yanzi export --type process_rule --meta role=engineer --fields title,content
+```
+
+<a name="RunInit"></a>
+## func [RunInit](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/init.go#L34>)
+
+```go
+func RunInit(args []string) error
+```
+
+RunInit creates or reuses a project and binds it to the current directory.
+
+Problem: Local project setup is error\-prone when project creation, activation, and directory binding are done as separate steps.
+
+Solution: RunInit ensures a project exists, writes .yanzi/project in the current directory, and makes that project active.
+
+Arguments:
+
+```
+args may contain one optional project name; otherwise the current directory
+name is used.
+```
+
+Example:
+
+```
+yanzi init demo
+```
+
+<a name="RunIntent"></a>
+## func [RunIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/artifact.go#L13>)
+
+```go
+func RunIntent(args []string) error
+```
+
+
 
 <a name="RunList"></a>
 ## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L15>)
@@ -220,6 +344,32 @@ func RunList(args []string) error
 
 RunList lists intent records.
 
+<a name="RunMessage"></a>
+## func [RunMessage](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/message.go#L37>)
+
+```go
+func RunMessage(args []string) error
+```
+
+RunMessage stores and retrieves handoff notes through message subcommands.
+
+Problem: Independent agents or operators may need a shared note channel without relying on a separate messaging system.
+
+Solution: RunMessage exposes \`send\`, \`list\`, and \`pull\`, backed by existing capture storage with message metadata.
+
+Arguments:
+
+```
+args starts with `send`, `list`, or `pull` and then that subcommand's
+flags.
+```
+
+Example:
+
+```
+yanzi message send --to codex --from operator --channel execution --content "Continue."
+```
+
 <a name="RunMode"></a>
 ## func [RunMode](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/mode.go#L12>)
 
@@ -229,23 +379,94 @@ func RunMode(args []string) error
 
 RunMode shows or sets the runtime mode.
 
+<a name="RunPack"></a>
+## func [RunPack](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/pack.go#L47>)
+
+```go
+func RunPack(args []string) error
+```
+
+RunPack applies or exports portable context packs.
+
+Problem: Reusing the same stored context across projects is tedious when each item must be added manually.
+
+Solution: RunPack exposes \`apply\` for idempotent pack loading and \`export\` for producing a pack definition plus sidecar files from visible context.
+
+Arguments:
+
+```
+args starts with `apply` or `export` followed by the corresponding flags.
+```
+
+Example:
+
+```
+yanzi pack apply vibe-coder.yaml
+```
+
 <a name="RunProject"></a>
-## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L20>)
+## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L28>)
 
 ```go
 func RunProject(args []string) error
 ```
 
-RunProject handles project subcommands.
+RunProject manages project creation, selection, and inspection.
+
+Arguments:
+
+```
+args starts with `create`, `use`, `current`, or `list`.
+```
+
+Example:
+
+```
+yanzi project use demo
+```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L15>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L32>)
 
 ```go
 func RunRehydrate(args []string) error
 ```
 
-RunRehydrate renders the latest checkpoint and artifacts since.
+RunRehydrate prints the latest checkpoint and the intent records after it.
+
+Problem: Agents need current project state without reconstructing it manually from all earlier records.
+
+Solution: RunRehydrate loads the active project, resolves the latest checkpoint, and renders either a dry\-run summary or the ordered records since that boundary.
+
+Arguments:
+
+```
+args supports `--dry-run` and no positional arguments.
+```
+
+Example:
+
+```
+yanzi rehydrate --dry-run
+```
+
+<a name="RunRestore"></a>
+## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L67>)
+
+```go
+func RunRestore(args []string) error
+```
+
+RunRestore removes tombstone metadata from an intent or artifact by id.
+
+<a name="RunRules"></a>
+## func [RunRules](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rules.go#L19>)
+
+```go
+func RunRules(args []string, cliVersion string) error
+```
+
+
 
 <a name="RunShow"></a>
 ## func [RunShow](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/show.go#L15>)
@@ -255,6 +476,15 @@ func RunShow(args []string) error
 ```
 
 RunShow prints full intent details by id.
+
+<a name="RunTypes"></a>
+## func [RunTypes](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/types.go#L10>)
+
+```go
+func RunTypes(args []string) error
+```
+
+
 
 <a name="RunVerify"></a>
 ## func [RunVerify](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/verify.go#L15>)
@@ -282,7 +512,7 @@ import "github.com/chuxorg/yanzi/internal/config"
 
 
 <a name="ConfigPath"></a>
-## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L97>)
+## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L105>)
 
 ```go
 func ConfigPath() (string, error)
@@ -291,7 +521,7 @@ func ConfigPath() (string, error)
 ConfigPath returns the full path to \~/.yanzi/config.yaml.
 
 <a name="DefaultDBPath"></a>
-## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L115>)
+## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L123>)
 
 ```go
 func DefaultDBPath() (string, error)
@@ -300,7 +530,7 @@ func DefaultDBPath() (string, error)
 DefaultDBPath returns the default SQLite path under \~/.yanzi.
 
 <a name="StateDir"></a>
-## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L106>)
+## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L114>)
 
 ```go
 func StateDir() (string, error)
@@ -322,13 +552,17 @@ type Config struct {
 ```
 
 <a name="Load"></a>
-### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L31>)
+### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L39>)
 
 ```go
 func Load() (Config, error)
 ```
 
-Load reads \~/.yanzi/config.yaml and returns defaults if missing.
+Load reads \~/.yanzi/config.yaml and returns the effective CLI configuration.
+
+Problem: The CLI needs one deterministic source of truth for local and optional HTTP runtime settings.
+
+Solution: Load reads the config file, applies defaults, trims values, and validates mode\-specific requirements before returning.
 
 <a name="Mode"></a>
 ## type [Mode](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L16>)
@@ -356,12 +590,19 @@ import "github.com/chuxorg/yanzi/internal/library"
 
 ## Index
 
+- [Constants](<#constants>)
 - [Variables](<#variables>)
 - [func HashCheckpoint\(checkpoint Checkpoint\) \(string, error\)](<#HashCheckpoint>)
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
+- [type Artifact](<#Artifact>)
+  - [func CreateArtifact\(projectID, class, artifactType, title, content, metadata string\) \(Artifact, error\)](<#CreateArtifact>)
+  - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
+  - [func GetVisibleContextArtifact\(idPrefix, activeProject string\) \(Artifact, error\)](<#GetVisibleContextArtifact>)
+  - [func ListArtifacts\(projectID, class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifacts>)
+  - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
@@ -382,6 +623,19 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
 
+
+## Constants
+
+<a name="ArtifactClassIntent"></a>
+
+```go
+const (
+    ArtifactClassIntent  = "intent"
+    ArtifactClassContext = "context"
+    ContextScopeGlobal   = "global"
+    ContextScopeProject  = "project"
+)
+```
 
 ## Variables
 
@@ -435,6 +689,70 @@ func ResolvedDBPath() string
 ```
 
 ResolvedDBPath returns the most recently resolved database path.
+
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact.go#L40-L50>)
+
+Artifact represents an artifact stored in the intents ledger table.
+
+```go
+type Artifact struct {
+    ID        string
+    Class     string
+    Type      string
+    Scope     string
+    Project   string
+    Title     string
+    Content   string
+    Metadata  string
+    CreatedAt string
+}
+```
+
+<a name="CreateArtifact"></a>
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L12>)
+
+```go
+func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
+```
+
+CreateArtifact stores a new artifact for a project.
+
+<a name="CreateContextArtifact"></a>
+### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L33>)
+
+```go
+func CreateContextArtifact(projectID, artifactType, scope, title, content, metadata string) (Artifact, error)
+```
+
+CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
+
+<a name="GetVisibleContextArtifact"></a>
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L309>)
+
+```go
+func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
+```
+
+GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
+
+<a name="ListArtifacts"></a>
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L115>)
+
+```go
+func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListArtifacts lists artifacts for a project and class, optionally filtered by type.
+
+<a name="ListVisibleContextArtifacts"></a>
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L238>)
+
+```go
+func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListVisibleContextArtifacts returns global context plus project context visible to the caller.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)

@@ -59,10 +59,14 @@ func main() {
 		err = cmd.RunMode(os.Args[2:])
 	case "project":
 		err = cmd.RunProject(os.Args[2:])
+	case "init":
+		err = cmd.RunInit(os.Args[2:])
 	case "intent":
 		err = cmd.RunIntent(os.Args[2:])
 	case "context":
 		err = cmd.RunContext(os.Args[2:])
+	case "pack":
+		err = cmd.RunPack(os.Args[2:])
 	case "bootstrap":
 		err = cmd.RunBootstrap(os.Args[2:])
 	case "rules":
@@ -108,8 +112,10 @@ commands:
   restore  Remove tombstone metadata by id.
   mode     Show or set runtime mode (local | http).
   project  Manage project context.
+  init  Create or bind a project to the current directory.
   intent  Manage intent artifacts.
   context  Manage context artifacts.
+  pack  Apply or export portable context packs.
   bootstrap  Load ordered context documents from .yanzi/bootstrap.yaml.
   rules  Manage rule metadata wrappers.
   types  List canonical artifact types and aliases.
@@ -171,6 +177,9 @@ project args:
   current               Show the active project.
   list                  List projects.
 
+init args:
+  [name]                Create or reuse a project and bind ./.yanzi/project.
+
 intent args:
   add --title "..."     Add an intent artifact.
   list                  List intent artifacts.
@@ -180,6 +189,11 @@ context args:
                         Add a context artifact.
   list                  List visible context artifacts.
   show <id>             Show a context artifact by id.
+
+pack args:
+  apply <file>          Apply a YAML context pack.
+  export --output <file>
+                        Export visible context into a pack YAML and sidecar files.
 
 bootstrap args:
   --dry-run             Validate .yanzi/bootstrap.yaml without loading documents.
@@ -212,8 +226,13 @@ export args:
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
   --format claude-context Generates CLAUDE_CONTEXT.md in project root.
+                        Default format when omitted.
+  --type a,b            Optional context type filter list.
   --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
+  --fields a,b          Optional context field list.
+  --order <field>       Deterministic order field: created_at|updated_at.
+  --limit <n>           Optional result limit after filtering.
   --include-deleted     Include tombstoned records.
 
 notes:
@@ -263,6 +282,7 @@ examples:
   yanzi export --format json
   yanzi export --format html
   yanzi export --format claude-context
+  yanzi export --meta pack=vibe-coder --limit 3
   yanzi version`)
 }
 
