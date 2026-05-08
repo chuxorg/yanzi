@@ -101,13 +101,17 @@ yanzi rehydrate
 
 ## export
 
-Write project history to a file in the current working directory.
+Write project history or filtered context to a file in the current working directory.
 
 Flags:
 
-- `--format <markdown|json|html|claude-context>` required
+- `--format <markdown|json|html|claude-context>` optional
+- `--type <type[,type...]>` optional context type filter
 - `--profile <name>` optional
 - `--meta key=value` optional and repeatable
+- `--fields <field[,field...]>` optional context field selection
+- `--order <created_at|updated_at>` optional deterministic order
+- `--limit <n>` optional result limit after filtering
 - `--include-deleted` optional
 - `--open` only valid with `--format html`
 
@@ -125,6 +129,64 @@ yanzi export --format markdown
 yanzi export --format json
 yanzi export --format html --open
 yanzi export --format claude-context
+```
+
+## Retrieving Context
+
+Yanzi supports filtering and retrieving stored context using:
+
+- `--type`
+- `--meta`
+- `--fields`
+- `--order`
+- `--limit`
+
+Get engineering rules:
+
+```bash
+yanzi export --type process_rule --meta role=engineer
+```
+
+Limit output:
+
+```bash
+yanzi export --limit 5
+```
+
+Select fields:
+
+```bash
+yanzi export --fields title,content
+```
+
+Combined:
+
+```bash
+yanzi export \
+  --type process_rule \
+  --meta role=engineer \
+  --fields title,content \
+  --limit 5
+```
+
+Yanzi does not interpret or rank results. It only filters and returns stored data.
+
+## `yanzi export --help`
+
+```text
+export args:
+  --format <markdown|json|html|claude-context>
+                        Export format. Defaults to claude-context when omitted.
+  --type <type[,type...]>
+                        Optional context type filter list.
+  --profile <name>      Optional profile filter.
+  --meta key=value      Optional metadata filter (repeatable; exact match; AND).
+  --fields <field[,field...]>
+                        Optional context field list.
+  --order <field>       Deterministic order field: created_at|updated_at.
+  --limit <n>           Optional result limit after filtering.
+  --include-deleted     Include tombstoned records.
+  --open                Open generated html export in the default browser.
 ```
 
 ## message

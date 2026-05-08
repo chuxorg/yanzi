@@ -22,6 +22,13 @@ Yanzi gives you a local workflow for:
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
 
+## Use Cases
+
+- [Use Cases Overview](use-cases/index.md)
+- [Agent-Agnostic Communication](use-cases/agent-communication.md)
+- [Seeding Context](use-cases/seeding.md)
+- [Targeted Retrieval](use-cases/retrieval.md)
+
 Full technical docs are also published on GitHub Pages:
 
 - https://chuxorg.github.io/yanzi/

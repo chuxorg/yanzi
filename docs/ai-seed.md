@@ -1,7 +1,7 @@
 # AI Seed
 
-The current seed prompt for AI agents lives in:
+The current seed prompt for AI agents lives in the repository:
 
-- [prompts/AI_AGENT_SEED.md](../prompts/AI_AGENT_SEED.md)
+- https://github.com/chuxorg/yanzi/blob/master/prompts/AI_AGENT_SEED.md
 
 Use it when you want an agent to follow the repository's Yanzi workflow from the start of a session.
