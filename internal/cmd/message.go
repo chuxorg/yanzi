@@ -16,6 +16,24 @@ import (
 
 const messageResponse = "Message note"
 
+// RunMessage stores and retrieves handoff notes through message subcommands.
+//
+// Problem:
+// Independent agents or operators may need a shared note channel without
+// relying on a separate messaging system.
+//
+// Solution:
+// RunMessage exposes `send`, `list`, and `pull`, backed by existing capture
+// storage with message metadata.
+//
+// Arguments:
+//
+//	args starts with `send`, `list`, or `pull` and then that subcommand's
+//	flags.
+//
+// Example:
+//
+//	yanzi message send --to codex --from operator --channel execution --content "Continue."
 func RunMessage(args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: yanzi message <send|list|pull> [args]")

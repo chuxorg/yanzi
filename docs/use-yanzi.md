@@ -19,8 +19,7 @@ brew install chuxorg/yanzi/yanzi
 Basic workflow:
 
 ```bash
-yanzi project create demo
-yanzi project use demo
+yanzi init demo
 yanzi capture --author "Ada" --prompt "What changed?" --response "Updated the API client."
 yanzi checkpoint create --summary "API client update complete"
 yanzi rehydrate --dry-run
@@ -46,3 +45,10 @@ yanzi message pull --to claude --channel handoff
 ```
 
 That keeps the project context and handoff notes in one place while the code work continues outside Yanzi.
+
+## Use Cases
+
+- [Use Cases Overview](use-cases/index.md)
+- [Agent-Agnostic Communication](use-cases/agent-communication.md)
+- [Seeding Context](use-cases/seeding.md)
+- [Targeted Retrieval](use-cases/retrieval.md)

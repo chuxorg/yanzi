@@ -11,7 +11,23 @@ import (
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
-// RunCheckpoint handles checkpoint subcommands.
+// RunCheckpoint manages checkpoint creation and listing for the active project.
+//
+// Problem:
+// Reloading a project from the beginning is unnecessary when a stable boundary
+// already exists.
+//
+// Solution:
+// RunCheckpoint provides `create` and `list` subcommands for append-only
+// project checkpoint records.
+//
+// Arguments:
+//
+//	args starts with `create` or `list` followed by that subcommand's flags.
+//
+// Example:
+//
+//	yanzi checkpoint create --summary "Initial project state"
 func RunCheckpoint(args []string) error {
 	if len(args) == 0 {
 		return checkpointUsageError()

@@ -16,12 +16,20 @@ type projectState struct {
 }
 
 func loadActiveProject() (string, error) {
+	project, err := loadBoundProject()
+	if err == nil && project != "" {
+		return project, nil
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+
 	path, err := statePath()
 	if err != nil {
 		return "", err
 	}
 
-	project, err := readActiveProject(path)
+	project, err = readActiveProject(path)
 	if err == nil {
 		return project, nil
 	}
@@ -39,6 +47,39 @@ func loadActiveProject() (string, error) {
 		return "", nil
 	}
 	return project, err
+}
+
+func loadBoundProject() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("resolve working dir: %w", err)
+	}
+	return readBoundProject(filepath.Join(wd, ".yanzi", "project"))
+}
+
+func readBoundProject(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", os.ErrNotExist
+		}
+		return "", fmt.Errorf("read project binding: %w", err)
+	}
+	return strings.TrimSpace(string(data)), nil
+}
+
+func writeProjectBinding(name string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("resolve working dir: %w", err)
+	}
+
+	dir := filepath.Join(wd, ".yanzi")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("create binding dir: %w", err)
+	}
+	path := filepath.Join(dir, "project")
+	return os.WriteFile(path, []byte(strings.TrimSpace(name)+"\n"), 0o644)
 }
 
 func readActiveProject(path string) (string, error) {

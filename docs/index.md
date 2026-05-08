@@ -16,11 +16,20 @@ Yanzi gives you a local workflow for:
 
 ## Start Here
 
+- [Problem](problem.md)
 - [Install](install.md)
 - [How It Works](how-it-works.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
+- [API](api/index.md)
+
+## Use Cases
+
+- [Use Cases Overview](use-cases/index.md)
+- [Agent-Agnostic Communication](use-cases/agent-communication.md)
+- [Seeding Context](use-cases/seeding.md)
+- [Targeted Retrieval](use-cases/retrieval.md)
 
 Full technical docs are also published on GitHub Pages:
 

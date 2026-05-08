@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.8.0]
+
+- Added Packs (portable context bundles)
+- Added automatic project binding per directory
+- Added retrieval filtering (`--type`, `--meta`, `--fields`, `--order`, `--limit`)
+- Improved export behavior (agent-ready by default)
+- Introduced Use Cases documentation
+- Adopted Material for MkDocs with dark mode
+- Completed documentation overhaul
+
 ## [2.7.0]
 
 - Added Debian (.deb) distribution

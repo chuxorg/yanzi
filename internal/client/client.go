@@ -57,7 +57,10 @@ type CreateIntentRequest struct {
 	PrevHash   string          `json:"prev_hash,omitempty"`
 }
 
-// New creates a client using the provided base URL.
+// New creates an HTTP client for a Yanzi base URL.
+//
+// The returned client trims any trailing slash from baseURL and sets a default
+// request timeout. It is used when the CLI runs in HTTP mode.
 func New(baseURL string) *Client {
 	return &Client{
 		BaseURL: strings.TrimRight(baseURL, "/"),

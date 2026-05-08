@@ -2,4 +2,4 @@
 
 Release notes are tracked in the repository changelog:
 
-- [CHANGELOG.md](../CHANGELOG.md)
+- https://github.com/chuxorg/yanzi/blob/master/CHANGELOG.md
