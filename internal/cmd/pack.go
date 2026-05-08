@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 
 type packDefinition struct {
 	Name    string      `yaml:"name"`
+	Seed    string      `yaml:"seed"`
 	Version string      `yaml:"version"`
 	Context []packEntry `yaml:"context"`
 }
@@ -84,6 +86,11 @@ func runPackApply(args []string) error {
 		}
 		if scope := strings.TrimSpace(entry.Scope); scope != "" {
 			contextArgs = append(contextArgs, "--scope", scope)
+		}
+		if metadata, err := packMetadataJSON(definition); err != nil {
+			return err
+		} else if metadata != "" {
+			contextArgs = append(contextArgs, "--metadata", metadata)
 		}
 		if err := runSilenced(func() error { return runContextAdd(contextArgs) }); err != nil {
 			return fmt.Errorf("apply %s: %w", entry.Title, err)
@@ -223,4 +230,22 @@ func packEntryExists(existing []yanzilibrary.Artifact, entry packEntry) bool {
 
 func packExportFilename(index int, artifact yanzilibrary.Artifact) string {
 	return fmt.Sprintf("%02d-%s-%s.md", index+1, artifact.Type, slugify(artifact.Title))
+}
+
+func packMetadataJSON(definition packDefinition) (string, error) {
+	payload := map[string]string{}
+	if name := strings.TrimSpace(definition.Name); name != "" {
+		payload["pack"] = name
+	}
+	if seed := strings.TrimSpace(definition.Seed); seed != "" {
+		payload["seed"] = seed
+	}
+	if len(payload) == 0 {
+		return "", nil
+	}
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("encode pack metadata: %w", err)
+	}
+	return string(data), nil
 }

@@ -226,8 +226,13 @@ export args:
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
   --format claude-context Generates CLAUDE_CONTEXT.md in project root.
+                        Default format when omitted.
+  --type a,b            Optional context type filter list.
   --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
+  --fields a,b          Optional context field list.
+  --order <field>       Deterministic order field: created_at|updated_at.
+  --limit <n>           Optional result limit after filtering.
   --include-deleted     Include tombstoned records.
 
 notes:
@@ -277,6 +282,7 @@ examples:
   yanzi export --format json
   yanzi export --format html
   yanzi export --format claude-context
+  yanzi export --meta pack=vibe-coder --limit 3
   yanzi version`)
 }
 

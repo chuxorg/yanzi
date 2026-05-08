@@ -81,6 +81,9 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "--format claude-context") {
 		t.Fatalf("expected claude-context help text, got: %s", output)
 	}
+	if !strings.Contains(output, "--fields a,b") || !strings.Contains(output, "--order <field>") || !strings.Contains(output, "--limit <n>") {
+		t.Fatalf("expected retrieval export help text, got: %s", output)
+	}
 }
 
 func captureStderr(t *testing.T, fn func()) string {
