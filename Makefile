@@ -1,4 +1,4 @@
-.PHONY: build run test docs docs-check docs-install docs-generate-api docs-serve docs-build
+.PHONY: build run test docs docs-check docs-install docs-generate-api docs-serve docs-build docs-local
 
 DOCGEN=go run github.com/princjef/gomarkdoc/cmd/gomarkdoc@v1.1.0
 PIP?=pip3
@@ -29,6 +29,9 @@ docs-generate-api:
 	./scripts/generate_api_docs.sh
 
 docs-serve: docs-generate-api
+	$(MKDOCS) serve
+
+docs-local: docs-install docs-generate-api
 	$(MKDOCS) serve
 
 docs-build: docs-generate-api

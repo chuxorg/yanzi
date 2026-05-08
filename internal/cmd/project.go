@@ -16,7 +16,15 @@ import (
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
-// RunProject handles project subcommands.
+// RunProject manages project creation, selection, and inspection.
+//
+// Arguments:
+//
+//	args starts with `create`, `use`, `current`, or `list`.
+//
+// Example:
+//
+//	yanzi project use demo
 func RunProject(args []string) error {
 	if len(args) == 0 {
 		return projectUsageError()

@@ -60,7 +60,24 @@ type contextExportQuery struct {
 	Limit       int
 }
 
-// RunExport writes deterministic project history logs.
+// RunExport writes deterministic project exports for history or filtered context.
+//
+// Problem:
+// Callers sometimes need a full timeline export and sometimes need a filtered
+// retrieval of stored context only.
+//
+// Solution:
+// RunExport supports log formats and context retrieval formats, with explicit
+// filters for type, metadata, field selection, ordering, and limits.
+//
+// Arguments:
+//
+//	args contains export flags such as format, filters, and output behavior;
+//	cliVersion is written into the rendered export headers.
+//
+// Example:
+//
+//	yanzi export --type process_rule --meta role=engineer --fields title,content
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)

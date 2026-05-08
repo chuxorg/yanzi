@@ -12,7 +12,23 @@ import (
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
-// RunRehydrate renders the latest checkpoint and artifacts since.
+// RunRehydrate prints the latest checkpoint and the intent records after it.
+//
+// Problem:
+// Agents need current project state without reconstructing it manually from all
+// earlier records.
+//
+// Solution:
+// RunRehydrate loads the active project, resolves the latest checkpoint, and
+// renders either a dry-run summary or the ordered records since that boundary.
+//
+// Arguments:
+//
+//	args supports `--dry-run` and no positional arguments.
+//
+// Example:
+//
+//	yanzi rehydrate --dry-run
 func RunRehydrate(args []string) error {
 	fs := flag.NewFlagSet("rehydrate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
