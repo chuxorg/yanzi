@@ -6,12 +6,18 @@ docs_dir: docs
 
 theme:
   name: material
+  logo: assets/brand/favicon.svg
+  favicon: assets/brand/favicon.png
   palette:
     - scheme: default
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
@@ -19,6 +25,9 @@ theme:
     - navigation.tabs
     - navigation.sections
     - content.code.copy
+
+extra_css:
+  - stylesheets/brand.css
 
 plugins:
   - search

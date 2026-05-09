@@ -1,0 +1,70 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+:root {
+  --bg: #0a0a0b;
+  --bg-2: #111114;
+  --bg-card: #141418;
+  --border: rgba(255, 255, 255, 0.08);
+  --gold: #f5c542;
+  --white: #fff8e8;
+  --muted: #8a8580;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(245, 197, 66, 0.08), transparent 24rem),
+    radial-gradient(circle at top left, rgba(140, 80, 255, 0.06), transparent 20rem),
+    var(--bg);
+  color: var(--white);
+}
+
+.wrapper,
+section,
+header,
+footer {
+  background: transparent;
+}
+
+header,
+section,
+footer {
+  color: var(--white);
+}
+
+a,
+a:hover,
+a:focus {
+  color: var(--gold);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+strong {
+  color: var(--white);
+}
+
+code,
+pre {
+  background: var(--bg-card);
+  color: var(--white);
+  border: 1px solid var(--border);
+}
+
+header img {
+  max-width: 180px;
+  height: auto;
+}
+
+header p,
+footer p,
+section p,
+section li {
+  color: var(--muted);
+}
