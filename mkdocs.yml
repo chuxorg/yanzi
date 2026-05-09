@@ -34,12 +34,15 @@ plugins:
 
 nav:
   - Home: index.md
+  - Getting Started: getting-started.md
   - Problem: problem.md
   - How It Works: how-it-works.md
   - Use Yanzi: use-yanzi.md
+  - UI: ui.md
   - CLI: cli.md
   - Install: install.md
   - Quickstart: quickstart.md
+  - AI Seed: ai-seed.md
   - Use Cases:
       - Overview: use-cases/index.md
       - Agent Communication: use-cases/agent-communication.md

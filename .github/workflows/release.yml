@@ -27,8 +27,8 @@ jobs:
           else
             VERSION="v$(cat VERSION)"
           fi
-          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION must produce a release tag formatted vX.X.X."
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-qa(\.[0-9]+)?)?$ ]]; then
+            echo "VERSION must produce a release tag formatted vX.Y.Z or vX.Y.Z-qa(.N)."
             echo "Resolved: ${VERSION}"
             exit 1
           fi

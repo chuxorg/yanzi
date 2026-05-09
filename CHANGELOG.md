@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.9.0] - 2026-05-09
+
+### Added
+
+- Interactive HTML UI for export
+  - Collapsible artifacts
+  - Prompt previews
+  - Search
+  - Copy actions
+  - Sticky header
+  - Checkpoint visualization
+
+### Improved
+
+- Timeline readability
+- Export usability
+
+### Notes
+
+- No breaking changes
+- No new dependencies
+- Fully offline-compatible
+
 ## [2.8.0]
 
 - Added Packs (portable context bundles)
