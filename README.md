@@ -36,7 +36,7 @@ Windows:
 2. Extract `yanzi.exe`.
 3. Add the extract directory to `PATH`.
 
-Technical docs: https://chuxorg.github.io/yanzi/
+Technical docs: [https://chuxorg.github.io/yanzi/](https://chuxorg.github.io/yanzi/)
 
 ## Quickstart
 
@@ -72,10 +72,10 @@ yanzi message pull --to claude --channel handoff
 
 ## Docs
 
-- Website and overview: https://chuxorg.github.io/yanzi/
-- Quickstart: https://chuxorg.github.io/yanzi/quickstart/
-- CLI reference: https://chuxorg.github.io/yanzi/cli/
-- Install: https://chuxorg.github.io/yanzi/install/
+- Website and overview: [https://chuxorg.github.io/yanzi/](https://chuxorg.github.io/yanzi/)
+- Quickstart: [https://chuxorg.github.io/yanzi/quickstart/](https://chuxorg.github.io/yanzi/quickstart/)
+- CLI reference: [https://chuxorg.github.io/yanzi/cli/](https://chuxorg.github.io/yanzi/cli/)
+- Install: [https://chuxorg.github.io/yanzi/install/](https://chuxorg.github.io/yanzi/install/)
 
 ## License
 
