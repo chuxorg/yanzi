@@ -5,6 +5,20 @@
 
 Yanzi is a CLI for recording intent, storing context, creating checkpoints, and rehydrating AI-assisted work.
 
+## Quick Start
+
+```bash
+yanzi project create my-project
+yanzi project use my-project
+yanzi capture --author "Ada" --prompt "hello" --response "world"
+yanzi export --format html
+open YANZI_LOG.html
+```
+
+This opens an interactive HTML UI.
+No separate UI install is required after Yanzi is installed.
+The exported file works offline.
+
 ## What It Does
 
 Yanzi stores project history locally in SQLite. The main workflow is:
@@ -15,6 +29,11 @@ Yanzi stores project history locally in SQLite. The main workflow is:
 - rehydrate the active project from the latest checkpoint
 
 It does not orchestrate agents or modify your code for you.
+
+## UI Overview
+
+`yanzi export --format html` writes an interactive HTML file.
+Artifacts are collapsible, search is built in, and checkpoints are separated in the timeline.
 
 ## Install
 
