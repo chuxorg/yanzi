@@ -1,44 +1,87 @@
 # Install
 
-Yanzi is local-first. It stores data on the machine where it runs.
+## Problem
 
-No background service is required for local mode.
+Yanzi must run locally across different environments with minimal setup.
 
 Release artifacts are published at:
 
 - https://github.com/chuxorg/yanzi/releases
 
-## macOS
+## macOS (Homebrew - Recommended)
+
+Install using Homebrew:
 
 ```bash
 brew install chuxorg/yanzi/yanzi
 ```
 
-## Linux
+## Linux (Debian / Ubuntu)
 
-Download the `.deb` release artifact, then install it:
+Download the `.deb` package from the latest release.
+
+Install:
 
 ```bash
-sudo dpkg -i yanzi_*.deb
+sudo dpkg -i yanzi_<version>_amd64.deb
 ```
-
-The Debian package installs the binary to `/usr/local/bin/yanzi`.
 
 ## Windows
 
-1. Download `yanzi-windows-amd64.zip` from the latest release.
-2. Extract `yanzi.exe`.
-3. Add the extract directory to `PATH`.
-4. Open a new terminal.
+Download `yanzi-windows-amd64.zip` from the latest release.
 
-## Verify
+Steps:
 
-Confirm that the CLI is installed and reachable:
+1. Extract the archive.
+2. Open a terminal in the extracted directory.
+3. Run `yanzi.exe --version`.
+
+## Direct Binary
+
+Download the appropriate release artifact from the latest release:
+
+- `yanzi-darwin-arm64`
+- `yanzi-darwin-amd64`
+- `yanzi-linux-amd64`
+- `yanzi-windows-amd64.zip` containing `yanzi.exe`
+
+For macOS and Linux:
+
+```bash
+chmod +x yanzi
+./yanzi --version
+```
+
+For Windows, extract the zip and run:
+
+```powershell
+.\yanzi.exe --version
+```
+
+## Install Script (Optional)
+
+For quick setup on macOS or Linux:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/chux-yanzi-cli/main/install.sh | bash
+```
+
+## Verify Installation
+
+Run:
 
 ```bash
 yanzi --version
 ```
 
-## Full Technical Docs
+Expected:
 
-- https://chuxorg.github.io/yanzi/
+```text
+yanzi vX.Y.Z
+```
+
+## Notes
+
+- Yanzi runs locally by default.
+- No services or infrastructure are required.
+- HTTP mode is optional and not required for most workflows.
