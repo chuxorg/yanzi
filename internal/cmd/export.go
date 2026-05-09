@@ -1099,12 +1099,16 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	totalEvents := len(items)
 	totalCaptures := 0
 	totalCheckpoints := 0
+	latestCheckpointID := ""
+	latestCheckpointSummary := ""
 	for _, item := range items {
 		switch item.Kind {
 		case exportItemCapture:
 			totalCaptures++
 		case exportItemCheckpoint:
 			totalCheckpoints++
+			latestCheckpointID = item.CheckpointID
+			latestCheckpointSummary = item.Summary
 		}
 	}
 
@@ -1121,6 +1125,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,Helvetica,Arial,sans-serif;margin:0;background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);color:var(--text);line-height:1.45}\n")
 	b.WriteString("    main{max-width:1080px;margin:0 auto;padding:24px 16px 40px}\n")
 	b.WriteString("    header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}\n")
+	b.WriteString("    .header-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}\n")
 	b.WriteString("    h1{margin:0 0 8px;font-size:1.4rem}\n")
 	b.WriteString("    .meta-line{margin:2px 0;color:var(--muted);font-size:.95rem}\n")
 	b.WriteString("    .counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}\n")
@@ -1137,7 +1142,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .timeline-marker{position:absolute;left:-97px;top:20px;width:22px;height:22px;border-radius:999px;border:3px solid #fff;background:#9fb0c7;box-shadow:0 0 0 2px rgba(144,160,184,.38),0 6px 14px rgba(15,23,42,.1)}\n")
 	b.WriteString("    .timeline-card,.capture,.checkpoint,.meta-event{box-shadow:var(--shadow)}\n")
 	b.WriteString("    .capture{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}\n")
-	b.WriteString("    .capture h3{margin:0 0 8px;font-size:1rem}\n")
+	b.WriteString("    .capture h3{margin:0;font-size:1rem}\n")
 	b.WriteString("    .event-header{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}\n")
 	b.WriteString("    .event-main{min-width:0;flex:1 1 320px}\n")
 	b.WriteString("    .event-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}\n")
@@ -1164,36 +1169,55 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .copy-btn:hover,.toggle-btn:hover,.search-input:focus{border-color:var(--accent)}\n")
 	b.WriteString("    .copy-btn:focus,.toggle-btn:focus,.search-input:focus{outline:2px solid rgba(15,118,110,.2);outline-offset:2px}\n")
 	b.WriteString("    .copy-btn[data-copied=\"true\"]{background:var(--accent-soft);border-color:var(--accent);color:#0f5132}\n")
+	b.WriteString("    .artifact-shell{display:flex;flex-direction:column;gap:12px}\n")
+	b.WriteString("    .artifact-summary{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}\n")
+	b.WriteString("    .artifact-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}\n")
+	b.WriteString("    .artifact-preview{margin:0;color:var(--muted);font-size:.94rem;white-space:pre-wrap}\n")
+	b.WriteString("    .artifact-body{padding-top:2px}\n")
 	b.WriteString("    .toggle-row{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}\n")
 	b.WriteString("    .block-label{font-weight:600;font-size:.95rem}\n")
 	b.WriteString("    .preview-text{margin:0 0 10px;padding:10px 12px;border:1px dashed #d7dde7;border-radius:10px;background:#fbfcfe;color:var(--muted);font-size:.92rem;white-space:pre-wrap}\n")
 	b.WriteString("    .content-block[hidden]{display:none !important}\n")
+	b.WriteString("    .artifact-body[hidden]{display:none !important}\n")
 	b.WriteString("    pre{margin:0;background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}\n")
 	b.WriteString("    .timeline-divider{position:relative;height:18px;margin:0}\n")
 	b.WriteString("    .timeline-divider::before{content:\"\";position:absolute;left:-54px;right:0;top:8px;border-top:1px dashed rgba(144,160,184,.55)}\n")
 	b.WriteString("    .timeline-section{position:relative;margin:2px 0 4px}\n")
 	b.WriteString("    .timeline-section-label{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border-strong);background:rgba(255,255,255,.9);color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}\n")
+	b.WriteString("    .checkpoint-divider{margin:0 0 10px;padding:8px 12px;border-left:4px solid var(--checkpoint-border);border-radius:12px;background:rgba(242,193,78,.08);color:#5b6472;font-size:.9rem}\n")
+	b.WriteString("    .timeline-time{font-weight:700;white-space:nowrap}\n")
 	b.WriteString("    .empty-state{padding:18px;border:1px dashed var(--border-strong);border-radius:14px;text-align:center;color:var(--muted);background:rgba(255,255,255,.7)}\n")
 	b.WriteString("    @media (max-width:760px){.timeline{padding-left:76px}.timeline::before{left:28px}.timeline-marker{left:-79px;width:20px;height:20px}.timeline-entry-checkpoint .timeline-marker{left:-82px;width:26px;height:26px}.timeline-divider::before{left:-44px}}\n")
-	b.WriteString("    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:3px;top:-6px;width:16px;height:16px;border-width:2px}.timeline-entry-checkpoint .timeline-marker{left:0;top:-10px;width:22px;height:22px}.timeline-divider::before{left:12px}}\n")
+	b.WriteString("    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.artifact-summary{flex-direction:column}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:3px;top:-6px;width:16px;height:16px;border-width:2px}.timeline-entry-checkpoint .timeline-marker{left:0;top:-10px;width:22px;height:22px}.timeline-divider::before{left:12px}}\n")
 	b.WriteString("  </style>\n")
 	b.WriteString("</head>\n")
 	b.WriteString("<body>\n")
 	b.WriteString("<main>\n")
 	b.WriteString("  <header>\n")
-	b.WriteString("    <h1>Yanzi Agent Log</h1>\n")
-	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Project:</span> %s</div>\n", html.EscapeString(project)))
-	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
-	b.WriteString(fmt.Sprintf("    <div class=\"meta-line\"><span class=\"label\">Version:</span> %s</div>\n", html.EscapeString(cliVersion)))
-	b.WriteString("    <div class=\"counts\">\n")
-	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total events: %d</div>\n", totalEvents))
-	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total captures: %d</div>\n", totalCaptures))
-	b.WriteString(fmt.Sprintf("      <div class=\"count\">Total checkpoints: %d</div>\n", totalCheckpoints))
+	b.WriteString("    <div class=\"header-top\">\n")
+	b.WriteString("      <div>\n")
+	b.WriteString("        <h1>Yanzi Agent Log</h1>\n")
+	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Project:</span> %s</div>\n", html.EscapeString(project)))
+	if latestCheckpointID != "" {
+		b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Checkpoint:</span> <span class=\"mono-inline\">%s</span>", html.EscapeString(latestCheckpointID)))
+		if strings.TrimSpace(latestCheckpointSummary) != "" {
+			b.WriteString(fmt.Sprintf(" - %s", html.EscapeString(latestCheckpointSummary)))
+		}
+		b.WriteString("</div>\n")
+	}
+	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
+	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Version:</span> %s</div>\n", html.EscapeString(cliVersion)))
+	b.WriteString("      </div>\n")
+	b.WriteString("      <div class=\"counts\">\n")
+	b.WriteString(fmt.Sprintf("        <div class=\"count\">Total artifacts: %d</div>\n", totalCaptures))
+	b.WriteString(fmt.Sprintf("        <div class=\"count\">Total events: %d</div>\n", totalEvents))
+	b.WriteString(fmt.Sprintf("        <div class=\"count\">Checkpoints: %d</div>\n", totalCheckpoints))
+	b.WriteString("      </div>\n")
 	b.WriteString("    </div>\n")
 	b.WriteString("    <div class=\"toolbar\">\n")
 	b.WriteString("      <div class=\"search-group\">\n")
-	b.WriteString("        <label class=\"search-label\" for=\"event-search\">Search events</label>\n")
-	b.WriteString("        <input id=\"event-search\" class=\"search-input\" type=\"search\" placeholder=\"Search prompt, response, role, hash, summary, or timestamp\">\n")
+	b.WriteString("        <label class=\"search-label\" for=\"event-search\">Search artifacts</label>\n")
+	b.WriteString("        <input id=\"event-search\" class=\"search-input\" type=\"search\" placeholder=\"Search prompt, response, metadata, summary, or timestamp\">\n")
 	b.WriteString("      </div>\n")
 	b.WriteString(fmt.Sprintf("      <div id=\"match-count\" class=\"match-count\" aria-live=\"polite\">Showing %d of %d events</div>\n", totalEvents, totalEvents))
 	b.WriteString("    </div>\n")
@@ -1226,6 +1250,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 			switch item.Kind {
 			case exportItemCheckpoint:
 				b.WriteString("      <div class=\"timeline-divider\" aria-hidden=\"true\"></div>\n")
+				b.WriteString(fmt.Sprintf("      <div class=\"checkpoint-divider\">Checkpoint boundary%s</div>\n", checkpointDividerSuffix(item.Summary)))
 				b.WriteString("      <section class=\"checkpoint timeline-card\">\n")
 				b.WriteString("      <div class=\"event-header\">\n")
 				b.WriteString("        <div class=\"event-main\">\n")
@@ -1236,7 +1261,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 				b.WriteString("          </div>\n")
 				b.WriteString(fmt.Sprintf("          <h2>Checkpoint: <span class=\"mono-inline\">%s</span></h2>\n", html.EscapeString(item.CheckpointID)))
 				b.WriteString(fmt.Sprintf("          <div><span class=\"label\">Summary:</span> %s</div>\n", html.EscapeString(item.Summary)))
-				b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString(fmt.Sprintf("          <div class=\"meta-line\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp timeline-time\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 				b.WriteString("        </div>\n")
 				b.WriteString("        <div class=\"event-actions\">\n")
 				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy checkpoint ID\" aria-label=\"Copy checkpoint ID\">Copy checkpoint ID</button>\n", html.EscapeString(item.CheckpointID)))
@@ -1250,16 +1275,21 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 				if strings.TrimSpace(item.Value) != "" {
 					b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
 				}
-				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp timeline-time\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 				b.WriteString("      </section>\n")
 			default:
 				promptID := fmt.Sprintf("prompt-%d", idx)
 				responseID := fmt.Sprintf("response-%d", idx)
-				promptPreviewID := fmt.Sprintf("prompt-preview-%d", idx)
-				responsePreviewID := fmt.Sprintf("response-preview-%d", idx)
+				bodyID := fmt.Sprintf("artifact-body-%d", idx)
 				b.WriteString("      <section class=\"capture timeline-card\">\n")
-				b.WriteString("      <div class=\"event-header\">\n")
+				b.WriteString("      <div class=\"artifact-shell\">\n")
+				b.WriteString("      <div class=\"artifact-summary\">\n")
 				b.WriteString("        <div class=\"event-main\">\n")
+				b.WriteString("          <div class=\"artifact-title-row\">\n")
+				b.WriteString(fmt.Sprintf("            <h3>Artifact: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
+				b.WriteString(fmt.Sprintf("            <span class=\"js-timestamp timeline-time\" data-timestamp=\"%s\" title=\"%s\">%s</span>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
+				b.WriteString("          </div>\n")
+				b.WriteString(fmt.Sprintf("          <p class=\"artifact-preview\">%s</p>\n", html.EscapeString(previewText(item.Prompt, 120))))
 				b.WriteString("          <div class=\"badge-row\">\n")
 				for _, badge := range captureBadges(item) {
 					className := "badge badge-muted"
@@ -1269,14 +1299,22 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 					b.WriteString(fmt.Sprintf("            <span class=\"%s\">%s</span>\n", className, html.EscapeString(badge)))
 				}
 				b.WriteString("          </div>\n")
-				b.WriteString(fmt.Sprintf("          <h3>Capture: <span class=\"mono-inline\">%s</span></h3>\n", html.EscapeString(item.CaptureID)))
+				b.WriteString("        </div>\n")
+				b.WriteString("        <div class=\"event-actions\">\n")
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"toggle-btn artifact-toggle\" data-target=\"%s\" aria-expanded=\"false\" title=\"Show full artifact\" aria-label=\"Show full artifact\">Show details</button>\n", bodyID))
+				b.WriteString("        </div>\n")
+				b.WriteString("      </div>\n")
+				b.WriteString(fmt.Sprintf("      <div class=\"artifact-body\" id=\"%s\" hidden>\n", bodyID))
+				b.WriteString("      <div class=\"event-header\">\n")
+				b.WriteString("        <div class=\"event-main\">\n")
 				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Role:</span> <span>%s</span></div>\n", html.EscapeString(item.Role)))
-				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Timestamp:</span> <span class=\"js-timestamp\" data-timestamp=\"%s\" title=\"%s\">%s</span></div>\n", html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp), html.EscapeString(item.Timestamp)))
 				b.WriteString(fmt.Sprintf("          <div class=\"field-row\"><span class=\"label\">Hash:</span> <code class=\"mono-inline\">%s</code></div>\n", html.EscapeString(item.Hash)))
 				b.WriteString("        </div>\n")
 				b.WriteString("        <div class=\"event-actions\">\n")
 				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture ID\" aria-label=\"Copy capture ID\">Copy capture ID</button>\n", html.EscapeString(item.CaptureID)))
 				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-text=\"%s\" title=\"Copy capture hash\" aria-label=\"Copy capture hash\">Copy hash</button>\n", html.EscapeString(item.Hash)))
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button>\n", promptID))
+				b.WriteString(fmt.Sprintf("          <button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button>\n", responseID))
 				b.WriteString("        </div>\n")
 				b.WriteString("      </div>\n")
 				if len(item.Metadata) > 0 && !isRuleArtifact(item) {
@@ -1292,19 +1330,17 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 				}
 				b.WriteString("      <div class=\"toggle-row\">\n")
 				b.WriteString("        <div class=\"block-label\">Prompt</div>\n")
-				b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy prompt\" aria-label=\"Copy prompt\">Copy prompt</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full prompt\" aria-label=\"Show full prompt\">Show prompt</button></div>\n", promptID, promptID, promptPreviewID))
 				b.WriteString("      </div>\n")
-				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", promptPreviewID, html.EscapeString(previewText(item.Prompt, 160))))
-				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", promptID))
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\">\n", promptID))
 				b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Prompt)))
 				b.WriteString("      </div>\n")
 				b.WriteString("      <div class=\"toggle-row\">\n")
 				b.WriteString("        <div class=\"block-label\">Response</div>\n")
-				b.WriteString(fmt.Sprintf("        <div class=\"event-actions\"><button type=\"button\" class=\"copy-btn\" data-copy-source=\"%s\" title=\"Copy response\" aria-label=\"Copy response\">Copy response</button><button type=\"button\" class=\"toggle-btn\" data-target=\"%s\" data-preview-target=\"%s\" aria-expanded=\"false\" title=\"Show full response\" aria-label=\"Show full response\">Show response</button></div>\n", responseID, responseID, responsePreviewID))
 				b.WriteString("      </div>\n")
-				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"preview-text\">%s</div>\n", responsePreviewID, html.EscapeString(previewText(item.Response, 160))))
-				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\" hidden>\n", responseID))
+				b.WriteString(fmt.Sprintf("      <div id=\"%s\" class=\"content-block\">\n", responseID))
 				b.WriteString(fmt.Sprintf("        <pre>%s</pre>\n", html.EscapeString(item.Response)))
+				b.WriteString("      </div>\n")
+				b.WriteString("      </div>\n")
 				b.WriteString("      </div>\n")
 				b.WriteString("      </section>\n")
 			}
@@ -1345,16 +1381,15 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("        const toggle=event.target.closest('.toggle-btn');\n")
 	b.WriteString("        if(toggle){\n")
 	b.WriteString("          const target=document.getElementById(toggle.getAttribute('data-target'));\n")
-	b.WriteString("          const preview=document.getElementById(toggle.getAttribute('data-preview-target'));\n")
 	b.WriteString("          if(!target){return;}\n")
 	b.WriteString("          const expanded=toggle.getAttribute('aria-expanded')==='true';\n")
 	b.WriteString("          target.hidden=expanded;\n")
-	b.WriteString("          if(preview){preview.hidden=!expanded;}\n")
 	b.WriteString("          toggle.setAttribute('aria-expanded',String(!expanded));\n")
-	b.WriteString("          const label=target.id.indexOf('prompt-')===0?'prompt':'response';\n")
-	b.WriteString("          toggle.textContent=(expanded?'Show ':'Hide ')+label;\n")
-	b.WriteString("          toggle.setAttribute('title',(expanded?'Show full ':'Hide full ')+label);\n")
-	b.WriteString("          toggle.setAttribute('aria-label',(expanded?'Show full ':'Hide full ')+label);\n")
+	b.WriteString("          const showLabel=toggle.classList.contains('artifact-toggle')?'Show details':'Show';\n")
+	b.WriteString("          const hideLabel=toggle.classList.contains('artifact-toggle')?'Hide details':'Hide';\n")
+	b.WriteString("          toggle.textContent=expanded?showLabel:hideLabel;\n")
+	b.WriteString("          toggle.setAttribute('title',expanded?'Show full artifact':'Hide full artifact');\n")
+	b.WriteString("          toggle.setAttribute('aria-label',expanded?'Show full artifact':'Hide full artifact');\n")
 	b.WriteString("          return;\n")
 	b.WriteString("        }\n")
 	b.WriteString("        const copyButton=event.target.closest('.copy-btn');\n")
@@ -1404,6 +1439,14 @@ func previewText(value string, limit int) string {
 		return normalized
 	}
 	return strings.TrimSpace(normalized[:limit]) + "..."
+}
+
+func checkpointDividerSuffix(summary string) string {
+	summary = strings.TrimSpace(summary)
+	if summary == "" {
+		return ""
+	}
+	return ": " + summary
 }
 
 func checkpointBadges(item exportItem) []string {

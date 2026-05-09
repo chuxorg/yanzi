@@ -629,8 +629,11 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "Version:</span> v9.9.9") {
 		t.Fatalf("missing version header: %q", output)
 	}
-	if !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Total captures: 1") || !strings.Contains(output, "Total checkpoints: 1") {
+	if !strings.Contains(output, "Total artifacts: 1") || !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Checkpoints: 1") {
 		t.Fatalf("missing counts: %q", output)
+	}
+	if !strings.Contains(output, "Checkpoint:</span> <span class=\"mono-inline\">") || !strings.Contains(output, "checkpoint 1") {
+		t.Fatalf("missing sticky header checkpoint summary: %q", output)
 	}
 	if !strings.Contains(output, "position:sticky") {
 		t.Fatalf("expected sticky header styling: %q", output)
@@ -648,7 +651,7 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 		t.Fatalf("timeline timestamp labels should not be rendered: %q", output)
 	}
 
-	idxCapture := strings.Index(output, "Capture: <span class=\"mono-inline\">cap-1</span>")
+	idxCapture := strings.Index(output, "Artifact: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
 	idxMeta := strings.Index(output, "Event:</span> @yanzi pause")
 	if idxCapture == -1 || idxCheckpoint == -1 || idxMeta == -1 {
@@ -667,22 +670,22 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 		t.Fatalf("metadata order not deterministic: %q", output)
 	}
 
-	if !strings.Contains(output, "Show prompt") || !strings.Contains(output, "Show response") {
-		t.Fatalf("missing collapse controls: %q", output)
+	if !strings.Contains(output, "Show details") || !strings.Contains(output, "artifact-toggle") {
+		t.Fatalf("missing artifact collapse controls: %q", output)
 	}
 	if !strings.Contains(output, "Copy prompt") || !strings.Contains(output, "Copy response") || !strings.Contains(output, "Copy capture ID") || !strings.Contains(output, "Copy checkpoint ID") || !strings.Contains(output, "Copy hash") {
 		t.Fatalf("missing copy controls: %q", output)
 	}
-	if !strings.Contains(output, "class=\"preview-text\">line1 line2</div>") || !strings.Contains(output, "class=\"preview-text\">result ok</div>") {
-		t.Fatalf("missing prompt/response preview snippets: %q", output)
+	if !strings.Contains(output, "<p class=\"artifact-preview\">line1 line2</p>") {
+		t.Fatalf("missing prompt preview snippet: %q", output)
 	}
-	if !strings.Contains(output, "data-preview-target=\"prompt-preview-0\"") || !strings.Contains(output, "data-preview-target=\"response-preview-0\"") {
-		t.Fatalf("toggle buttons should be wired to previews: %q", output)
+	if !strings.Contains(output, "id=\"artifact-body-0\" hidden") {
+		t.Fatalf("artifact body should be collapsed by default: %q", output)
 	}
 	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-checkpoint event-card\"") || !strings.Contains(output, "CHECKPOINT") {
 		t.Fatalf("checkpoint styling was not rendered: %q", output)
 	}
-	if !strings.Contains(output, "timeline-entry-checkpoint .timeline-marker") || !strings.Contains(output, "class=\"timeline-divider\"") {
+	if !strings.Contains(output, "timeline-entry-checkpoint .timeline-marker") || !strings.Contains(output, "class=\"timeline-divider\"") || !strings.Contains(output, "class=\"checkpoint-divider\">Checkpoint boundary: checkpoint 1</div>") {
 		t.Fatalf("checkpoint boundary marker was not rendered: %q", output)
 	}
 	if !strings.Contains(output, "class=\"timeline-entry event-card\"") || !strings.Contains(output, "class=\"capture timeline-card\"") {
@@ -714,8 +717,8 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 		!strings.Contains(output, "Checkpoint Boundary Rehydration Anchor Hash") {
 		t.Fatalf("badge text should be included in the search corpus: %q", output)
 	}
-	if !strings.Contains(output, "id=\"prompt-0\" class=\"content-block\" hidden") || !strings.Contains(output, "id=\"response-0\" class=\"content-block\" hidden") {
-		t.Fatalf("prompt/response blocks should be collapsible and hidden by default: %q", output)
+	if !strings.Contains(output, "id=\"prompt-0\" class=\"content-block\"") || !strings.Contains(output, "id=\"response-0\" class=\"content-block\"") {
+		t.Fatalf("prompt and response blocks should be rendered inside the artifact body: %q", output)
 	}
 	if !strings.Contains(output, "<pre>line1\nline2</pre>") {
 		t.Fatalf("prompt pre block did not preserve whitespace: %q", output)
@@ -723,7 +726,7 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	if !strings.Contains(output, "<pre>result\nok</pre>") {
 		t.Fatalf("response pre block did not preserve whitespace: %q", output)
 	}
-	if !strings.Contains(output, "class=\"js-timestamp\" data-timestamp=\"2025-01-01T00:00:01Z\" title=\"2025-01-01T00:00:01Z\">2025-01-01T00:00:01Z</span>") {
+	if !strings.Contains(output, "class=\"js-timestamp timeline-time\" data-timestamp=\"2025-01-01T00:00:01Z\" title=\"2025-01-01T00:00:01Z\">2025-01-01T00:00:01Z</span>") {
 		t.Fatalf("missing raw timestamp tooltip hook: %q", output)
 	}
 	if !strings.Contains(output, "Intl.DateTimeFormat") || !strings.Contains(output, "formatTimestamps()") {
@@ -731,6 +734,9 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "min-width:110px;height:34px") {
 		t.Fatalf("expected consistent button styling: %q", output)
+	}
+	if !strings.Contains(output, ".timeline-time{font-weight:700;white-space:nowrap}") {
+		t.Fatalf("expected non-wrapping bold timestamp styling: %q", output)
 	}
 	if !strings.Contains(output, "navigator.clipboard") || !strings.Contains(output, "document.execCommand('copy')") {
 		t.Fatalf("expected clipboard copy with fallback: %q", output)

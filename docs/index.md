@@ -17,7 +17,7 @@ Yanzi gives you a local workflow for:
 ## Start Here
 
 - [Problem](problem.md)
-- [Install](/install/)
+- [Install](install.md)
 - [How It Works](how-it-works.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
