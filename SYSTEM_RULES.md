@@ -58,8 +58,8 @@ Failure in any of the above blocks the push.
 ## Phase Completion
 
 At the end of a phase:
-
-* Create PR → `development`
+* Create a local branch the same name as the branch used to build the phase with a "-qa" suffix e.g. feature/somefeature is the local working branch, the QA branch would be feature/somefeature-qa
+* Stage all Changes, commit, and push to the QA Branch 
 * DO NOT create tags
 * Human explicitly determines phase completion
 
