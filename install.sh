@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 set -eu
 
-REPO="chuxorg/chux-yanzi-cli"
-RELEASES_API="https://api.github.com/repos/$REPO/releases"
+REPO="chuxorg/yanzi"
+RELEASES_API="https://api.github.com/repos/$REPO/releases/latest"
 
 ADD_PATH=false
 for arg in "$@"; do
@@ -36,41 +36,35 @@ esac
 ASSET_BINARY="yanzi-${OS}-${ARCH}"
 ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
 
-URL=""
+RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API")"
+ASSET_URLS="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
+
+URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
 ASSET_KIND=""
-for page in 1 2 3 4 5 6 7 8 9 10; do
-  RELEASES_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API?per_page=100&page=$page")"
-  if [ "$RELEASES_JSON" = "[]" ]; then
-    break
-  fi
+if [ -n "$URL" ]; then
+  ASSET_KIND="binary"
+fi
 
-  ASSET_URLS="$(printf '%s\n' "$RELEASES_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
-
-  URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
-  if [ -n "$URL" ]; then
-    ASSET_KIND="binary"
-    break
-  fi
-
+if [ -z "$URL" ]; then
   URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_TARBALL$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="tarball"
-    break
   fi
+fi
 
-  # Fallback for versioned/legacy artifact naming conventions.
+if [ -z "$URL" ]; then
   URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[-_][^/]*[-_]${OS}[-_]${ARCH}$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="binary"
-    break
   fi
+fi
 
+if [ -z "$URL" ]; then
   URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[^/]*_${OS}_${ARCH}[^/]*\\.tar\\.gz$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="tarball"
-    break
   fi
-done
+fi
 
 if [ -z "$URL" ]; then
   echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
@@ -114,6 +108,13 @@ else
   chmod +x "$INSTALL_DIR/yanzi"
 fi
 
+INSTALLED_OUTPUT="$("$INSTALL_DIR/yanzi" --version 2>/dev/null || true)"
+INSTALLED_VERSION="$(printf '%s\n' "$INSTALLED_OUTPUT" | awk '/^yanzi / { print; exit }')"
+if [ -z "$INSTALLED_VERSION" ]; then
+  echo "Installed binary did not report a version successfully." >&2
+  exit 1
+fi
+
 in_path=false
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) in_path=true ;;
@@ -151,9 +152,11 @@ if [ "$ADD_PATH" = true ]; then
 else
   if [ "$in_path" = true ]; then
     echo "Yanzi $VERSION installed successfully."
+    echo "$INSTALLED_VERSION"
     echo "Run: yanzi --help"
   else
     echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."
+    echo "$INSTALLED_VERSION"
     echo "Add the following line to your shell config:"
     echo "export PATH=\"\$PATH:$INSTALL_DIR\""
     case "${SHELL:-}" in

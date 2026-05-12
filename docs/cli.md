@@ -128,11 +128,11 @@ yanzi rehydrate
 
 ### Problem
 
-Sometimes the full timeline is needed. In other cases, only a filtered subset of stored context is needed.
+Project history and explicit context exports need deterministic output for scripts and agents.
 
 ### Solution
 
-`yanzi export` writes project history or filtered context to files in the current working directory.
+`yanzi export` writes project history or explicit claude-context exports to files in the current working directory.
 
 ### Example
 
@@ -141,20 +141,14 @@ yanzi export --format markdown
 yanzi export --format json
 yanzi export --format html --open
 yanzi export --format claude-context
-yanzi export --type process_rule --meta role=engineer
-yanzi export --fields title,content
-yanzi export --type process_rule --meta role=engineer --fields title,content --limit 5
+yanzi export --format markdown --meta type=context
 ```
 
 ### Flags
 
-- `--format <markdown|json|html|claude-context>` optional
-- `--type <type[,type...]>` optional context type filter
+- `--format <markdown|json|html|claude-context>` required
 - `--profile <name>` optional
 - `--meta key=value` optional and repeatable
-- `--fields <field[,field...]>` optional context field selection
-- `--order <created_at|updated_at>` optional deterministic order
-- `--limit <n>` optional result limit after filtering
 - `--include-deleted` optional
 - `--open` only valid with `--format html`
 
@@ -172,15 +166,9 @@ Yanzi does not interpret or rank results. It only filters and returns stored dat
 ```text
 export args:
   --format <markdown|json|html|claude-context>
-                        Export format. Defaults to claude-context when omitted.
-  --type <type[,type...]>
-                        Optional context type filter list.
+                        Export format. Required.
   --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
-  --fields <field[,field...]>
-                        Optional context field list.
-  --order <field>       Deterministic order field: created_at|updated_at.
-  --limit <n>           Optional result limit after filtering.
   --include-deleted     Include tombstoned records.
   --open                Open generated html export in the default browser.
 ```
@@ -239,28 +227,6 @@ Subcommands:
 - `--channel <name>` optional
 - `--include-deleted` optional
 
-## pack
-
-### Problem
-
-Projects often need the same set of stored rules and reference context more than once.
-
-### Solution
-
-`yanzi pack` applies or exports portable context bundles without changing existing records.
-
-### Example
-
-```bash
-yanzi pack apply vibe-coder.yaml
-yanzi pack export --output ./packs/project.yaml
-```
-
-### Flags
-
-- `apply <file>` required
-- `export --output <file>` required
-
 ## context
 
 Add, list, and show context artifacts.
@@ -314,7 +280,7 @@ yanzi rules export --format html --compose --profile engineer
 
 ## list
 
-List captured intent records.
+List captured intent records for the active project.
 
 Flags:
 

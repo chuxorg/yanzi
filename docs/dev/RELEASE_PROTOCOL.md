@@ -55,7 +55,6 @@ Current release artifacts:
 - `yanzi-darwin-amd64`
 - `yanzi-darwin-arm64`
 - `yanzi-windows-amd64.zip`
-- `yanzi_$(cat VERSION)_amd64.deb`
 
 The Yanzi repository provides documentation and entry points to these releases.
 ---

@@ -14,7 +14,7 @@ Examples:
 
 ```bash
 yanzi capture --author "Ada" --prompt "What changed?" --response "Updated docs."
-yanzi export --type process_rule --meta role=engineer
+yanzi export --format markdown --meta type=context
 yanzi message pull --to codex --channel execution
 ```
 
