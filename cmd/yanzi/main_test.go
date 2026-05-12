@@ -81,8 +81,23 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "--format claude-context") {
 		t.Fatalf("expected claude-context help text, got: %s", output)
 	}
-	if !strings.Contains(output, "--fields a,b") || !strings.Contains(output, "--order <field>") || !strings.Contains(output, "--limit <n>") {
-		t.Fatalf("expected retrieval export help text, got: %s", output)
+	exportSection := output[strings.Index(output, "export args:"):]
+	if strings.Contains(exportSection, "--fields a,b") || strings.Contains(exportSection, "--order <field>") || strings.Contains(exportSection, "--limit <n>") {
+		t.Fatalf("did not expect removed export flags in export help text, got: %s", exportSection)
+	}
+	if !strings.Contains(exportSection, "--format claude-context Generates CLAUDE_CONTEXT.md in project root.\n                        Required.") {
+		t.Fatalf("expected required export format help text, got: %s", output)
+	}
+}
+
+func TestRunUnknownCommandReturnsExitCodeOne(t *testing.T) {
+	output := captureStderr(t, func() {
+		if got := run([]string{"doesnotexist"}); got != 1 {
+			t.Fatalf("expected exit code 1, got %d", got)
+		}
+	})
+	if !strings.Contains(output, "unknown command: doesnotexist") {
+		t.Fatalf("expected unknown command error, got: %s", output)
 	}
 }
 

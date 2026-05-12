@@ -51,6 +51,15 @@ func RunList(args []string) error {
 		}
 		defer db.Close()
 
+		project, err := loadActiveProject()
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(project) == "" {
+			return fmt.Errorf("no active project set")
+		}
+		metaFilters["project"] = strings.TrimSpace(project)
+
 		localIntents, err := listLocalIntents(ctx, db, *author, *source, *limit, map[string]string(metaFilters), *includeDeleted)
 		if err != nil {
 			return err
