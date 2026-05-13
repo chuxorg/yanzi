@@ -187,7 +187,6 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunList\(args \[\]string\) error](<#RunList>)
 - [func RunMessage\(args \[\]string\) error](<#RunMessage>)
 - [func RunMode\(args \[\]string\) error](<#RunMode>)
-- [func RunPack\(args \[\]string\) error](<#RunPack>)
 - [func RunProject\(args \[\]string\) error](<#RunProject>)
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
 - [func RunRestore\(args \[\]string\) error](<#RunRestore>)
@@ -295,19 +294,19 @@ RunExport writes deterministic project exports for history or filtered context.
 
 Problem: Callers sometimes need a full timeline export and sometimes need a filtered retrieval of stored context only.
 
-Solution: RunExport supports log formats and context retrieval formats, with explicit filters for type, metadata, field selection, ordering, and limits.
+Solution: RunExport supports log formats plus explicit context export via the claude\-context format, with deterministic metadata filtering.
 
 Arguments:
 
 ```
-args contains export flags such as format, filters, and output behavior;
+args contains export flags such as format, metadata filters, and output behavior;
 cliVersion is written into the rendered export headers.
 ```
 
 Example:
 
 ```
-yanzi export --type process_rule --meta role=engineer --fields title,content
+yanzi export --format markdown --meta type=context
 ```
 
 <a name="RunInit"></a>
@@ -388,31 +387,6 @@ func RunMode(args []string) error
 ```
 
 RunMode shows or sets the runtime mode.
-
-<a name="RunPack"></a>
-## func [RunPack](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/pack.go#L47>)
-
-```go
-func RunPack(args []string) error
-```
-
-RunPack applies or exports portable context packs.
-
-Problem: Reusing the same stored context across projects is tedious when each item must be added manually.
-
-Solution: RunPack exposes \`apply\` for idempotent pack loading and \`export\` for producing a pack definition plus sidecar files from visible context.
-
-Arguments:
-
-```
-args starts with `apply` or `export` followed by the corresponding flags.
-```
-
-Example:
-
-```
-yanzi pack apply vibe-coder.yaml
-```
 
 <a name="RunProject"></a>
 ## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L28>)

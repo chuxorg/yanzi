@@ -108,3 +108,46 @@ func TestRunListProfileFilterAndMetadataVisibility(t *testing.T) {
 		t.Fatalf("did not expect reviewer record in filtered list output: %q", output)
 	}
 }
+
+func TestRunListIsScopedToActiveProject(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, workdir, "alpha")
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Alpha Note",
+		"--prompt", "alpha",
+		"--response", "alpha",
+	}); err != nil {
+		t.Fatalf("RunCapture alpha: %v", err)
+	}
+
+	writeStateFile(t, workdir, "beta")
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Beta Note",
+		"--prompt", "beta",
+		"--response", "beta",
+	}); err != nil {
+		t.Fatalf("RunCapture beta: %v", err)
+	}
+
+	writeStateFile(t, workdir, "alpha")
+	output, err := captureStdout(func() error {
+		return RunList([]string{})
+	})
+	if err != nil {
+		t.Fatalf("RunList: %v", err)
+	}
+	if !strings.Contains(output, "Alpha Note") {
+		t.Fatalf("expected alpha record in list output: %q", output)
+	}
+	if strings.Contains(output, "Beta Note") {
+		t.Fatalf("did not expect beta record in alpha-scoped list output: %q", output)
+	}
+}

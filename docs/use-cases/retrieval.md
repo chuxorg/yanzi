@@ -9,7 +9,7 @@ Agents require only relevant context, not full history.
 Retrieve filtered context:
 
 ```bash
-yanzi export --meta role=engineer --limit 10
+yanzi export --format claude-context --meta role=engineer
 ```
 
 ## Result

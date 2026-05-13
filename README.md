@@ -43,10 +43,10 @@ macOS:
 brew install chuxorg/yanzi/yanzi
 ```
 
-Linux:
+macOS or Linux install script:
 
 ```bash
-sudo dpkg -i yanzi_*.deb
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
 ```
 
 Windows:
@@ -95,6 +95,8 @@ yanzi message pull --to claude --channel handoff
 - Quickstart: [https://chuxorg.github.io/yanzi/quickstart/](https://chuxorg.github.io/yanzi/quickstart/)
 - CLI reference: [https://chuxorg.github.io/yanzi/cli/](https://chuxorg.github.io/yanzi/cli/)
 - Install: [https://chuxorg.github.io/yanzi/install/](https://chuxorg.github.io/yanzi/install/)
+
+Homebrew upgrades depend on the tap formula being refreshed. If `brew upgrade yanzi` does not move you to the latest release immediately, use the install script above.
 
 ## License
 

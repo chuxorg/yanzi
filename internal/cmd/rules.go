@@ -120,7 +120,10 @@ func runRulesList(args []string) error {
 		"--meta", "subtype=rules",
 	}
 	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
-		listArgs = append(listArgs, "--scope", trimmed)
+		if trimmed != yanzilibrary.ContextScopeGlobal && trimmed != yanzilibrary.ContextScopeProject {
+			return fmt.Errorf("invalid scope %q (expected global or project)", trimmed)
+		}
+		listArgs = append(listArgs, "--meta", "scope="+trimmed)
 	}
 	if trimmed := strings.TrimSpace(*profile); trimmed != "" {
 		listArgs = append(listArgs, "--profile", trimmed)
@@ -157,7 +160,10 @@ func runRulesExport(args []string, cliVersion string) error {
 		"--format", formatValue,
 	}
 	if trimmed := strings.TrimSpace(*scope); trimmed != "" {
-		exportArgs = append(exportArgs, "--scope", trimmed)
+		if trimmed != yanzilibrary.ContextScopeGlobal && trimmed != yanzilibrary.ContextScopeProject {
+			return fmt.Errorf("invalid scope %q (expected global or project)", trimmed)
+		}
+		exportArgs = append(exportArgs, "--meta", "scope="+trimmed)
 	}
 	if trimmed := strings.TrimSpace(*profile); trimmed != "" {
 		exportArgs = append(exportArgs, "--profile", trimmed)

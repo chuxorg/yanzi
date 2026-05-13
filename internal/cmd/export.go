@@ -67,27 +67,23 @@ type contextExportQuery struct {
 // retrieval of stored context only.
 //
 // Solution:
-// RunExport supports log formats and context retrieval formats, with explicit
-// filters for type, metadata, field selection, ordering, and limits.
+// RunExport supports log formats plus explicit context export via the
+// claude-context format, with deterministic metadata filtering.
 //
 // Arguments:
 //
-//	args contains export flags such as format, filters, and output behavior;
+//	args contains export flags such as format, metadata filters, and output behavior;
 //	cliVersion is written into the rendered export headers.
 //
 // Example:
 //
-//	yanzi export --type process_rule --meta role=engineer --fields title,content
+//	yanzi export --format markdown --meta type=context
 func RunExport(args []string, cliVersion string) error {
 	fs := flag.NewFlagSet("export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	format := fs.String("format", "", "export format (markdown|json|html|claude-context)")
 	open := fs.Bool("open", false, "open generated html export in the default browser")
 	profile := fs.String("profile", "", "profile filter")
-	typeFlag := fs.String("type", "", "context type filter (comma-separated)")
-	fieldsFlag := fs.String("fields", "", "fields to include (comma-separated)")
-	orderFlag := fs.String("order", "", "order field (created_at|updated_at)")
-	limit := fs.Int("limit", 0, "max records to return after filtering")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
@@ -95,26 +91,25 @@ func RunExport(args []string, cliVersion string) error {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi export [--format <markdown|json|html|claude-context>] [--type <type[,type...]>] [--meta key=value ...] [--fields <field[,field...]>] [--order <created_at|updated_at>] [--limit <n>] [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--profile <name>] [--meta key=value ...] [--include-deleted] [--open]")
 	}
 	if strings.TrimSpace(*profile) != "" {
 		metaFilters["profile"] = strings.TrimSpace(*profile)
 	}
 	formatValue := strings.TrimSpace(*format)
 	if formatValue == "" {
-		formatValue = "claude-context"
+		return errors.New("--format is required")
 	}
 	if formatValue != "markdown" && formatValue != "json" && formatValue != "html" && formatValue != "claude-context" {
-		return errors.New("usage: yanzi export [--format <markdown|json|html|claude-context>] [--type <type[,type...]>] [--meta key=value ...] [--fields <field[,field...]>] [--order <created_at|updated_at>] [--limit <n>] [--open]")
+		return errors.New("usage: yanzi export --format <markdown|json|html|claude-context> [--profile <name>] [--meta key=value ...] [--include-deleted] [--open]")
 	}
 	if *open && formatValue != "html" {
 		return errors.New("--open is only supported with --format html")
 	}
-	query, err := buildContextExportQuery(*typeFlag, map[string]string(metaFilters), *fieldsFlag, *orderFlag, *limit)
-	if err != nil {
-		return err
+	query := contextExportQuery{
+		MetaFilters: map[string]string(metaFilters),
 	}
-	retrievalMode := formatValue == "claude-context" || contextExportQueryEnabled(query)
+	retrievalMode := formatValue == "claude-context"
 
 	project, err := loadActiveProject()
 	if err != nil {
