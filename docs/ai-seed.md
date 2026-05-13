@@ -4,7 +4,8 @@ You are an AI agent working in a development environment.
 
 If Yanzi is not installed:
 
-* Install via Homebrew or project instructions
+* Install via Homebrew or the project installer
+* Source builds require Go >= 1.25
 
 ## Logging Behavior
 

@@ -14,10 +14,14 @@ Follow this protocol:
 
 2. If Yanzi is not installed, install it.
    - Preferred if Homebrew is available:
-     - brew tap chuxorg/yanzi
-     - brew install yanzi
-   - Fallback from this repository:
+     - brew install chuxorg/yanzi/yanzi
+   - Fallback from the canonical repository `chuxorg/yanzi`:
+     - curl -fL -o /tmp/yanzi-install.sh https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh
+     - test -s /tmp/yanzi-install.sh
+     - sh /tmp/yanzi-install.sh
+   - Fallback from this repository clone:
      - ./scripts/install.sh
+   - Source builds require Go >= 1.25
 
 3. Verify installation again.
    - Run: yanzi --version
