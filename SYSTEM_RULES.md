@@ -45,6 +45,7 @@ After completing each task:
 Before pushing any changes:
 
 * All builds MUST succeed
+* All new functionality must have associated unit tests.
 * All unit tests MUST pass
 * All new or modified testable code MUST include unit tests
 * Code MUST follow:
