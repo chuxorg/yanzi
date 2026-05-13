@@ -96,12 +96,13 @@ Replaying all project history from the beginning is unnecessary when a stable bo
 ```bash
 yanzi checkpoint create --summary "Initial project state"
 yanzi checkpoint list
+yanzi checkpoint list --all-projects
 ```
 
 ### Flags
 
 - `create --summary "..."` required summary for a new checkpoint
-- `list` no flags
+- `list --all-projects` optional cross-project retrieval
 
 ## rehydrate
 
@@ -236,6 +237,7 @@ Examples:
 ```bash
 yanzi context add --type process_rule --title "Release rule" --file ./SYSTEM_RULES.md
 yanzi context list --scope project
+yanzi context list --all-projects
 yanzi context show abc123def456
 ```
 
@@ -248,6 +250,7 @@ Examples:
 ```bash
 yanzi intent add --title "Clarify export scope" --content "Export only deterministic artifacts."
 yanzi intent list --type decision
+yanzi intent list --all-projects
 ```
 
 ## bootstrap
@@ -280,7 +283,7 @@ yanzi rules export --format html --compose --profile engineer
 
 ## list
 
-List captured intent records for the active project.
+List captured intent records for the active project by default.
 
 Flags:
 
@@ -288,6 +291,7 @@ Flags:
 - `--source <source>` optional
 - `--profile <name>` optional
 - `--meta key=value` optional and repeatable
+- `--all-projects` optional cross-project retrieval
 - `--include-deleted` optional
 - `--limit <n>` optional, default `20`
 
@@ -295,7 +299,16 @@ Example:
 
 ```bash
 yanzi list --limit 10
+yanzi list --all-projects
 ```
+
+## local db resolution
+
+Local commands resolve the SQLite database in deterministic order:
+
+1. `YANZI_DB_PATH`
+2. `db_path` from `~/.yanzi/config.yaml`
+3. default `~/.yanzi/yanzi.db`
 
 ## show
 

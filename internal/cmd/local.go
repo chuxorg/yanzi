@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
@@ -19,13 +18,11 @@ import (
 )
 
 func openLocalDB(cfg config.Config) (*sql.DB, error) {
-	if cfg.DBPath == "" {
-		return nil, errors.New("db_path is required when mode=local")
+	path, err := config.EffectiveLocalDBPath(cfg)
+	if err != nil {
+		return nil, err
 	}
-	if err := os.Setenv("YANZI_DB_PATH", cfg.DBPath); err != nil {
-		return nil, fmt.Errorf("set YANZI_DB_PATH: %w", err)
-	}
-	return yanzilibrary.InitDB()
+	return yanzilibrary.InitDBAtPath(path)
 }
 
 func buildLocalIntent(req createIntentInput) (model.IntentRecord, error) {
@@ -280,7 +277,7 @@ func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int, includeD
 		limit = 100
 	}
 
-	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, metadata FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC LIMIT ?`, limit)
+	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, metadata FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC, id DESC LIMIT ?`, limit)
 	if err != nil {
 		return nil, err
 	}

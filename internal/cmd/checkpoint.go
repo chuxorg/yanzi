@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
@@ -97,19 +100,12 @@ func runCheckpointCreate(args []string) error {
 func runCheckpointList(args []string) error {
 	fs := flag.NewFlagSet("checkpoint list", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
+	allProjects := fs.Bool("all-projects", false, "list checkpoints across every project")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi checkpoint list")
-	}
-
-	project, err := loadActiveProject()
-	if err != nil {
-		return err
-	}
-	if project == "" {
-		return errors.New("no active project set")
+		return errors.New("usage: yanzi checkpoint list [--all-projects]")
 	}
 
 	cfg, err := config.Load()
@@ -126,14 +122,46 @@ func runCheckpointList(args []string) error {
 		}
 		defer db.Close()
 
+		if *allProjects {
+			fmt.Println("Project: All projects")
+			fmt.Println()
+			checkpoints, err := listAllCheckpointsLocal(ctx, db)
+			if err != nil {
+				return err
+			}
+			fmt.Println("Project\tCreatedAt\tSummary")
+			if len(checkpoints) == 0 {
+				fmt.Println("(none)")
+				return nil
+			}
+			for _, checkpoint := range checkpoints {
+				fmt.Printf("%s\t%s\t%s\n", checkpoint.Project, checkpoint.CreatedAt, checkpoint.Summary)
+			}
+			return nil
+		}
+
+		project, err := loadActiveProject()
+		if err != nil {
+			return err
+		}
+		project = strings.TrimSpace(project)
+		if project == "" {
+			return errors.New("no active project set")
+		}
+		fmt.Printf("Project: %s\n\n", project)
+
 		checkpoints, err := yanzilibrary.ListCheckpoints(ctx, db, project)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Index\tCreatedAt\tSummary")
-		for i, checkpoint := range checkpoints {
-			fmt.Printf("%d\t%s\t%s\n", i+1, checkpoint.CreatedAt, checkpoint.Summary)
+		fmt.Println("CreatedAt\tSummary")
+		if len(checkpoints) == 0 {
+			fmt.Println("(none)")
+			return nil
+		}
+		for _, checkpoint := range checkpoints {
+			fmt.Printf("%s\t%s\n", checkpoint.CreatedAt, checkpoint.Summary)
 		}
 		return nil
 	case config.ModeHTTP:
@@ -145,4 +173,40 @@ func runCheckpointList(args []string) error {
 
 func checkpointUsageError() error {
 	return errors.New("usage: yanzi checkpoint <create|list>")
+}
+
+func listAllCheckpointsLocal(ctx context.Context, db *sql.DB) ([]yanzilibrary.Checkpoint, error) {
+	rows, err := db.QueryContext(ctx, `SELECT hash, project, summary, created_at, artifact_ids, previous_checkpoint_id FROM checkpoints`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	checkpoints := make([]yanzilibrary.Checkpoint, 0)
+	for rows.Next() {
+		var checkpoint yanzilibrary.Checkpoint
+		var artifactIDs string
+		var previous sql.NullString
+		if err := rows.Scan(&checkpoint.Hash, &checkpoint.Project, &checkpoint.Summary, &checkpoint.CreatedAt, &artifactIDs, &previous); err != nil {
+			return nil, err
+		}
+		if previous.Valid {
+			checkpoint.PreviousCheckpointID = previous.String
+		}
+		checkpoints = append(checkpoints, checkpoint)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	sort.SliceStable(checkpoints, func(i, j int) bool {
+		if checkpoints[i].Project == checkpoints[j].Project {
+			if checkpoints[i].CreatedAt == checkpoints[j].CreatedAt {
+				return checkpoints[i].Hash > checkpoints[j].Hash
+			}
+			return checkpoints[i].CreatedAt > checkpoints[j].CreatedAt
+		}
+		return checkpoints[i].Project < checkpoints[j].Project
+	})
+	return checkpoints, nil
 }

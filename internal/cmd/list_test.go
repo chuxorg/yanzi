@@ -150,4 +150,94 @@ func TestRunListIsScopedToActiveProject(t *testing.T) {
 	if strings.Contains(output, "Beta Note") {
 		t.Fatalf("did not expect beta record in alpha-scoped list output: %q", output)
 	}
+	if !strings.Contains(output, "Project: alpha") {
+		t.Fatalf("expected project header in scoped list output: %q", output)
+	}
+}
+
+func TestRunListAllProjectsIncludesProjectColumn(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, workdir, "alpha")
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Alpha Note",
+		"--prompt", "alpha",
+		"--response", "alpha",
+	}); err != nil {
+		t.Fatalf("RunCapture alpha: %v", err)
+	}
+
+	writeStateFile(t, workdir, "beta")
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Beta Note",
+		"--prompt", "beta",
+		"--response", "beta",
+	}); err != nil {
+		t.Fatalf("RunCapture beta: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunList([]string{"--all-projects"})
+	})
+	if err != nil {
+		t.Fatalf("RunList all projects: %v", err)
+	}
+	if !strings.Contains(output, "Project: All projects") {
+		t.Fatalf("expected all-projects header: %q", output)
+	}
+	if !strings.Contains(output, "ID\tCreated_At\tProject\tAuthor\tSource\tTitle\tMetadata") {
+		t.Fatalf("expected project column in all-projects output: %q", output)
+	}
+	if !strings.Contains(output, "Alpha Note") || !strings.Contains(output, "Beta Note") {
+		t.Fatalf("expected both projects in output: %q", output)
+	}
+	if !strings.Contains(output, "\talpha\t") || !strings.Contains(output, "\tbeta\t") {
+		t.Fatalf("expected explicit project values in output: %q", output)
+	}
+}
+
+func TestRunListAllProjectsUsesDeterministicOrdering(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, workdir, "alpha")
+
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Older Note",
+		"--prompt", "older",
+		"--response", "older",
+	}); err != nil {
+		t.Fatalf("RunCapture older: %v", err)
+	}
+
+	writeStateFile(t, workdir, "beta")
+	if err := RunCapture([]string{
+		"--author", "human",
+		"--title", "Newer Note",
+		"--prompt", "newer",
+		"--response", "newer",
+	}); err != nil {
+		t.Fatalf("RunCapture newer: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunList([]string{"--all-projects"})
+	})
+	if err != nil {
+		t.Fatalf("RunList all projects: %v", err)
+	}
+	if strings.Index(output, "Newer Note") > strings.Index(output, "Older Note") {
+		t.Fatalf("expected newest-first ordering in output: %q", output)
+	}
 }

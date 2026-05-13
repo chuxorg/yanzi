@@ -97,11 +97,6 @@ func RunRehydrate(args []string) error {
 
 	switch cfg.Mode {
 	case config.ModeLocal:
-		if _, ok := os.LookupEnv("YANZI_DB_PATH"); !ok {
-			if err := os.Setenv("YANZI_DB_PATH", cfg.DBPath); err != nil {
-				return fmt.Errorf("set YANZI_DB_PATH: %w", err)
-			}
-		}
 	case config.ModeHTTP:
 		return errors.New("rehydrate is not available in http mode")
 	default:

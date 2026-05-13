@@ -27,6 +27,9 @@ type Config struct {
 	BaseURL string `yaml:"base_url"`
 }
 
+// LocalDBPathEnvVar is the environment variable that overrides local SQLite resolution.
+const LocalDBPathEnvVar = "YANZI_DB_PATH"
+
 // Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
 //
 // Problem:
@@ -126,4 +129,20 @@ func DefaultDBPath() (string, error) {
 		return "", err
 	}
 	return filepath.Join(dir, "yanzi.db"), nil
+}
+
+// EffectiveLocalDBPath resolves the local SQLite path using deterministic precedence.
+//
+// Precedence:
+//  1. YANZI_DB_PATH
+//  2. Config.DBPath
+//  3. DefaultDBPath()
+func EffectiveLocalDBPath(cfg Config) (string, error) {
+	if override := strings.TrimSpace(os.Getenv(LocalDBPathEnvVar)); override != "" {
+		return override, nil
+	}
+	if path := strings.TrimSpace(cfg.DBPath); path != "" {
+		return path, nil
+	}
+	return DefaultDBPath()
 }
