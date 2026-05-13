@@ -20,6 +20,7 @@ Yanzi gives you a local workflow for:
 - [Install](install.md)
 - [How It Works](how-it-works.md)
 - [Use Yanzi](use-yanzi.md)
+- [Demo Flow](demo-flow.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
 - [API](api/index.md)

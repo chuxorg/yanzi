@@ -297,12 +297,7 @@ func isHelpArg(arg string) bool {
 }
 
 func printVersion() error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
 	fmt.Printf("yanzi %s\n", version)
-	fmt.Printf("mode: %s\n", formatMode(cfg))
 	return nil
 }
 

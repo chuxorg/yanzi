@@ -25,6 +25,7 @@ yanzi init demo
 yanzi capture --author "Ada" --prompt "What changed?" --response "Updated the API client."
 yanzi checkpoint create --summary "API client update complete"
 yanzi rehydrate --dry-run
+yanzi rehydrate
 ```
 
 ## For Builders
@@ -47,6 +48,8 @@ yanzi message pull --to claude --channel handoff
 ```
 
 That keeps the project context and handoff notes in one place while the code work continues outside Yanzi.
+
+For a concise live-demo sequence with inline, stdin, file, checkpoint, and recovery examples, see [Demo Flow](demo-flow.md).
 
 ## Use Cases
 

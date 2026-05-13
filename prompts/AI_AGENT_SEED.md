@@ -138,6 +138,7 @@ Follow this protocol:
    - Do not claim Yanzi automatically applies rules unless the repo explicitly documents that behavior.
    - If a command fails because no active project is set, explain that clearly and guide the user to `yanzi project use`.
    - `yanzi capture` accepts stdin as the prompt source, but stdin conflicts with `--prompt` and `--prompt-file`.
+   - responses remain explicit with `--response` or `--response-file`; prompt-side stdin only is intentional.
    - `yanzi list` and `yanzi checkpoint list` print project headers and tab-separated columns.
    - If you are unsure which export or logging pattern the repo expects, inspect the docs first.
 

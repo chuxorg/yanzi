@@ -136,3 +136,4 @@ Operational notes:
 - `yanzi list` and `yanzi checkpoint list` print project headers and tab-separated columns
 - `yanzi rehydrate --format json` is the structured continuity output for automation
 - stdin is accepted as the prompt source for `yanzi capture`, but it conflicts with `--prompt` and `--prompt-file`
+- responses remain explicit with `--response` or `--response-file`; stdin prompt-only capture is intentional for deterministic input handling

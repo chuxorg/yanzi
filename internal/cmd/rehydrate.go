@@ -25,6 +25,7 @@ type rehydrateJSONPayload struct {
 	Fallback       bool                     `json:"fallback"`
 	FallbackReason string                   `json:"fallback_reason,omitempty"`
 	FallbackLimit  int                      `json:"fallback_limit,omitempty"`
+	IntentCount    int                      `json:"intent_count"`
 	Checkpoint     *rehydrateJSONCheckpoint `json:"checkpoint,omitempty"`
 	Intents        []rehydrateJSONIntent    `json:"intents"`
 }
@@ -127,17 +128,19 @@ func RunRehydrate(args []string) error {
 }
 
 func renderRehydrateDryRun(payload *yanzilibrary.RehydratePayload) {
-	fmt.Printf("Project: %s\n", payload.Project)
+	fmt.Printf("Project: %s\n\n", payload.Project)
+	fmt.Println("Rehydrate Preview")
+	fmt.Println("Order: oldest -> newest")
 	if payload.LatestCheckpoint != nil {
-		fmt.Printf("Checkpoints to load: %d\n", 1)
+		fmt.Println("Checkpoint status: found")
+		fmt.Printf("Checkpoint summary: %s\n", payload.LatestCheckpoint.Summary)
 		fmt.Printf("Context count: %d\n", len(payload.LatestCheckpoint.ArtifactIDs))
-		fmt.Printf("Last checkpoint summary: %s\n", payload.LatestCheckpoint.Summary)
-		fmt.Printf("Intents to load: %d\n", len(payload.Intents))
+		fmt.Printf("Continuity captures: %d\n", len(payload.Intents))
 		return
 	}
 
 	fmt.Println("Checkpoint status: missing")
-	fmt.Printf("Fallback captures to load: %d\n", len(payload.Intents))
+	fmt.Printf("Fallback captures: %d\n", len(payload.Intents))
 	fmt.Printf("Fallback window: last %d captures\n", payload.FallbackLimit)
 }
 
@@ -159,6 +162,8 @@ func renderRehydrateText(payload *yanzilibrary.RehydratePayload) {
 		fmt.Printf("Showing last %d captures instead.\n\n", payload.FallbackLimit)
 		fmt.Println("Recent Continuity")
 	}
+	fmt.Println("Order: oldest -> newest")
+	fmt.Printf("Captures: %d\n", len(intents))
 
 	if len(intents) == 0 {
 		fmt.Println("(none)")
@@ -194,6 +199,7 @@ func renderRehydrateJSON(payload *yanzilibrary.RehydratePayload) error {
 		HasCheckpoint: payload.LatestCheckpoint != nil,
 		Fallback:      payload.Fallback,
 		FallbackLimit: payload.FallbackLimit,
+		IntentCount:   len(payload.Intents),
 		Intents:       make([]rehydrateJSONIntent, 0, len(payload.Intents)),
 	}
 	if payload.FallbackReason != "" {

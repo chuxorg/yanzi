@@ -61,6 +61,8 @@ If you already cloned `chuxorg/yanzi`, you can also run:
 ./scripts/install.sh
 ```
 
+That wrapper installs the current checkout and requires Go >= 1.25.
+
 Windows:
 
 1. Download `yanzi-windows-amd64.zip` from the latest release.
@@ -108,6 +110,7 @@ yanzi message pull --to claude --channel handoff
 ## Docs
 
 - Website and overview: [https://chuxorg.github.io/yanzi/](https://chuxorg.github.io/yanzi/)
+- Demo flow: [https://chuxorg.github.io/yanzi/demo-flow/](https://chuxorg.github.io/yanzi/demo-flow/)
 - Quickstart: [https://chuxorg.github.io/yanzi/quickstart/](https://chuxorg.github.io/yanzi/quickstart/)
 - CLI reference: [https://chuxorg.github.io/yanzi/cli/](https://chuxorg.github.io/yanzi/cli/)
 - Install: [https://chuxorg.github.io/yanzi/install/](https://chuxorg.github.io/yanzi/install/)

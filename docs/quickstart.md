@@ -60,6 +60,7 @@ Notes:
 
 - `yanzi list` scopes to the active project by default and prints tab-separated columns
 - `yanzi rehydrate --format json` is the machine-readable continuity form
+- stdin capture feeds the prompt only; responses stay explicit with `--response` or `--response-file`
 
 ## Optional: Message Channel
 

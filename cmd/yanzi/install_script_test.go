@@ -58,6 +58,36 @@ func TestScriptsInstallWrapperSucceeds(t *testing.T) {
 	}
 }
 
+func TestScriptsInstallWrapperBuildsLocalSource(t *testing.T) {
+	home := t.TempDir()
+	installDir := filepath.Join(home, "bin")
+	goCacheRoot := filepath.Join(os.TempDir(), "yanzi-install-script-test-local-source")
+	_ = os.RemoveAll(goCacheRoot)
+	t.Cleanup(func() {
+		_ = exec.Command("/bin/sh", "-c", "chmod -R u+w "+shellQuote(goCacheRoot)+" 2>/dev/null || true").Run()
+		_ = os.RemoveAll(goCacheRoot)
+	})
+
+	output := runInstallScript(t, filepath.Join("..", "..", "scripts", "install.sh"), map[string]string{
+		"HOME":              home,
+		"PATH":              os.Getenv("PATH"),
+		"SHELL":             "/bin/sh",
+		"YANZI_INSTALL_DIR": installDir,
+		"GOCACHE":           filepath.Join(goCacheRoot, "cache"),
+		"GOMODCACHE":        filepath.Join(goCacheRoot, "modcache"),
+	})
+
+	if !strings.Contains(output, "Yanzi local checkout installed successfully.") {
+		t.Fatalf("expected local-checkout install output, got %q", output)
+	}
+	if !strings.Contains(output, "yanzi ") {
+		t.Fatalf("expected installed version output, got %q", output)
+	}
+	if _, err := os.Stat(filepath.Join(installDir, "yanzi")); err != nil {
+		t.Fatalf("expected installed local binary: %v", err)
+	}
+}
+
 func TestInstallScriptFailsWhenReleaseMetadataIsEmpty(t *testing.T) {
 	home := t.TempDir()
 	releaseJSON := filepath.Join(home, "release.json")
@@ -186,4 +216,8 @@ func flattenEnv(overrides map[string]string) []string {
 		env = append(env, key+"="+value)
 	}
 	return env
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\"'\"'") + "'"
 }

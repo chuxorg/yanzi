@@ -61,6 +61,15 @@ yanzi capture \
   --meta area=docs
 ```
 
+Capture from stdin:
+
+```bash
+echo "Need to validate the reconnect edge cases." \
+  | yanzi capture --author "Ada" --response "Focus on retry timing and clock skew." --meta area=auth
+```
+
+stdin currently supports the prompt side only. Responses remain explicit with `--response` or `--response-file`.
+
 ## Create a Checkpoint
 
 ```bash
@@ -89,6 +98,7 @@ yanzi message pull --to claude --channel handoff
 ```bash
 yanzi rehydrate --dry-run
 yanzi rehydrate
+yanzi rehydrate --format json
 ```
 
 ## Next

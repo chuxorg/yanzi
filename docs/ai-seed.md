@@ -41,6 +41,7 @@ YANZI_LOG.html
 * Use HTML UI for inspection and review
 * Always preserve intent fidelity (do not summarize before capture)
 * `yanzi rehydrate --format json` is the machine-readable recovery path
+* stdin capture is prompt-side only; responses remain explicit for deterministic capture behavior
 
 ## Goal
 

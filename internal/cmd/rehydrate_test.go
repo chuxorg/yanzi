@@ -103,6 +103,9 @@ func TestRehydrateWithRichArtifacts(t *testing.T) {
 	if !strings.Contains(output, "Post-Checkpoint Continuity") {
 		t.Fatalf("missing continuity header: %q", output)
 	}
+	if !strings.Contains(output, "Order: oldest -> newest") || !strings.Contains(output, "Captures: 1") {
+		t.Fatalf("missing continuity summary: %q", output)
+	}
 	if !strings.Contains(output, "[1] 2025-01-01T00:00:01Z") {
 		t.Fatalf("missing artifact index/timestamp: %q", output)
 	}
@@ -146,6 +149,9 @@ func TestRehydrateNoArtifacts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunRehydrate: %v", err)
 	}
+	if !strings.Contains(output, "Captures: 0") {
+		t.Fatalf("expected zero-count summary, got %q", output)
+	}
 	if !strings.Contains(output, "(none)") {
 		t.Fatalf("expected none output, got %q", output)
 	}
@@ -176,10 +182,12 @@ func TestRehydrateDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunRehydrate dry-run: %v", err)
 	}
-	if !strings.Contains(output, "Checkpoints to load: 1") ||
+	if !strings.Contains(output, "Rehydrate Preview") ||
+		!strings.Contains(output, "Order: oldest -> newest") ||
+		!strings.Contains(output, "Checkpoint status: found") ||
 		!strings.Contains(output, "Context count: 2") ||
-		!strings.Contains(output, "Last checkpoint summary: first checkpoint") ||
-		!strings.Contains(output, "Intents to load: 1") {
+		!strings.Contains(output, "Checkpoint summary: first checkpoint") ||
+		!strings.Contains(output, "Continuity captures: 1") {
 		t.Fatalf("unexpected dry-run output: %q", output)
 	}
 }
@@ -231,6 +239,9 @@ func TestRehydrateNoCheckpointFallsBack(t *testing.T) {
 	if !strings.Contains(output, "Showing last 10 captures instead.") {
 		t.Fatalf("missing fallback limit text: %q", output)
 	}
+	if !strings.Contains(output, "Order: oldest -> newest") || !strings.Contains(output, "Captures: 10") {
+		t.Fatalf("missing fallback continuity summary: %q", output)
+	}
 	if strings.Contains(output, "[11]") || strings.Contains(output, "2025-01-01T00:00:01Z") || strings.Contains(output, "2025-01-01T00:00:02Z") {
 		t.Fatalf("expected fallback window to cap output: %q", output)
 	}
@@ -277,6 +288,9 @@ func TestRehydrateJSONOutput(t *testing.T) {
 
 	if payload["project"] != "alpha" {
 		t.Fatalf("unexpected project: %#v", payload["project"])
+	}
+	if payload["intent_count"] != float64(1) {
+		t.Fatalf("unexpected intent count: %#v", payload["intent_count"])
 	}
 	if payload["has_checkpoint"] != true || payload["fallback"] != false {
 		t.Fatalf("unexpected checkpoint/fallback flags: %#v", payload)
@@ -336,6 +350,9 @@ func TestRehydrateJSONFallbackOutput(t *testing.T) {
 	}
 	if payload["has_checkpoint"] != false || payload["fallback"] != true {
 		t.Fatalf("unexpected fallback flags: %#v", payload)
+	}
+	if payload["intent_count"] != float64(1) {
+		t.Fatalf("unexpected fallback intent count: %#v", payload["intent_count"])
 	}
 	if payload["fallback_reason"] != yanzilibrary.ErrCheckpointNotFound.Error() {
 		t.Fatalf("unexpected fallback reason: %#v", payload["fallback_reason"])

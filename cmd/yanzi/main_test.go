@@ -113,6 +113,24 @@ func TestRunUnknownCommandReturnsExitCodeOne(t *testing.T) {
 	}
 }
 
+func TestPrintVersionOnlyPrintsVersion(t *testing.T) {
+	oldVersion := version
+	version = "vtest"
+	defer func() {
+		version = oldVersion
+	}()
+
+	output, err := captureStdout(t, func() error {
+		return printVersion()
+	})
+	if err != nil {
+		t.Fatalf("printVersion: %v", err)
+	}
+	if output != "yanzi vtest\n" {
+		t.Fatalf("unexpected version output: %q", output)
+	}
+}
+
 func captureStderr(t *testing.T, fn func()) string {
 	t.Helper()
 	old := os.Stderr
@@ -132,4 +150,25 @@ func captureStderr(t *testing.T, fn func()) string {
 	_, _ = io.Copy(&buf, r)
 	_ = r.Close()
 	return buf.String()
+}
+
+func captureStdout(t *testing.T, fn func() error) (string, error) {
+	t.Helper()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	defer func() {
+		os.Stdout = old
+	}()
+
+	runErr := fn()
+	_ = w.Close()
+
+	var buf bytes.Buffer
+	_, _ = io.Copy(&buf, r)
+	_ = r.Close()
+	return buf.String(), runErr
 }

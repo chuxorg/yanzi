@@ -42,6 +42,8 @@ If you already cloned the repository, you can run the same installer locally:
 ./scripts/install.sh
 ```
 
+The repo-local wrapper installs the current checkout instead of the latest published release. That keeps local branch testing deterministic, but it requires Go 1.25 or newer.
+
 ## Windows
 
 Download `yanzi-windows-amd64.zip` from the latest release.
