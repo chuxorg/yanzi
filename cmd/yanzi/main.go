@@ -157,6 +157,7 @@ list args:
   --source <source>       Optional source filter.
   --profile <name>        Optional profile filter.
   --meta k=v              Optional meta filter (repeatable; exact match; AND).
+  --all-projects          List records across every project.
   --include-deleted       Include tombstoned records.
   --limit <n>             Max records to return (default 20).
 
@@ -187,12 +188,12 @@ init args:
 
 intent args:
   add --title "..."     Add an intent artifact.
-  list                  List intent artifacts.
+  list                  List intent artifacts; add --all-projects for global retrieval.
 
 context args:
   add --type "..." --title "..." [--scope global|project]
                         Add a context artifact.
-  list                  List visible context artifacts.
+  list                  List visible context artifacts; add --all-projects for global retrieval.
   show <id>             Show a context artifact by id.
 
 pack args:
@@ -220,7 +221,7 @@ message args:
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
-  list                   List checkpoints for the active project.
+  list                   List checkpoints for the active project; add --all-projects for global retrieval.
 
 rehydrate args:
   (no args)             Rehydrate the active project context.

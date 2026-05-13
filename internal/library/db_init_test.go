@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/chuxorg/yanzi/internal/config"
 	_ "modernc.org/sqlite"
 )
 
@@ -113,6 +114,67 @@ func TestInitializeRecreatesDatabaseWhenDeleted(t *testing.T) {
 	}
 	if _, err := os.Stat(dbPath); err != nil {
 		t.Fatalf("stat recreated db: %v", err)
+	}
+}
+
+func TestInitDBUsesConfigDBPathWhenEnvMissing(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(config.LocalDBPathEnvVar, "")
+
+	configPath := filepath.Join(home, ".yanzi", "config.yaml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
+		t.Fatalf("mkdir config dir: %v", err)
+	}
+	configDBPath := filepath.Join(home, "data", "config.db")
+	if err := os.WriteFile(configPath, []byte("mode: local\ndb_path: "+configDBPath+"\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	if got := ResolvedDBPath(); got != configDBPath {
+		t.Fatalf("expected resolved config path %q, got %q", configDBPath, got)
+	}
+	if _, err := os.Stat(configDBPath); err != nil {
+		t.Fatalf("stat config db: %v", err)
+	}
+}
+
+func TestInitDBPrefersEnvOverrideOverConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	configPath := filepath.Join(home, ".yanzi", "config.yaml")
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
+		t.Fatalf("mkdir config dir: %v", err)
+	}
+	configDBPath := filepath.Join(home, "data", "config.db")
+	if err := os.WriteFile(configPath, []byte("mode: local\ndb_path: "+configDBPath+"\n"), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	envDBPath := filepath.Join(home, "override", "env.db")
+	t.Setenv(config.LocalDBPathEnvVar, envDBPath)
+
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	if got := ResolvedDBPath(); got != envDBPath {
+		t.Fatalf("expected env db path %q, got %q", envDBPath, got)
+	}
+	if _, err := os.Stat(envDBPath); err != nil {
+		t.Fatalf("stat env db: %v", err)
+	}
+	if _, err := os.Stat(configDBPath); !os.IsNotExist(err) {
+		t.Fatalf("expected config db to remain unused, stat err=%v", err)
 	}
 }
 

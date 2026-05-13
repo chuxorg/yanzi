@@ -110,6 +110,65 @@ func TestCreateContextArtifactSupportsGlobalAndProjectScope(t *testing.T) {
 	}
 }
 
+func TestListArtifactsAllProjectsAndVisibleContextAllProjects(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	if _, err := CreateProject("alpha", ""); err != nil {
+		t.Fatalf("CreateProject alpha: %v", err)
+	}
+	if _, err := CreateProject("beta", ""); err != nil {
+		t.Fatalf("CreateProject beta: %v", err)
+	}
+
+	if _, err := CreateArtifact("alpha", ArtifactClassIntent, "decision", "Alpha decision", "alpha", ""); err != nil {
+		t.Fatalf("CreateArtifact alpha: %v", err)
+	}
+	if _, err := CreateArtifact("beta", ArtifactClassIntent, "decision", "Beta decision", "beta", ""); err != nil {
+		t.Fatalf("CreateArtifact beta: %v", err)
+	}
+	if _, err := CreateContextArtifact("", "note", ContextScopeGlobal, "Global note", "global", ""); err != nil {
+		t.Fatalf("CreateContextArtifact global: %v", err)
+	}
+	if _, err := CreateContextArtifact("alpha", "reference", ContextScopeProject, "Alpha reference", "alpha", ""); err != nil {
+		t.Fatalf("CreateContextArtifact alpha context: %v", err)
+	}
+	if _, err := CreateContextArtifact("beta", "reference", ContextScopeProject, "Beta reference", "beta", ""); err != nil {
+		t.Fatalf("CreateContextArtifact beta context: %v", err)
+	}
+
+	intents, err := ListArtifactsAllProjects(ArtifactClassIntent, "decision", false)
+	if err != nil {
+		t.Fatalf("ListArtifactsAllProjects: %v", err)
+	}
+	if len(intents) != 2 {
+		t.Fatalf("expected 2 intent artifacts, got %d", len(intents))
+	}
+	if intents[0].Project == intents[1].Project {
+		t.Fatalf("expected artifacts from different projects, got %+v", intents)
+	}
+
+	contexts, err := ListVisibleContextArtifactsAllProjects("reference", "", false)
+	if err != nil {
+		t.Fatalf("ListVisibleContextArtifactsAllProjects: %v", err)
+	}
+	if len(contexts) != 2 {
+		t.Fatalf("expected 2 project references, got %d", len(contexts))
+	}
+
+	globalOnly, err := ListVisibleContextArtifactsAllProjects("", ContextScopeGlobal, false)
+	if err != nil {
+		t.Fatalf("ListVisibleContextArtifactsAllProjects global: %v", err)
+	}
+	if len(globalOnly) != 1 || globalOnly[0].Scope != ContextScopeGlobal {
+		t.Fatalf("expected single global artifact, got %+v", globalOnly)
+	}
+}
+
 func TestMigrationAddsArtifactColumns(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

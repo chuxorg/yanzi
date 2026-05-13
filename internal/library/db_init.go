@@ -13,11 +13,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/chuxorg/yanzi/internal/config"
 	_ "modernc.org/sqlite"
 )
 
 const (
-	envDBPath        = "YANZI_DB_PATH"
+	envDBPath        = config.LocalDBPathEnvVar
 	defaultDBDirName = ".yanzi"
 	defaultDBFile    = "yanzi.db"
 )
@@ -61,6 +62,11 @@ func InitDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	return InitDBAtPath(path)
+}
+
+// InitDBAtPath ensures migrations and returns a SQLite handle for the provided path.
+func InitDBAtPath(path string) (*sql.DB, error) {
 	db, _, err := openInitializedDB(path)
 	if err != nil {
 		return nil, err
@@ -84,23 +90,30 @@ func setResolvedDBPath(path string) {
 	resolvedMu.Unlock()
 }
 
-// resolveDBPath determines the SQLite path from YANZI_DB_PATH or the default ~/.yanzi/yanzi.db.
+// resolveDBPath determines the SQLite path using the shared CLI/library precedence rules.
 func resolveDBPath() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolve home dir: %w", err)
-	}
-
-	dir := filepath.Join(home, defaultDBDirName)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return "", fmt.Errorf("ensure db dir: %w", err)
-	}
-
-	if override := strings.TrimSpace(os.Getenv(envDBPath)); override != "" {
+	if override := strings.TrimSpace(os.Getenv(config.LocalDBPathEnvVar)); override != "" {
 		return override, nil
 	}
 
-	return filepath.Join(dir, defaultDBFile), nil
+	cfg, err := config.Load()
+	if err != nil {
+		return "", err
+	}
+
+	path, err := config.EffectiveLocalDBPath(cfg)
+	if err != nil {
+		return "", err
+	}
+
+	dir, err := config.StateDir()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", fmt.Errorf("ensure db dir: %w", err)
+	}
+	return path, nil
 }
 
 const schemaMigrationsTable = `

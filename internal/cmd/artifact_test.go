@@ -38,6 +38,9 @@ func TestRunIntentAddAndList(t *testing.T) {
 	if !strings.Contains(listOutput, "ID\tTYPE\tTITLE\tCREATED") {
 		t.Fatalf("unexpected list output: %q", listOutput)
 	}
+	if !strings.Contains(listOutput, "Project: alpha") {
+		t.Fatalf("expected project header in list output: %q", listOutput)
+	}
 	if !strings.Contains(listOutput, "Export direction") {
 		t.Fatalf("expected listed artifact: %q", listOutput)
 	}
@@ -172,8 +175,78 @@ func TestRunContextListShowsVisibleArtifacts(t *testing.T) {
 	if !strings.Contains(output, "ID\tTYPE\tSCOPE\tPROJECT\tTITLE\tCREATED") {
 		t.Fatalf("unexpected output: %q", output)
 	}
+	if !strings.Contains(output, "Project: alpha") {
+		t.Fatalf("expected project header in context output: %q", output)
+	}
 	if !strings.Contains(output, "Global note") || !strings.Contains(output, "Project requirement") {
 		t.Fatalf("expected visible artifacts in list: %q", output)
+	}
+}
+
+func TestRunIntentListAllProjects(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, home, "alpha")
+
+	if _, err := captureStdout(func() error {
+		return RunIntent([]string{"add", "--type", "decision", "--title", "Alpha Decision", "--content", "alpha"})
+	}); err != nil {
+		t.Fatalf("RunIntent add alpha: %v", err)
+	}
+
+	writeStateFile(t, home, "beta")
+	if _, err := captureStdout(func() error {
+		return RunIntent([]string{"add", "--type", "decision", "--title", "Beta Decision", "--content", "beta"})
+	}); err != nil {
+		t.Fatalf("RunIntent add beta: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunIntent([]string{"list", "--all-projects", "--type", "decision"})
+	})
+	if err != nil {
+		t.Fatalf("RunIntent list all projects: %v", err)
+	}
+	if !strings.Contains(output, "Project: All projects") {
+		t.Fatalf("expected all-projects header: %q", output)
+	}
+	if !strings.Contains(output, "ID\tPROJECT\tTYPE\tTITLE\tCREATED") {
+		t.Fatalf("expected project column in output: %q", output)
+	}
+	if !strings.Contains(output, "Alpha Decision") || !strings.Contains(output, "Beta Decision") {
+		t.Fatalf("expected both project artifacts: %q", output)
+	}
+}
+
+func TestRunContextListAllProjects(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, home, "alpha")
+
+	if _, err := yanzilibrary.CreateContextArtifact("alpha", "reference", yanzilibrary.ContextScopeProject, "Alpha Ref", "alpha", ""); err != nil {
+		t.Fatalf("CreateContextArtifact alpha: %v", err)
+	}
+	if _, err := yanzilibrary.CreateContextArtifact("beta", "reference", yanzilibrary.ContextScopeProject, "Beta Ref", "beta", ""); err != nil {
+		t.Fatalf("CreateContextArtifact beta: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunContext([]string{"list", "--all-projects", "--type", "reference"})
+	})
+	if err != nil {
+		t.Fatalf("RunContext list all projects: %v", err)
+	}
+	if !strings.Contains(output, "Project: All projects") {
+		t.Fatalf("expected all-projects header: %q", output)
+	}
+	if !strings.Contains(output, "Alpha Ref") || !strings.Contains(output, "Beta Ref") {
+		t.Fatalf("expected both project contexts: %q", output)
 	}
 }
 
