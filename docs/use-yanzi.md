@@ -16,6 +16,8 @@ Install:
 brew install chuxorg/yanzi/yanzi
 ```
 
+Requires Go >= 1.25 for source builds.
+
 Basic workflow:
 
 ```bash

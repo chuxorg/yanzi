@@ -106,6 +106,8 @@ yanzi --version
 If it is missing, install from:
 
 - Homebrew: `brew install chuxorg/yanzi/yanzi`
+- Canonical repository: `chuxorg/yanzi`
+- Source builds require Go >= 1.25
 - Releases: https://github.com/chuxorg/yanzi/releases
 
 ## Project Setup

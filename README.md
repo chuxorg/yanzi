@@ -37,16 +37,28 @@ Artifacts are collapsible, search is built in, and checkpoints are separated in 
 
 ## Install
 
+Requires Go >= 1.25 for source builds.
+
+Canonical GitHub repository: `chuxorg/yanzi`
+
 macOS:
 
 ```bash
 brew install chuxorg/yanzi/yanzi
 ```
 
-macOS or Linux install script:
+macOS or Linux installer:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
+curl -fL -o /tmp/yanzi-install.sh https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh
+test -s /tmp/yanzi-install.sh
+sh /tmp/yanzi-install.sh
+```
+
+If you already cloned `chuxorg/yanzi`, you can also run:
+
+```bash
+./scripts/install.sh
 ```
 
 Windows:

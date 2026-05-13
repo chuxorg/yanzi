@@ -8,6 +8,8 @@ Release artifacts are published at:
 
 - https://github.com/chuxorg/yanzi/releases
 
+Requires Go >= 1.25 for source builds. Ubuntu LTS images often ship an older Go toolchain, so prefer the release installer or install a newer Go from go.dev before building from source.
+
 ## macOS (Homebrew - Recommended)
 
 Install using Homebrew:
@@ -18,13 +20,27 @@ brew install chuxorg/yanzi/yanzi
 
 ## macOS / Linux Install Script
 
-Install the latest release directly from GitHub:
+Install the latest release directly from the canonical repository `chuxorg/yanzi`:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
+curl -fL -o /tmp/yanzi-install.sh https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh
+test -s /tmp/yanzi-install.sh
+sh /tmp/yanzi-install.sh
 ```
 
-The script detects OS and architecture, downloads the matching release asset from `https://github.com/chuxorg/yanzi/releases/latest`, and installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise.
+The installer now:
+
+- checks for required shell tools before downloading anything
+- validates supported OS and architecture explicitly
+- downloads into temp files before execution
+- fails if metadata or release assets are missing or empty
+- installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise
+
+If you already cloned the repository, you can run the same installer locally:
+
+```bash
+./scripts/install.sh
+```
 
 ## Windows
 
@@ -48,6 +64,8 @@ Download the appropriate release artifact from the latest release:
 For macOS and Linux:
 
 ```bash
+ASSET=yanzi-darwin-arm64 # replace with the downloaded asset name
+mv "$ASSET" yanzi
 chmod +x yanzi
 ./yanzi --version
 ```
@@ -57,6 +75,17 @@ For Windows, extract the zip and run:
 ```powershell
 .\yanzi.exe --version
 ```
+
+## Source Build
+
+If you need a local build instead of a release artifact:
+
+```bash
+go version
+go install github.com/chuxorg/yanzi/cmd/yanzi@latest
+```
+
+`go version` must report Go 1.25 or newer.
 
 ## Verify Installation
 
