@@ -225,6 +225,7 @@ checkpoint args:
 rehydrate args:
   (no args)             Rehydrate the active project context.
   --dry-run             Preview the checkpoint/context load without rehydrating.
+  --format text|json    Render human-readable or machine-readable output.
 
 export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
