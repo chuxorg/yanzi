@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/client"
@@ -19,6 +20,7 @@ func RunList(args []string) error {
 	source := fs.String("source", "", "source filter")
 	profile := fs.String("profile", "", "profile filter")
 	limit := fs.Int("limit", 20, "max records to return")
+	allProjects := fs.Bool("all-projects", false, "list records across every project")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
@@ -35,6 +37,7 @@ func RunList(args []string) error {
 	}
 
 	var intents []client.IntentRecord
+	scopeLabel := "All projects"
 	switch cfg.Mode {
 	case config.ModeHTTP:
 		cli := client.New(cfg.BaseURL)
@@ -51,6 +54,22 @@ func RunList(args []string) error {
 		}
 		defer db.Close()
 
+		activeProject, err := loadActiveProject()
+		if err != nil {
+			return err
+		}
+		if !*allProjects {
+			activeProject = strings.TrimSpace(activeProject)
+			if activeProject == "" {
+				return fmt.Errorf("no active project set")
+			}
+			if explicitProject, ok := metaFilters["project"]; ok && strings.TrimSpace(explicitProject) != activeProject {
+				return fmt.Errorf("--meta project=%s conflicts with active project %s; use --all-projects for cross-project retrieval", strings.TrimSpace(explicitProject), activeProject)
+			}
+			metaFilters["project"] = activeProject
+			scopeLabel = activeProject
+		}
+
 		localIntents, err := listLocalIntents(ctx, db, *author, *source, *limit, map[string]string(metaFilters), *includeDeleted)
 		if err != nil {
 			return err
@@ -60,9 +79,30 @@ func RunList(args []string) error {
 		return fmt.Errorf("invalid mode: %s", cfg.Mode)
 	}
 
-	fmt.Println("ID\tCreated_At\tAuthor\tSource\tTitle\tMetadata")
+	sort.SliceStable(intents, func(i, j int) bool {
+		if intents[i].CreatedAt == intents[j].CreatedAt {
+			return intents[i].ID > intents[j].ID
+		}
+		return intents[i].CreatedAt > intents[j].CreatedAt
+	})
+
+	fmt.Printf("Project: %s\n\n", scopeLabel)
+	if *allProjects {
+		fmt.Println("ID\tCreated_At\tProject\tAuthor\tSource\tTitle\tMetadata")
+	} else {
+		fmt.Println("ID\tCreated_At\tAuthor\tSource\tTitle\tMetadata")
+	}
+	if len(intents) == 0 {
+		fmt.Println("(none)")
+		return nil
+	}
 	for _, intent := range intents {
-		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\n", intent.ID, intent.CreatedAt, intent.Author, intent.SourceType, intent.Title, formatListMetadata(intent.Meta))
+		metadata := formatListMetadata(intent.Meta)
+		if *allProjects {
+			fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n", intent.ID, intent.CreatedAt, fallbackProject(intent.Meta), intent.Author, intent.SourceType, intent.Title, metadata)
+			continue
+		}
+		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\n", intent.ID, intent.CreatedAt, intent.Author, intent.SourceType, intent.Title, metadata)
 	}
 
 	return nil
@@ -85,6 +125,18 @@ func formatListMetadata(raw []byte) string {
 		parts = append(parts, key+"="+meta[key])
 	}
 	return strings.Join(parts, "; ")
+}
+
+func fallbackProject(raw []byte) string {
+	meta, err := decodeStringMeta(string(raw))
+	if err != nil {
+		return "-"
+	}
+	project := strings.TrimSpace(meta["project"])
+	if project == "" {
+		return "-"
+	}
+	return project
 }
 
 type metaPairs map[string]string

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
@@ -21,6 +20,16 @@ func writeTestConfig(t *testing.T, home string) {
 		t.Fatalf("create state dir: %v", err)
 	}
 	dbPath := filepath.Join(stateDir, "yanzi.db")
+	writeTestConfigWithDBPath(t, home, dbPath)
+}
+
+func writeTestConfigWithDBPath(t *testing.T, home, dbPath string) {
+	t.Helper()
+
+	stateDir := filepath.Join(home, ".yanzi")
+	if err := os.MkdirAll(stateDir, 0o700); err != nil {
+		t.Fatalf("create state dir: %v", err)
+	}
 	configPath := filepath.Join(stateDir, "config.yaml")
 	content := []byte("mode: local\ndb_path: " + dbPath + "\n")
 	if err := os.WriteFile(configPath, content, 0o600); err != nil {
@@ -48,14 +57,6 @@ func writeStateFile(t *testing.T, dir, project string) {
 
 func createTestProject(t *testing.T, name string) {
 	t.Helper()
-
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatalf("load config: %v", err)
-	}
-	if err := os.Setenv("YANZI_DB_PATH", cfg.DBPath); err != nil {
-		t.Fatalf("set YANZI_DB_PATH: %v", err)
-	}
 
 	if _, err := yanzilibrary.CreateProject(name, ""); err != nil {
 		t.Fatalf("create project: %v", err)

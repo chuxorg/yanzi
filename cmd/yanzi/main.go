@@ -12,90 +12,95 @@ import (
 var version = "dev"
 
 func main() {
-	if len(os.Args) < 2 {
+	os.Exit(run(os.Args[1:]))
+}
+
+func run(args []string) int {
+	if len(args) < 1 {
 		usage()
-		os.Exit(1)
+		return 1
 	}
 
 	initialized, err := yanzilibrary.Initialize()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return 1
 	}
 	if initialized {
 		fmt.Println("Yanzi initialized at ~/.yanzi")
 	}
 
-	if os.Args[1] == "--version" {
+	if args[0] == "--version" {
 		if err := printVersion(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return 1
 		}
-		return
+		return 0
 	}
 
-	if isHelpArg(os.Args[1]) {
+	if isHelpArg(args[0]) {
 		usage()
-		return
+		return 0
 	}
 
 	err = nil
-	switch os.Args[1] {
+	switch args[0] {
 	case "capture":
-		err = cmd.RunCapture(os.Args[2:])
+		err = cmd.RunCapture(args[1:])
 	case "verify":
-		err = cmd.RunVerify(os.Args[2:])
+		err = cmd.RunVerify(args[1:])
 	case "chain":
-		err = cmd.RunChain(os.Args[2:])
+		err = cmd.RunChain(args[1:])
 	case "list":
-		err = cmd.RunList(os.Args[2:])
+		err = cmd.RunList(args[1:])
 	case "show":
-		err = cmd.RunShow(os.Args[2:])
+		err = cmd.RunShow(args[1:])
 	case "delete":
-		err = cmd.RunDelete(os.Args[2:])
+		err = cmd.RunDelete(args[1:])
 	case "restore":
-		err = cmd.RunRestore(os.Args[2:])
+		err = cmd.RunRestore(args[1:])
 	case "mode":
-		err = cmd.RunMode(os.Args[2:])
+		err = cmd.RunMode(args[1:])
 	case "project":
-		err = cmd.RunProject(os.Args[2:])
+		err = cmd.RunProject(args[1:])
 	case "init":
-		err = cmd.RunInit(os.Args[2:])
+		err = cmd.RunInit(args[1:])
 	case "intent":
-		err = cmd.RunIntent(os.Args[2:])
+		err = cmd.RunIntent(args[1:])
 	case "context":
-		err = cmd.RunContext(os.Args[2:])
+		err = cmd.RunContext(args[1:])
 	case "pack":
-		err = cmd.RunPack(os.Args[2:])
+		err = cmd.RunPack(args[1:])
 	case "bootstrap":
-		err = cmd.RunBootstrap(os.Args[2:])
+		err = cmd.RunBootstrap(args[1:])
 	case "rules":
-		err = cmd.RunRules(os.Args[2:], version)
+		err = cmd.RunRules(args[1:], version)
 	case "types":
-		err = cmd.RunTypes(os.Args[2:])
+		err = cmd.RunTypes(args[1:])
 	case "message":
-		err = cmd.RunMessage(os.Args[2:])
+		err = cmd.RunMessage(args[1:])
 	case "checkpoint":
-		err = cmd.RunCheckpoint(os.Args[2:])
+		err = cmd.RunCheckpoint(args[1:])
 	case "rehydrate":
-		err = cmd.RunRehydrate(os.Args[2:])
+		err = cmd.RunRehydrate(args[1:])
 	case "export":
-		err = cmd.RunExport(os.Args[2:], version)
+		err = cmd.RunExport(args[1:], version)
 	case "version":
 		if err := printVersion(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return 1
 		}
-		return
+		return 0
 	default:
-		usage()
-		os.Exit(1)
+		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
+		return 1
 	}
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 func usage() {
@@ -152,6 +157,7 @@ list args:
   --source <source>       Optional source filter.
   --profile <name>        Optional profile filter.
   --meta k=v              Optional meta filter (repeatable; exact match; AND).
+  --all-projects          List records across every project.
   --include-deleted       Include tombstoned records.
   --limit <n>             Max records to return (default 20).
 
@@ -182,12 +188,12 @@ init args:
 
 intent args:
   add --title "..."     Add an intent artifact.
-  list                  List intent artifacts.
+  list                  List intent artifacts; add --all-projects for global retrieval.
 
 context args:
   add --type "..." --title "..." [--scope global|project]
                         Add a context artifact.
-  list                  List visible context artifacts.
+  list                  List visible context artifacts; add --all-projects for global retrieval.
   show <id>             Show a context artifact by id.
 
 pack args:
@@ -215,24 +221,21 @@ message args:
 
 checkpoint args:
   create --summary "..." Create a checkpoint for the active project.
-  list                   List checkpoints for the active project.
+  list                   List checkpoints for the active project; add --all-projects for global retrieval.
 
 rehydrate args:
   (no args)             Rehydrate the active project context.
   --dry-run             Preview the checkpoint/context load without rehydrating.
+  --format text|json    Render human-readable or machine-readable output.
 
 export args:
   --format markdown     Export active project history to ./YANZI_LOG.md.
   --format json         Generates YANZI_LOG.json in project root.
   --format html         Generates YANZI_LOG.html in project root.
   --format claude-context Generates CLAUDE_CONTEXT.md in project root.
-                        Default format when omitted.
-  --type a,b            Optional context type filter list.
+                        Required.
   --profile <name>      Optional profile filter.
   --meta key=value      Optional metadata filter (repeatable; exact match; AND).
-  --fields a,b          Optional context field list.
-  --order <field>       Deterministic order field: created_at|updated_at.
-  --limit <n>           Optional result limit after filtering.
   --include-deleted     Include tombstoned records.
 
 notes:
@@ -282,7 +285,6 @@ examples:
   yanzi export --format json
   yanzi export --format html
   yanzi export --format claude-context
-  yanzi export --meta pack=vibe-coder --limit 3
   yanzi version`)
 }
 

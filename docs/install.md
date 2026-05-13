@@ -16,15 +16,15 @@ Install using Homebrew:
 brew install chuxorg/yanzi/yanzi
 ```
 
-## Linux (Debian / Ubuntu)
+## macOS / Linux Install Script
 
-Download the `.deb` package from the latest release.
-
-Install:
+Install the latest release directly from GitHub:
 
 ```bash
-sudo dpkg -i yanzi_<version>_amd64.deb
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
 ```
+
+The script detects OS and architecture, downloads the matching release asset from `https://github.com/chuxorg/yanzi/releases/latest`, and installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise.
 
 ## Windows
 
@@ -58,14 +58,6 @@ For Windows, extract the zip and run:
 .\yanzi.exe --version
 ```
 
-## Install Script (Optional)
-
-For quick setup on macOS or Linux:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/chux-yanzi-cli/main/install.sh | bash
-```
-
 ## Verify Installation
 
 Run:
@@ -85,3 +77,4 @@ yanzi vX.Y.Z
 - Yanzi runs locally by default.
 - No services or infrastructure are required.
 - HTTP mode is optional and not required for most workflows.
+- Homebrew upgrades depend on the tap formula being refreshed. If `brew upgrade yanzi` does not install the latest release yet, use the install script instead.

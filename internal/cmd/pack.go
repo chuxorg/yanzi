@@ -40,10 +40,6 @@ type packEntry struct {
 // Arguments:
 //
 //	args starts with `apply` or `export` followed by the corresponding flags.
-//
-// Example:
-//
-//	yanzi pack apply vibe-coder.yaml
 func RunPack(args []string) error {
 	if len(args) == 0 {
 		return errors.New("usage: yanzi pack <apply|export> [args]")

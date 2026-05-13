@@ -85,6 +85,40 @@ func TestRunRulesListFiltersByProfile(t *testing.T) {
 	}
 }
 
+func TestRunRulesListFiltersByScope(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeTestConfig(t, workdir)
+	createTestProject(t, "alpha")
+	writeStateFile(t, workdir, "alpha")
+
+	globalRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	projectRules := filepath.Join(workdir, "PROJECT_RULES.md")
+	_ = os.WriteFile(globalRules, []byte("# Global\n"), 0o644)
+	_ = os.WriteFile(projectRules, []byte("# Project\n"), 0o644)
+
+	if err := RunRules([]string{"add", globalRules, "--scope", "global"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add global: %v", err)
+	}
+	if err := RunRules([]string{"add", projectRules, "--scope", "project"}, "v1.0.0"); err != nil {
+		t.Fatalf("RunRules add project: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunRules([]string{"list", "--scope", "global"}, "v1.0.0")
+	})
+	if err != nil {
+		t.Fatalf("RunRules list scope: %v", err)
+	}
+	if !strings.Contains(output, "SYSTEM_RULES.md") || !strings.Contains(output, "scope=global") {
+		t.Fatalf("expected global rule in output: %q", output)
+	}
+	if strings.Contains(output, "PROJECT_RULES.md") || strings.Contains(output, "scope=project") {
+		t.Fatalf("did not expect project rule in global scope output: %q", output)
+	}
+}
+
 func TestRunRulesExportFiltersByProfile(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)

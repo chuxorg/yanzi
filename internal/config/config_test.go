@@ -112,3 +112,46 @@ func TestLoadRejectsMultipleDocuments(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestEffectiveLocalDBPathPrefersEnvOverride(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(LocalDBPathEnvVar, "/tmp/yanzi-env.db")
+
+	path, err := EffectiveLocalDBPath(Config{DBPath: "/tmp/yanzi-config.db"})
+	if err != nil {
+		t.Fatalf("EffectiveLocalDBPath: %v", err)
+	}
+	if path != "/tmp/yanzi-env.db" {
+		t.Fatalf("expected env path, got %q", path)
+	}
+}
+
+func TestEffectiveLocalDBPathFallsBackToConfig(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(LocalDBPathEnvVar, "")
+
+	path, err := EffectiveLocalDBPath(Config{DBPath: "/tmp/yanzi-config.db"})
+	if err != nil {
+		t.Fatalf("EffectiveLocalDBPath: %v", err)
+	}
+	if path != "/tmp/yanzi-config.db" {
+		t.Fatalf("expected config path, got %q", path)
+	}
+}
+
+func TestEffectiveLocalDBPathFallsBackToDefault(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(LocalDBPathEnvVar, "")
+
+	path, err := EffectiveLocalDBPath(Config{})
+	if err != nil {
+		t.Fatalf("EffectiveLocalDBPath: %v", err)
+	}
+	want := filepath.Join(home, ".yanzi", "yanzi.db")
+	if path != want {
+		t.Fatalf("expected default path %q, got %q", want, path)
+	}
+}

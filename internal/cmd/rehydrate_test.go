@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -49,7 +51,7 @@ const (
 );`
 )
 
-func TestRehydrateWithArtifacts(t *testing.T) {
+func TestRehydrateWithRichArtifacts(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
 	withCwd(t, workdir)
@@ -59,8 +61,31 @@ func TestRehydrateWithArtifacts(t *testing.T) {
 
 	seedProject(t, db, "alpha")
 	seedCheckpoint(t, db, "alpha", "2025-01-01T00:00:00Z", "first checkpoint")
-	seedIntent(t, db, "01", "2025-01-01T00:00:01Z", "alpha")
-	seedIntent(t, db, "02", "2025-01-01T00:00:02Z", "alpha")
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "01",
+		CreatedAt: "2025-01-01T00:00:01Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Title:     "JWT validation edge cases",
+		Prompt:    strings.Repeat("Need to determine why refresh tokens fail after reconnect. ", 5),
+		Response:  strings.Repeat("Issue appears related to clock skew and token leeway handling. ", 5),
+		Meta: map[string]string{
+			"project": "alpha",
+			"area":    "auth",
+			"phase":   "validation",
+		},
+	})
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "other-project",
+		CreatedAt: "2025-01-01T00:00:02Z",
+		Project:   "beta",
+		Author:    "Byron",
+		Prompt:    "should not appear",
+		Response:  "should not appear",
+		Meta: map[string]string{
+			"project": "beta",
+		},
+	})
 
 	output, err := captureStdout(func() error {
 		return RunRehydrate([]string{})
@@ -72,31 +97,35 @@ func TestRehydrateWithArtifacts(t *testing.T) {
 	if !strings.Contains(output, "Project: alpha") {
 		t.Fatalf("missing project: %q", output)
 	}
-	if !strings.Contains(output, "Latest Checkpoint:") {
-		t.Fatalf("missing checkpoint header: %q", output)
+	if !strings.Contains(output, "Checkpoint") || !strings.Contains(output, "Summary: first checkpoint") {
+		t.Fatalf("missing checkpoint block: %q", output)
 	}
-	if !strings.Contains(output, "* CreatedAt: 2025-01-01T00:00:00Z") {
-		t.Fatalf("missing created_at: %q", output)
+	if !strings.Contains(output, "Post-Checkpoint Continuity") {
+		t.Fatalf("missing continuity header: %q", output)
 	}
-	if !strings.Contains(output, "* Summary: first checkpoint") {
-		t.Fatalf("missing summary: %q", output)
+	if !strings.Contains(output, "[1] 2025-01-01T00:00:01Z") {
+		t.Fatalf("missing artifact index/timestamp: %q", output)
 	}
-
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	var artifactLines []string
-	for _, line := range lines {
-		if strings.HasPrefix(line, "1. ") || strings.HasPrefix(line, "2. ") {
-			artifactLines = append(artifactLines, line)
-		}
+	if !strings.Contains(output, "Author: Ada") {
+		t.Fatalf("missing author: %q", output)
 	}
-	if len(artifactLines) != 2 {
-		t.Fatalf("expected 2 artifacts, got %v", artifactLines)
+	if !strings.Contains(output, "Title: JWT validation edge cases") {
+		t.Fatalf("missing title: %q", output)
 	}
-	if !strings.Contains(artifactLines[0], "01 2025-01-01T00:00:01Z intent") {
-		t.Fatalf("unexpected first artifact: %q", artifactLines[0])
+	if !strings.Contains(output, "Prompt:\nNeed to determine why refresh tokens fail") {
+		t.Fatalf("missing prompt snippet: %q", output)
 	}
-	if !strings.Contains(artifactLines[1], "02 2025-01-01T00:00:02Z intent") {
-		t.Fatalf("unexpected second artifact: %q", artifactLines[1])
+	if !strings.Contains(output, "...") {
+		t.Fatalf("expected truncation ellipsis: %q", output)
+	}
+	if !strings.Contains(output, "Response:\nIssue appears related to clock skew") {
+		t.Fatalf("missing response snippet: %q", output)
+	}
+	if !strings.Contains(output, "Meta:\narea=auth phase=validation project=alpha") {
+		t.Fatalf("missing metadata summary: %q", output)
+	}
+	if strings.Contains(output, "other-project") || strings.Contains(output, "should not appear") {
+		t.Fatalf("unexpected cross-project continuity in output: %q", output)
 	}
 }
 
@@ -132,6 +161,14 @@ func TestRehydrateDryRun(t *testing.T) {
 
 	seedProject(t, db, "alpha")
 	seedCheckpointWithArtifacts(t, db, "alpha", "2025-01-01T00:00:00Z", "first checkpoint", []string{"ctx-1", "ctx-2"})
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "dry-run-1",
+		CreatedAt: "2025-01-01T00:00:01Z",
+		Project:   "alpha",
+		Prompt:    "prompt",
+		Response:  "response",
+		Meta:      map[string]string{"project": "alpha"},
+	})
 
 	output, err := captureStdout(func() error {
 		return RunRehydrate([]string{"--dry-run"})
@@ -139,7 +176,10 @@ func TestRehydrateDryRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunRehydrate dry-run: %v", err)
 	}
-	if !strings.Contains(output, "Checkpoints to load: 1") || !strings.Contains(output, "Context count: 2") || !strings.Contains(output, "Last checkpoint summary: first checkpoint") {
+	if !strings.Contains(output, "Checkpoints to load: 1") ||
+		!strings.Contains(output, "Context count: 2") ||
+		!strings.Contains(output, "Last checkpoint summary: first checkpoint") ||
+		!strings.Contains(output, "Intents to load: 1") {
 		t.Fatalf("unexpected dry-run output: %q", output)
 	}
 }
@@ -158,7 +198,7 @@ func TestRehydrateNoActiveProject(t *testing.T) {
 	}
 }
 
-func TestRehydrateNoCheckpoint(t *testing.T) {
+func TestRehydrateNoCheckpointFallsBack(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
 	withCwd(t, workdir)
@@ -167,13 +207,141 @@ func TestRehydrateNoCheckpoint(t *testing.T) {
 	defer db.Close()
 
 	seedProject(t, db, "alpha")
-
-	err := RunRehydrate([]string{})
-	if err == nil {
-		t.Fatal("expected error")
+	for i := 1; i <= 12; i++ {
+		seedIntentRecord(t, db, rehydrateSeedIntent{
+			ID:        fmtID("cap", i),
+			CreatedAt: fmtTimestamp(i),
+			Project:   "alpha",
+			Author:    "Ada",
+			Prompt:    "prompt " + fmtID("", i),
+			Response:  "response " + fmtID("", i),
+			Meta:      map[string]string{"project": "alpha"},
+		})
 	}
-	if !strings.Contains(err.Error(), "no checkpoint") {
-		t.Fatalf("unexpected error: %v", err)
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate fallback: %v", err)
+	}
+	if !strings.Contains(output, "Warning: No checkpoint found for active project.") {
+		t.Fatalf("missing fallback warning: %q", output)
+	}
+	if !strings.Contains(output, "Showing last 10 captures instead.") {
+		t.Fatalf("missing fallback limit text: %q", output)
+	}
+	if strings.Contains(output, "[11]") || strings.Contains(output, "2025-01-01T00:00:01Z") || strings.Contains(output, "2025-01-01T00:00:02Z") {
+		t.Fatalf("expected fallback window to cap output: %q", output)
+	}
+	if !strings.Contains(output, "[1] 2025-01-01T00:00:03Z") || !strings.Contains(output, "[10] 2025-01-01T00:00:12Z") {
+		t.Fatalf("expected chronological fallback window: %q", output)
+	}
+}
+
+func TestRehydrateJSONOutput(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedCheckpointWithArtifacts(t, db, "alpha", "2025-01-01T00:00:00Z", "first checkpoint", []string{"ctx-1"})
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "json-1",
+		CreatedAt: "2025-01-01T00:00:01Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Title:     "JSON example",
+		Prompt:    "Prompt body",
+		Response:  "Response body",
+		Meta: map[string]string{
+			"project": "alpha",
+			"area":    "auth",
+		},
+	})
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{"--format", "json"})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate json: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(output), &payload); err != nil {
+		t.Fatalf("decode json output: %v\noutput=%s", err, output)
+	}
+
+	if payload["project"] != "alpha" {
+		t.Fatalf("unexpected project: %#v", payload["project"])
+	}
+	if payload["has_checkpoint"] != true || payload["fallback"] != false {
+		t.Fatalf("unexpected checkpoint/fallback flags: %#v", payload)
+	}
+	checkpoint, ok := payload["checkpoint"].(map[string]any)
+	if !ok || checkpoint["summary"] != "first checkpoint" {
+		t.Fatalf("unexpected checkpoint payload: %#v", payload["checkpoint"])
+	}
+	intents, ok := payload["intents"].([]any)
+	if !ok || len(intents) != 1 {
+		t.Fatalf("unexpected intents payload: %#v", payload["intents"])
+	}
+	intent, ok := intents[0].(map[string]any)
+	if !ok {
+		t.Fatalf("unexpected intent entry: %#v", intents[0])
+	}
+	if intent["id"] != "json-1" || intent["title"] != "JSON example" {
+		t.Fatalf("unexpected intent identity: %#v", intent)
+	}
+	if intent["prompt_snippet"] != "Prompt body" || intent["response_snippet"] != "Response body" {
+		t.Fatalf("unexpected snippets: %#v", intent)
+	}
+	metadata, ok := intent["metadata"].(map[string]any)
+	if !ok || metadata["area"] != "auth" || metadata["project"] != "alpha" {
+		t.Fatalf("unexpected metadata: %#v", intent["metadata"])
+	}
+}
+
+func TestRehydrateJSONFallbackOutput(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "fallback-json-1",
+		CreatedAt: "2025-01-01T00:00:01Z",
+		Project:   "alpha",
+		Prompt:    "Prompt body",
+		Response:  "Response body",
+		Meta:      map[string]string{"project": "alpha"},
+	})
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{"--format", "json"})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate json fallback: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(output), &payload); err != nil {
+		t.Fatalf("decode json output: %v\noutput=%s", err, output)
+	}
+	if payload["has_checkpoint"] != false || payload["fallback"] != true {
+		t.Fatalf("unexpected fallback flags: %#v", payload)
+	}
+	if payload["fallback_reason"] != yanzilibrary.ErrCheckpointNotFound.Error() {
+		t.Fatalf("unexpected fallback reason: %#v", payload["fallback_reason"])
+	}
+	if payload["checkpoint"] != nil {
+		t.Fatalf("did not expect checkpoint object: %#v", payload["checkpoint"])
 	}
 }
 
@@ -225,21 +393,41 @@ func seedCheckpointWithArtifacts(t *testing.T, db *sql.DB, project, createdAt, s
 	}
 }
 
-func seedIntent(t *testing.T, db *sql.DB, id, createdAt, project string) {
+type rehydrateSeedIntent struct {
+	ID        string
+	CreatedAt string
+	Project   string
+	Author    string
+	Title     string
+	Prompt    string
+	Response  string
+	Meta      map[string]string
+}
+
+func seedIntentRecord(t *testing.T, db *sql.DB, input rehydrateSeedIntent) {
 	t.Helper()
-	meta, err := json.Marshal(map[string]string{"project": project})
+
+	meta := input.Meta
+	if meta == nil {
+		meta = map[string]string{"project": input.Project}
+	}
+	metaJSON, err := json.Marshal(meta)
 	if err != nil {
 		t.Fatalf("encode meta: %v", err)
 	}
+	author := input.Author
+	if author == "" {
+		author = "tester"
+	}
 	record := model.IntentRecord{
-		ID:         id,
-		CreatedAt:  createdAt,
-		Author:     "tester",
+		ID:         input.ID,
+		CreatedAt:  input.CreatedAt,
+		Author:     author,
 		SourceType: "cli",
-		Title:      "",
-		Prompt:     "prompt",
-		Response:   "response",
-		Meta:       meta,
+		Title:      input.Title,
+		Prompt:     input.Prompt,
+		Response:   input.Response,
+		Meta:       metaJSON,
 		PrevHash:   "",
 	}
 	sum, err := hash.HashIntent(record)
@@ -254,7 +442,7 @@ func seedIntent(t *testing.T, db *sql.DB, id, createdAt, project string) {
 		record.CreatedAt,
 		record.Author,
 		record.SourceType,
-		nil,
+		nullIfEmpty(record.Title),
 		record.Prompt,
 		record.Response,
 		string(record.Meta),
@@ -264,6 +452,24 @@ func seedIntent(t *testing.T, db *sql.DB, id, createdAt, project string) {
 	if err != nil {
 		t.Fatalf("seed intent: %v", err)
 	}
+}
+
+func nullIfEmpty(value string) any {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
+}
+
+func fmtID(prefix string, n int) string {
+	if prefix == "" {
+		return strconv.Itoa(n)
+	}
+	return prefix + "-" + strconv.Itoa(n)
+}
+
+func fmtTimestamp(second int) string {
+	return "2025-01-01T00:00:" + fmt.Sprintf("%02d", second) + "Z"
 }
 
 func withCwd(t *testing.T, dir string) {

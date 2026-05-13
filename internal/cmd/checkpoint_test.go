@@ -59,11 +59,17 @@ func TestCheckpointListEmpty(t *testing.T) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if len(lines) != 1 {
+	if len(lines) != 4 {
 		t.Fatalf("expected header only, got %q", output)
 	}
-	if lines[0] != "Index\tCreatedAt\tSummary" {
-		t.Fatalf("unexpected header: %q", lines[0])
+	if lines[0] != "Project: alpha" {
+		t.Fatalf("unexpected project header: %q", lines[0])
+	}
+	if lines[2] != "CreatedAt\tSummary" {
+		t.Fatalf("unexpected table header: %q", lines[2])
+	}
+	if lines[3] != "(none)" {
+		t.Fatalf("expected empty marker, got %q", lines[3])
 	}
 }
 
@@ -84,6 +90,36 @@ func TestCheckpointListPopulated(t *testing.T) {
 	}
 	if !strings.Contains(output, "first") || !strings.Contains(output, "second") {
 		t.Fatalf("expected summaries in output, got %q", output)
+	}
+	if !strings.Contains(output, "Project: alpha") {
+		t.Fatalf("expected project header in output, got %q", output)
+	}
+}
+
+func TestCheckpointListAllProjects(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	createTestProject(t, "beta")
+	writeStateFile(t, home, "alpha")
+	createTestCheckpoint(t, "alpha", "alpha checkpoint")
+	createTestCheckpoint(t, "beta", "beta checkpoint")
+
+	output, err := captureStdout(func() error {
+		return RunCheckpoint([]string{"list", "--all-projects"})
+	})
+	if err != nil {
+		t.Fatalf("RunCheckpoint list all projects: %v", err)
+	}
+	if !strings.Contains(output, "Project: All projects") {
+		t.Fatalf("expected all-projects header, got %q", output)
+	}
+	if !strings.Contains(output, "Project\tCreatedAt\tSummary") {
+		t.Fatalf("expected all-projects table header, got %q", output)
+	}
+	if !strings.Contains(output, "alpha checkpoint") || !strings.Contains(output, "beta checkpoint") {
+		t.Fatalf("expected checkpoints from both projects, got %q", output)
 	}
 }
 

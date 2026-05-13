@@ -10,10 +10,10 @@ macOS:
 brew install chuxorg/yanzi/yanzi
 ```
 
-Linux:
+macOS or Linux install script:
 
 ```bash
-sudo dpkg -i yanzi_*.deb
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
 ```
 
 Windows:

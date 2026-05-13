@@ -93,28 +93,50 @@ func runIntentList(args []string) error {
 	fs := flag.NewFlagSet("intent list", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	artifactType := fs.String("type", "", "artifact type filter")
+	allProjects := fs.Bool("all-projects", false, "list artifacts across every project")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi intent list [--type <type>]")
+		return errors.New("usage: yanzi intent list [--type <type>] [--all-projects]")
 	}
 
-	project, err := loadActiveProject()
+	project := ""
+	scopeLabel := "All projects"
+	var artifacts []yanzilibrary.Artifact
+	var err error
+	if *allProjects {
+		artifacts, err = yanzilibrary.ListArtifactsAllProjects(yanzilibrary.ArtifactClassIntent, *artifactType, false)
+	} else {
+		project, err = loadActiveProject()
+		if err != nil {
+			return err
+		}
+		if project == "" {
+			return errors.New("no active project set")
+		}
+		scopeLabel = project
+		artifacts, err = yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, *artifactType, false)
+	}
 	if err != nil {
 		return err
 	}
-	if project == "" {
-		return errors.New("no active project set")
-	}
 
-	artifacts, err := yanzilibrary.ListArtifacts(project, yanzilibrary.ArtifactClassIntent, *artifactType, false)
-	if err != nil {
-		return err
+	fmt.Printf("Project: %s\n\n", scopeLabel)
+	if *allProjects {
+		fmt.Println("ID\tPROJECT\tTYPE\tTITLE\tCREATED")
+	} else {
+		fmt.Println("ID\tTYPE\tTITLE\tCREATED")
 	}
-
-	fmt.Println("ID\tTYPE\tTITLE\tCREATED")
+	if len(artifacts) == 0 {
+		fmt.Println("(none)")
+		return nil
+	}
 	for _, artifact := range artifacts {
+		if *allProjects {
+			fmt.Printf("%s\t%s\t%s\t%s\t%s\n", artifact.ID, displayProject(artifact.Project), artifact.Type, artifact.Title, artifact.CreatedAt)
+			continue
+		}
 		fmt.Printf("%s\t%s\t%s\t%s\n", artifact.ID, artifact.Type, artifact.Title, artifact.CreatedAt)
 	}
 	return nil
@@ -217,25 +239,47 @@ func runContextList(args []string) error {
 	artifactType := fs.String("type", "", "context type filter")
 	scope := fs.String("scope", "", "context scope filter")
 	project := fs.String("project", "", "project filter")
+	allProjects := fs.Bool("all-projects", false, "list visible context across every project")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if len(fs.Args()) != 0 {
-		return errors.New("usage: yanzi context list [--type <type>] [--scope <global|project>] [--project <name>]")
+		return errors.New("usage: yanzi context list [--type <type>] [--scope <global|project>] [--project <name>] [--all-projects]")
 	}
 	*artifactType = normalizeContextType(*artifactType)
+	if *allProjects && strings.TrimSpace(*project) != "" {
+		return errors.New("--project cannot be used with --all-projects")
+	}
 
 	activeProject, err := loadActiveProject()
 	if err != nil {
 		return err
 	}
 
-	artifacts, err := yanzilibrary.ListVisibleContextArtifacts(activeProject, *artifactType, *scope, *project, false)
+	scopeLabel := activeProject
+	if strings.TrimSpace(scopeLabel) == "" {
+		scopeLabel = "Global visibility"
+	}
+	var artifacts []yanzilibrary.Artifact
+	if *allProjects {
+		scopeLabel = "All projects"
+		artifacts, err = yanzilibrary.ListVisibleContextArtifactsAllProjects(*artifactType, *scope, false)
+	} else {
+		artifacts, err = yanzilibrary.ListVisibleContextArtifacts(activeProject, *artifactType, *scope, *project, false)
+		if strings.TrimSpace(*project) != "" {
+			scopeLabel = strings.TrimSpace(*project)
+		}
+	}
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("Project: %s\n\n", scopeLabel)
 	fmt.Println("ID\tTYPE\tSCOPE\tPROJECT\tTITLE\tCREATED")
+	if len(artifacts) == 0 {
+		fmt.Println("(none)")
+		return nil
+	}
 	for _, artifact := range artifacts {
 		fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\n", shortArtifactID(artifact.ID), artifact.Type, artifact.Scope, displayProject(artifact.Project), artifact.Title, artifact.CreatedAt)
 	}

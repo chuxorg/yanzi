@@ -6,10 +6,11 @@ Projects require consistent rules and context before work begins.
 
 ## Approach
 
-Apply a Pack:
+Capture shared rules explicitly:
 
 ```bash
-yanzi pack apply vibe-coder.yaml
+yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
+yanzi rules export --format markdown
 ```
 
 ## Result
@@ -18,4 +19,4 @@ All agents start with shared rules and context.
 
 ## Note
 
-Yanzi does not enforce structure. Packs are optional.
+Yanzi does not enforce structure. Teams choose which rules to capture and export.
