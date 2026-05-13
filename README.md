@@ -73,6 +73,9 @@ yanzi capture \
   --author "Ada" \
   --prompt "Summarize the current task" \
   --response "Add distribution docs and validate examples."
+
+echo "Need to validate auth edge cases" \
+  | yanzi capture --author "Ada" --response "Clock skew appears likely." --meta area=auth
 ```
 
 Create a checkpoint and preview rehydration:
@@ -80,6 +83,7 @@ Create a checkpoint and preview rehydration:
 ```bash
 yanzi checkpoint create --summary "Initial project state"
 yanzi rehydrate --dry-run
+yanzi rehydrate --format json
 ```
 
 Optional message example:

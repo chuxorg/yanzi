@@ -99,3 +99,28 @@ func captureStdout(fn func() error) (string, error) {
 
 	return buf.String(), runErr
 }
+
+func withStdin(t *testing.T, input string, fn func()) {
+	t.Helper()
+
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe stdin: %v", err)
+	}
+
+	if _, err := io.WriteString(writer, input); err != nil {
+		t.Fatalf("write stdin: %v", err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close stdin writer: %v", err)
+	}
+
+	stdin := os.Stdin
+	os.Stdin = reader
+	defer func() {
+		os.Stdin = stdin
+		_ = reader.Close()
+	}()
+
+	fn()
+}

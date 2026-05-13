@@ -68,18 +68,27 @@ yanzi capture \
   --prompt-file prompt.txt \
   --response-file response.txt \
   --meta area=docs
+
+echo "Need to validate auth edge cases" \
+  | yanzi capture --author "Ada" --response "Clock skew appears likely." --meta area=auth
 ```
 
 ### Flags
 
 - `--author <name>` required
-- `--prompt <text>` or `--prompt-file <path>` required
+- `--prompt <text>`, `--prompt-file <path>`, or stdin required for the prompt
 - `--response <text>` or `--response-file <path>` required
 - `--title <title>` optional
 - `--source <source>` optional, default `cli`
 - `--profile <name>` optional
 - `--prev-hash <hash>` optional
 - `--meta key=value` optional and repeatable
+
+Behavior:
+
+- stdin is accepted as the prompt source when neither `--prompt` nor `--prompt-file` is set
+- stdin conflicts with `--prompt` and `--prompt-file`
+- capture confirmation prints deterministic `id:` and `hash:` lines
 
 ## checkpoint
 
@@ -104,6 +113,11 @@ yanzi checkpoint list --all-projects
 - `create --summary "..."` required summary for a new checkpoint
 - `list --all-projects` optional cross-project retrieval
 
+Output:
+
+- `checkpoint list` prints a project header plus tab-separated columns
+- `checkpoint create` prints deterministic `id:` and `summary:` lines
+
 ## rehydrate
 
 ### Problem
@@ -124,6 +138,12 @@ yanzi rehydrate
 ### Flags
 
 - `--dry-run` preview what would load
+- `--format text|json` render human-readable or machine-readable output
+
+Output:
+
+- text mode prints readable continuity blocks in chronological order
+- json mode prints deterministic structured output for automation
 
 ## export
 
@@ -301,6 +321,12 @@ Example:
 yanzi list --limit 10
 yanzi list --all-projects
 ```
+
+Output:
+
+- `list` prints a `Project: ...` header followed by tab-separated columns
+- `list --all-projects` adds a `Project` column for cross-project clarity
+- ordering is newest-first and deterministic
 
 ## local db resolution
 

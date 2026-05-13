@@ -10,9 +10,11 @@ If Yanzi is not installed:
 
 For every meaningful interaction:
 
-1. Save the user prompt to a file
-2. Save your response to a file
-3. Run:
+1. Prefer direct capture when the prompt is already available in the terminal stream
+2. Fall back to files when prompt/response content is already stored on disk
+3. Run one of:
+
+echo "user prompt text" | yanzi capture --author "Agent" --response "agent response text"
 
 yanzi capture --author "Agent" --prompt-file prompt.txt --response-file response.txt
 
@@ -37,6 +39,7 @@ YANZI_LOG.html
 * Use CLI for logging and automation
 * Use HTML UI for inspection and review
 * Always preserve intent fidelity (do not summarize before capture)
+* `yanzi rehydrate --format json` is the machine-readable recovery path
 
 ## Goal
 

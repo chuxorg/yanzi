@@ -34,6 +34,9 @@ yanzi capture \
   --author "Ada" \
   --prompt "Summarize the current task" \
   --response "Set up the project and record the first state."
+
+echo "Need to validate auth edge cases" \
+  | yanzi capture --author "Ada" --response "Clock skew appears likely." --meta area=auth
 ```
 
 ## 4. Create a Checkpoint
@@ -48,6 +51,11 @@ yanzi checkpoint create --summary "Initial project state"
 yanzi rehydrate --dry-run
 yanzi rehydrate
 ```
+
+Notes:
+
+- `yanzi list` scopes to the active project by default and prints tab-separated columns
+- `yanzi rehydrate --format json` is the machine-readable continuity form
 
 ## Optional: Message Channel
 

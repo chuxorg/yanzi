@@ -66,6 +66,7 @@ Follow this protocol:
      - yanzi project list
    - Capture prompt/response work:
      - yanzi capture --author "<name>" --prompt "<text>" --response "<text>"
+     - echo "<prompt text>" | yanzi capture --author "<name>" --response "<text>"
      - yanzi capture --author "<name>" --prompt-file prompt.txt --response-file response.txt
      - Optional metadata:
        - --meta area=auth
@@ -94,6 +95,7 @@ Follow this protocol:
      - yanzi export --format html --open
    - Rehydrate:
      - yanzi rehydrate
+     - yanzi rehydrate --format json
 
 10. Use rules/context logging correctly.
    - If the repository has governing rules, policy files, or reusable instructions that should be recorded in Yanzi, prefer:
@@ -131,6 +133,8 @@ Follow this protocol:
    - Do not invent Yanzi features, schemas, or automation.
    - Do not claim Yanzi automatically applies rules unless the repo explicitly documents that behavior.
    - If a command fails because no active project is set, explain that clearly and guide the user to `yanzi project use`.
+   - `yanzi capture` accepts stdin as the prompt source, but stdin conflicts with `--prompt` and `--prompt-file`.
+   - `yanzi list` and `yanzi checkpoint list` print project headers and tab-separated columns.
    - If you are unsure which export or logging pattern the repo expects, inspect the docs first.
 
 14. First response behavior after initialization.

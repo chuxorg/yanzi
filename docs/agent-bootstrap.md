@@ -67,6 +67,13 @@ Commands:
 
 ## Current Examples
 
+Capture with stdin:
+
+```bash
+echo "Need to validate auth edge cases" \
+  | yanzi capture --author "Ada" --response "Clock skew appears likely." --meta area=auth
+```
+
 Capture with files:
 
 ```bash
@@ -121,3 +128,9 @@ If context is lost:
 ```bash
 yanzi rehydrate
 ```
+
+Operational notes:
+
+- `yanzi list` and `yanzi checkpoint list` print project headers and tab-separated columns
+- `yanzi rehydrate --format json` is the structured continuity output for automation
+- stdin is accepted as the prompt source for `yanzi capture`, but it conflicts with `--prompt` and `--prompt-file`

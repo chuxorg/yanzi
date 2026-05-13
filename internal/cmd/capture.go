@@ -62,24 +62,35 @@ func RunCapture(args []string) error {
 	if *author == "" {
 		return errors.New("--author is required")
 	}
-	promptInline := promptFlag.set
-	promptFromFile := *promptFile != ""
-	if promptInline == promptFromFile {
-		return errors.New("exactly one of --prompt or --prompt-file must be provided")
-	}
-	responseInline := respFlag.set
-	responseFromFile := *respFile != ""
-	if responseInline == responseFromFile {
-		return errors.New("exactly one of --response or --response-file must be provided")
-	}
-
 	hasStdin, err := stdinHasData()
 	if err != nil {
 		return err
 	}
 
-	if hasStdin {
-		return errors.New("stdin is not supported; use --prompt or --prompt-file")
+	promptInline := promptFlag.set
+	promptFromFile := *promptFile != ""
+	promptFromStdin := hasStdin
+	promptSources := 0
+	if promptInline {
+		promptSources++
+	}
+	if promptFromFile {
+		promptSources++
+	}
+	if promptFromStdin {
+		promptSources++
+	}
+	if promptSources != 1 {
+		if promptFromStdin && (promptInline || promptFromFile) {
+			return errors.New("stdin conflicts with --prompt/--prompt-file; provide exactly one prompt source")
+		}
+		return errors.New("provide exactly one prompt source: --prompt, --prompt-file, or stdin")
+	}
+
+	responseInline := respFlag.set
+	responseFromFile := *respFile != ""
+	if responseInline == responseFromFile {
+		return errors.New("exactly one of --response or --response-file must be provided")
 	}
 
 	var promptContent []byte
@@ -92,8 +103,14 @@ func RunCapture(args []string) error {
 			return fmt.Errorf("read prompt file: %w", err)
 		}
 		promptContent = content
+	case promptFromStdin:
+		content, err := readPromptFromStdin()
+		if err != nil {
+			return err
+		}
+		promptContent = content
 	default:
-		return errors.New("prompt must be provided via --prompt or --prompt-file")
+		return errors.New("prompt must be provided via --prompt, --prompt-file, or stdin")
 	}
 
 	var responseContent []byte

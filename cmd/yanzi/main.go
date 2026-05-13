@@ -136,8 +136,8 @@ global args:
 
 capture args:
   --author <name>         Required author name.
-  --prompt <text>         Prompt text (exclusive with --prompt-file).
-  --prompt-file <path>    Prompt file path (exclusive with --prompt).
+  --prompt <text>         Prompt text (exclusive with --prompt-file and stdin).
+  --prompt-file <path>    Prompt file path (exclusive with --prompt and stdin).
   --response <text>       Response text (exclusive with --response-file).
   --response-file <path>  Response file path (exclusive with --response).
   --title <title>         Optional title.
@@ -145,6 +145,7 @@ capture args:
   --profile <name>        Optional profile label.
   --prev-hash <hash>      Optional previous hash.
   --meta key=value        Optional metadata (repeatable).
+                        Prompt may also be piped on stdin.
 
 verify args:
   <intent-id>             Intent id to verify.
@@ -240,12 +241,15 @@ export args:
 
 notes:
   mode set to http does not start libraryd.
+  list and checkpoint list use tab-separated columns for deterministic parsing.
+  rehydrate --format json is the machine-readable continuity output.
 
 examples:
   yanzi --help
   yanzi --version
   yanzi capture --author "Ada" --prompt-file prompt.txt --response-file response.txt --meta lang=go
   yanzi capture --author "Ada" --prompt "Hello" --response "World" --profile engineer
+  echo "Need auth review" | yanzi capture --author "Ada" --response "Clock skew is likely" --meta area=auth
   yanzi capture --author "Ada" --prompt "Hello" --response "World"
   yanzi verify 01HZX9Q4X8N9JZ1K2G9N8M4V3P
   yanzi chain 01HZX9Q4X8N9JZ1K2G9N8M4V3P

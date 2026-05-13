@@ -78,8 +78,20 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "--meta key=value") {
 		t.Fatalf("expected capture metadata help text, got: %s", output)
 	}
+	if !strings.Contains(output, "Prompt may also be piped on stdin.") {
+		t.Fatalf("expected stdin capture help text, got: %s", output)
+	}
 	if !strings.Contains(output, "--format claude-context") {
 		t.Fatalf("expected claude-context help text, got: %s", output)
+	}
+	if !strings.Contains(output, "list and checkpoint list use tab-separated columns for deterministic parsing.") {
+		t.Fatalf("expected parsing stability note, got: %s", output)
+	}
+	if !strings.Contains(output, "rehydrate --format json is the machine-readable continuity output.") {
+		t.Fatalf("expected rehydrate json note, got: %s", output)
+	}
+	if !strings.Contains(output, "echo \"Need auth review\" | yanzi capture") {
+		t.Fatalf("expected stdin capture example, got: %s", output)
 	}
 	exportSection := output[strings.Index(output, "export args:"):]
 	if strings.Contains(exportSection, "--fields a,b") || strings.Contains(exportSection, "--order <field>") || strings.Contains(exportSection, "--limit <n>") {
