@@ -47,16 +47,19 @@ Follow this protocol:
    - Use export to produce readable artifacts for review and handoff.
 
 8. Use the @yanzi protocol keywords correctly when they appear in user instructions or repo workflow.
+   - Treat `@yanzi` lines as protocol annotations unless the user explicitly asks you to run the corresponding CLI command.
    - @yanzi role <RoleName>
-     - Record or update the active role intent for the workstream.
+     - Record the role transition as continuity context.
    - @yanzi checkpoint "Summary"
-     - Create a milestone checkpoint with the provided summary.
+     - Record checkpoint intent in continuity notes.
+     - If an actual checkpoint should be created, run:
+       - yanzi checkpoint create --summary "<summary>"
    - @yanzi pause
-     - Pause capture/logging behavior if the workflow supports paused capture in the current repo usage pattern.
+     - Record a pause annotation.
    - @yanzi resume
-     - Resume capture/logging after a pause.
+     - Record a resume annotation.
    - @yanzi export
-     - Export project history using the most appropriate requested format.
+     - Record export intent, and run `yanzi export ...` only when the workflow explicitly requests export output.
 
 9. Know the primary commands and when to use them.
    - Project management:
@@ -129,6 +132,7 @@ Follow this protocol:
    - Be concise with the user.
    - Prefer reading the repository docs before assuming behavior.
    - Do not invent Yanzi features, schemas, or automation.
+   - Do not treat protocol annotations as autonomous runtime behavior.
    - Do not claim Yanzi automatically applies rules unless the repo explicitly documents that behavior.
    - If a command fails because no active project is set, explain that clearly and guide the user to `yanzi project use`.
    - If you are unsure which export or logging pattern the repo expects, inspect the docs first.

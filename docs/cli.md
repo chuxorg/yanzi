@@ -114,6 +114,8 @@ Agents need the current project state without manually reconstructing it from ev
 
 `yanzi rehydrate` loads the latest checkpoint and the intent records that follow it.
 
+It also renders protocol annotations as non-executable continuity markers and surfaces open intent artifacts for unresolved work visibility.
+
 ### Example
 
 ```bash
@@ -124,6 +126,7 @@ yanzi rehydrate
 ### Flags
 
 - `--dry-run` preview what would load
+- `--format text|json` render human-readable or machine-readable continuity output
 
 ## export
 

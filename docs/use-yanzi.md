@@ -8,6 +8,8 @@ AI-assisted work loses state between sessions. Teams repeat context, miss decisi
 Impact:
 Yanzi gives teams a local record of captures, checkpoints, and handoff notes so project state is easier to review and recover.
 
+Yanzi is a deterministic continuity tool. It records what happened and renders it clearly later. It does not run hidden workflows in the background.
+
 ## For Engineers
 
 Install:
@@ -45,6 +47,8 @@ yanzi message pull --to claude --channel handoff
 ```
 
 That keeps the project context and handoff notes in one place while the code work continues outside Yanzi.
+
+For the continuity model and recovery expectations, see [Continuity Philosophy](continuity.md).
 
 ## Use Cases
 

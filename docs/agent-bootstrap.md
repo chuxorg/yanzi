@@ -16,13 +16,14 @@ For the user-facing walkthrough, see:
 - agents should declare a role at session start
 - if no role is declared, default to `Engineer`
 
-## Meta-Command Grammar
+## Protocol Annotation Grammar
 
-- meta-commands start at the beginning of the line
-- meta-commands use the prefix `@yanzi`
-- meta-commands are single-line commands
+- protocol annotations start at the beginning of the line
+- protocol annotations use the prefix `@yanzi`
+- protocol annotations are single-line records
+- protocol annotations are not hidden executable commands
 
-Supported meta-commands:
+Supported protocol annotations:
 
 - `@yanzi pause`
 - `@yanzi resume`
@@ -32,10 +33,10 @@ Supported meta-commands:
 
 ## State Rules
 
-- pause affects capture only
-- meta-commands are allowed while paused
-- state-changing commands should acknowledge execution
-- major structural decisions should be checkpointed
+- `@yanzi pause` and `@yanzi resume` are continuity markers only
+- protocol annotations are allowed while paused
+- if the workflow needs a real CLI action, run the explicit `yanzi ...` command separately
+- major structural decisions should still use `yanzi checkpoint create --summary "..."`
 
 ## Current Command Surface
 

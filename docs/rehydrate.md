@@ -13,6 +13,8 @@ It does four things:
 
 Default output includes the active project, checkpoint summary, and readable continuity blocks for each post-checkpoint capture with author, title, prompt snippet, response snippet, and metadata summary.
 
+It also surfaces protocol annotations explicitly and lists open intent artifacts so recovery output keeps unresolved work visible.
+
 If the active project has no checkpoint, the command warns and falls back to the latest capture window for that project instead of failing.
 
 `yanzi rehydrate --format json` prints the same rehydrate payload as machine-readable JSON, including checkpoint data when present and fallback indicators when a checkpoint is missing.

@@ -954,11 +954,21 @@ func renderContextFieldHTML(field string, artifact yanzilibrary.Artifact) string
 
 func renderMarkdownLog(project, cliVersion string, now time.Time, items []exportItem, captureCount int) string {
 	var b strings.Builder
+	latestCaptureID := ""
+	for _, item := range items {
+		if item.Kind == exportItemCapture {
+			latestCaptureID = item.CaptureID
+		}
+	}
 
 	b.WriteString("# Yanzi Agent Log\n\n")
 	b.WriteString(fmt.Sprintf("Project: %s\n", project))
 	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
-	b.WriteString(fmt.Sprintf("Version: %s\n\n", cliVersion))
+	b.WriteString(fmt.Sprintf("Version: %s\n", cliVersion))
+	if latestCaptureID != "" {
+		b.WriteString(fmt.Sprintf("Latest Continuity Point: %s\n", latestCaptureID))
+	}
+	b.WriteString("\n")
 	b.WriteString("---\n\n")
 
 	if len(items) == 0 && captureCount == 0 {
@@ -969,12 +979,19 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 	for _, item := range items {
 		switch item.Kind {
 		case exportItemCheckpoint:
-			b.WriteString(fmt.Sprintf("## Checkpoint: %s\n\n", item.CheckpointID))
+			b.WriteString(fmt.Sprintf("## Checkpoint Boundary: %s\n\n", item.CheckpointID))
 			b.WriteString(fmt.Sprintf("Summary: %s\n", item.Summary))
 			b.WriteString(fmt.Sprintf("Timestamp: %s\n", item.Timestamp))
+			b.WriteString("Role in recovery: deterministic rehydration anchor\n")
 			b.WriteString("----------------------\n\n")
 		case exportItemMeta:
-			b.WriteString(fmt.Sprintf("### Event: %s\n\n", item.Command))
+			protocol, _ := parseProtocolAnnotation(item.Command)
+			b.WriteString(fmt.Sprintf("### Protocol Annotation: %s\n\n", item.Command))
+			b.WriteString("Semantics: logging convention only\n")
+			b.WriteString(fmt.Sprintf("Annotation Type: %s\n", protocolKindLabel(protocol.Kind)))
+			if protocol.Argument != "" {
+				b.WriteString(fmt.Sprintf("Argument: %s\n", protocol.Argument))
+			}
 			if strings.TrimSpace(item.Value) != "" {
 				b.WriteString(fmt.Sprintf("Value: %s\n", item.Value))
 			}
@@ -982,6 +999,9 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 			b.WriteString("----------------------\n\n")
 		default:
 			b.WriteString(fmt.Sprintf("### Capture: %s\n\n", item.CaptureID))
+			if item.CaptureID == latestCaptureID {
+				b.WriteString("Status: latest continuity point\n")
+			}
 			b.WriteString(fmt.Sprintf("Role: %s\n", item.Role))
 			b.WriteString(fmt.Sprintf("Timestamp: %s\n", item.Timestamp))
 			b.WriteString(fmt.Sprintf("Hash: %s\n\n", item.Hash))
@@ -1033,10 +1053,14 @@ type jsonCaptureEvent struct {
 }
 
 type jsonMetaEvent struct {
-	Type      string `json:"type"`
-	Command   string `json:"command"`
-	Value     any    `json:"value"`
-	Timestamp string `json:"timestamp"`
+	Type       string `json:"type"`
+	Command    string `json:"command"`
+	Kind       string `json:"kind,omitempty"`
+	Argument   string `json:"argument,omitempty"`
+	Value      any    `json:"value"`
+	Executable bool   `json:"executable"`
+	Semantics  string `json:"semantics"`
+	Timestamp  string `json:"timestamp"`
 }
 
 func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem) ([]byte, error) {
@@ -1051,15 +1075,20 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 				Timestamp: item.Timestamp,
 			})
 		case exportItemMeta:
+			protocol, _ := parseProtocolAnnotation(item.Command)
 			var value any
 			if strings.TrimSpace(item.Value) != "" {
 				value = item.Value
 			}
 			events = append(events, jsonMetaEvent{
-				Type:      string(exportItemMeta),
-				Command:   item.Command,
-				Value:     value,
-				Timestamp: item.Timestamp,
+				Type:       string(exportItemMeta),
+				Command:    item.Command,
+				Kind:       protocolKindLabel(protocol.Kind),
+				Argument:   protocol.Argument,
+				Value:      value,
+				Executable: false,
+				Semantics:  protocolAnnotationSemantics,
+				Timestamp:  item.Timestamp,
 			})
 		default:
 			events = append(events, jsonCaptureEvent{
@@ -1094,16 +1123,21 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	totalEvents := len(items)
 	totalCaptures := 0
 	totalCheckpoints := 0
+	totalProtocolAnnotations := 0
 	latestCheckpointID := ""
 	latestCheckpointSummary := ""
+	latestCaptureID := ""
 	for _, item := range items {
 		switch item.Kind {
 		case exportItemCapture:
 			totalCaptures++
+			latestCaptureID = item.CaptureID
 		case exportItemCheckpoint:
 			totalCheckpoints++
 			latestCheckpointID = item.CheckpointID
 			latestCheckpointSummary = item.Summary
+		case exportItemMeta:
+			totalProtocolAnnotations++
 		}
 	}
 
@@ -1202,11 +1236,15 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	}
 	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
 	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Version:</span> %s</div>\n", html.EscapeString(cliVersion)))
+	if latestCaptureID != "" {
+		b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Latest continuity point:</span> <span class=\"mono-inline\">%s</span></div>\n", html.EscapeString(latestCaptureID)))
+	}
 	b.WriteString("      </div>\n")
 	b.WriteString("      <div class=\"counts\">\n")
 	b.WriteString(fmt.Sprintf("        <div class=\"count\">Total artifacts: %d</div>\n", totalCaptures))
 	b.WriteString(fmt.Sprintf("        <div class=\"count\">Total events: %d</div>\n", totalEvents))
 	b.WriteString(fmt.Sprintf("        <div class=\"count\">Checkpoints: %d</div>\n", totalCheckpoints))
+	b.WriteString(fmt.Sprintf("        <div class=\"count\">Protocol annotations: %d</div>\n", totalProtocolAnnotations))
 	b.WriteString("      </div>\n")
 	b.WriteString("    </div>\n")
 	b.WriteString("    <div class=\"toolbar\">\n")
@@ -1265,8 +1303,18 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 				b.WriteString("      </div>\n")
 				b.WriteString("      </section>\n")
 			case exportItemMeta:
+				protocol, _ := parseProtocolAnnotation(item.Command)
 				b.WriteString("      <section class=\"meta-event timeline-card\">\n")
-				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Event:</span> %s</div>\n", html.EscapeString(item.Command)))
+				b.WriteString("      <div class=\"badge-row\">\n")
+				b.WriteString("        <span class=\"badge badge-accent\">Protocol</span>\n")
+				b.WriteString("        <span class=\"badge badge-muted\">Annotation</span>\n")
+				b.WriteString(fmt.Sprintf("        <span class=\"badge badge-muted\">%s</span>\n", html.EscapeString(strings.ToUpper(protocolKindLabel(protocol.Kind)))))
+				b.WriteString("      </div>\n")
+				b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Protocol:</span> %s</div>\n", html.EscapeString(item.Command)))
+				b.WriteString("      <div><span class=\"label\">Semantics:</span> logging convention only</div>\n")
+				if protocol.Argument != "" {
+					b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Argument:</span> %s</div>\n", html.EscapeString(protocol.Argument)))
+				}
 				if strings.TrimSpace(item.Value) != "" {
 					b.WriteString(fmt.Sprintf("      <div><span class=\"label\">Value:</span> %s</div>\n", html.EscapeString(item.Value)))
 				}
@@ -1286,6 +1334,9 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 				b.WriteString("          </div>\n")
 				b.WriteString(fmt.Sprintf("          <p class=\"artifact-preview\">%s</p>\n", html.EscapeString(previewText(item.Prompt, 120))))
 				b.WriteString("          <div class=\"badge-row\">\n")
+				if item.CaptureID == latestCaptureID {
+					b.WriteString("            <span class=\"badge badge-accent\">Latest Continuity Point</span>\n")
+				}
 				for _, badge := range captureBadges(item) {
 					className := "badge badge-muted"
 					if badge == "SYSTEM RULE" || strings.HasPrefix(badge, "PROFILE:") || strings.HasPrefix(badge, "Role:") || strings.HasPrefix(badge, "Source:") {
@@ -1414,7 +1465,8 @@ func exportSearchText(item exportItem) string {
 		parts = append(parts, item.CheckpointID, item.Summary)
 		parts = append(parts, checkpointBadges(item)...)
 	case exportItemMeta:
-		parts = append(parts, item.Command, item.Value)
+		protocol, _ := parseProtocolAnnotation(item.Command)
+		parts = append(parts, item.Command, item.Value, protocolKindLabel(protocol.Kind), protocol.Argument, "logging convention only", "protocol annotation")
 	default:
 		parts = append(parts, item.CaptureID, item.Role, item.Source, item.Hash, item.Prompt, item.Response)
 		parts = append(parts, captureBadges(item)...)

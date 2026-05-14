@@ -239,6 +239,54 @@ func TestRehydrateNoCheckpointFallsBack(t *testing.T) {
 	}
 }
 
+func TestRehydrateProtocolAnnotationsAndOpenIntentArtifacts(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedCheckpoint(t, db, "alpha", "2025-01-01T00:00:00Z", "checkpoint 1")
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:         "evt-1",
+		CreatedAt:  "2025-01-01T00:00:01Z",
+		Project:    "alpha",
+		Author:     "Ada",
+		SourceType: "meta-command",
+		Prompt:     "@yanzi pause",
+		Response:   "true",
+		Meta:       map[string]string{"project": "alpha"},
+	})
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "task", "Investigate clock skew", "Review refresh token leeway handling.", `{"status":"open","priority":"high"}`); err != nil {
+		t.Fatalf("CreateArtifact open task: %v", err)
+	}
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "task", "Closed task", "Should not appear.", `{"status":"resolved"}`); err != nil {
+		t.Fatalf("CreateArtifact resolved task: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate protocol: %v", err)
+	}
+
+	if !strings.Contains(output, "Protocol Annotation: @yanzi pause") {
+		t.Fatalf("missing protocol annotation: %q", output)
+	}
+	if !strings.Contains(output, "Semantics: logging convention only") {
+		t.Fatalf("missing protocol semantics: %q", output)
+	}
+	if !strings.Contains(output, "Open Intent Artifacts") || !strings.Contains(output, "[task] Investigate clock skew") {
+		t.Fatalf("missing open intent artifact summary: %q", output)
+	}
+	if strings.Contains(output, "Closed task") {
+		t.Fatalf("did not expect resolved intent artifact: %q", output)
+	}
+}
+
 func TestRehydrateJSONOutput(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
@@ -345,6 +393,66 @@ func TestRehydrateJSONFallbackOutput(t *testing.T) {
 	}
 }
 
+func TestRehydrateJSONIncludesProtocolAndOpenIntents(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedCheckpoint(t, db, "alpha", "2025-01-01T00:00:00Z", "checkpoint 1")
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:         "evt-1",
+		CreatedAt:  "2025-01-01T00:00:01Z",
+		Project:    "alpha",
+		Author:     "Ada",
+		SourceType: "meta-command",
+		Prompt:     "@yanzi role Architect",
+		Response:   "recorded",
+		Meta:       map[string]string{"project": "alpha"},
+	})
+	if _, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "change_request", "Harden export continuity", "Improve protocol annotation visibility.", `{"status":"open"}`); err != nil {
+		t.Fatalf("CreateArtifact change request: %v", err)
+	}
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{"--format", "json"})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate json protocol: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(output), &payload); err != nil {
+		t.Fatalf("decode json output: %v\noutput=%s", err, output)
+	}
+	if payload["continuity_mode"] != "checkpoint" {
+		t.Fatalf("unexpected continuity_mode: %#v", payload["continuity_mode"])
+	}
+	intents := payload["intents"].([]any)
+	intent := intents[0].(map[string]any)
+	protocol := intent["protocol"].(map[string]any)
+	if protocol["kind"] != "role" || protocol["argument"] != "Architect" {
+		t.Fatalf("unexpected protocol payload: %#v", protocol)
+	}
+	if protocol["executable"] != false || protocol["semantics"] != "annotation_only" {
+		t.Fatalf("unexpected protocol semantics: %#v", protocol)
+	}
+	if intent["is_latest"] != true {
+		t.Fatalf("expected protocol annotation to be latest continuity point: %#v", intent)
+	}
+	openIntents := payload["open_intents"].([]any)
+	if len(openIntents) != 1 {
+		t.Fatalf("expected 1 open intent artifact, got %#v", openIntents)
+	}
+	openIntent := openIntents[0].(map[string]any)
+	if openIntent["type"] != "change_request" || openIntent["title"] != "Harden export continuity" {
+		t.Fatalf("unexpected open intent artifact: %#v", openIntent)
+	}
+}
+
 func openTestDB(t *testing.T, dir string) *sql.DB {
 	t.Helper()
 
@@ -394,14 +502,15 @@ func seedCheckpointWithArtifacts(t *testing.T, db *sql.DB, project, createdAt, s
 }
 
 type rehydrateSeedIntent struct {
-	ID        string
-	CreatedAt string
-	Project   string
-	Author    string
-	Title     string
-	Prompt    string
-	Response  string
-	Meta      map[string]string
+	ID         string
+	CreatedAt  string
+	Project    string
+	Author     string
+	SourceType string
+	Title      string
+	Prompt     string
+	Response   string
+	Meta       map[string]string
 }
 
 func seedIntentRecord(t *testing.T, db *sql.DB, input rehydrateSeedIntent) {
@@ -419,11 +528,15 @@ func seedIntentRecord(t *testing.T, db *sql.DB, input rehydrateSeedIntent) {
 	if author == "" {
 		author = "tester"
 	}
+	sourceType := input.SourceType
+	if sourceType == "" {
+		sourceType = "cli"
+	}
 	record := model.IntentRecord{
 		ID:         input.ID,
 		CreatedAt:  input.CreatedAt,
 		Author:     author,
-		SourceType: "cli",
+		SourceType: sourceType,
 		Title:      input.Title,
 		Prompt:     input.Prompt,
 		Response:   input.Response,

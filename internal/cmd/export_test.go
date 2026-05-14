@@ -71,8 +71,8 @@ func TestExportMarkdownChronological(t *testing.T) {
 	}
 
 	idxCap1 := strings.Index(output, "### Capture: cap-1")
-	idxCheckpoint := strings.Index(output, "## Checkpoint:")
-	idxEvent := strings.Index(output, "### Event: @yanzi pause")
+	idxCheckpoint := strings.Index(output, "## Checkpoint Boundary:")
+	idxEvent := strings.Index(output, "### Protocol Annotation: @yanzi pause")
 	idxCap2 := strings.Index(output, "### Capture: cap-2")
 	if idxCap1 == -1 || idxCheckpoint == -1 || idxEvent == -1 || idxCap2 == -1 {
 		t.Fatalf("missing expected sections: %q", output)
@@ -232,7 +232,7 @@ func TestExportMarkdownMetaFiltersRuleArtifacts(t *testing.T) {
 	if strings.Contains(output, "General context note") || strings.Contains(output, "# Project Notes") {
 		t.Fatalf("did not expect non-rule artifact in markdown export: %q", output)
 	}
-	if strings.Contains(output, "## Checkpoint:") || strings.Contains(output, "### Event:") {
+	if strings.Contains(output, "## Checkpoint Boundary:") || strings.Contains(output, "### Protocol Annotation:") {
 		t.Fatalf("did not expect checkpoints or meta events in filtered export: %q", output)
 	}
 }
@@ -331,6 +331,9 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	}
 	if third["command"] != "@yanzi pause" {
 		t.Fatalf("unexpected meta command: %v", third["command"])
+	}
+	if third["kind"] != "pause" || third["semantics"] != "annotation_only" || third["executable"] != false {
+		t.Fatalf("unexpected meta classification: %#v", third)
 	}
 	if third["value"] != "true" {
 		t.Fatalf("unexpected meta value: %v", third["value"])
@@ -653,7 +656,7 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 
 	idxCapture := strings.Index(output, "Artifact: <span class=\"mono-inline\">cap-1</span>")
 	idxCheckpoint := strings.Index(output, "Checkpoint: <span class=\"mono-inline\">")
-	idxMeta := strings.Index(output, "Event:</span> @yanzi pause")
+	idxMeta := strings.Index(output, "Protocol:</span> @yanzi pause")
 	if idxCapture == -1 || idxCheckpoint == -1 || idxMeta == -1 {
 		t.Fatalf("missing expected timeline sections: %q", output)
 	}
@@ -693,6 +696,23 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "class=\"timeline-entry timeline-entry-meta event-card\"") {
 		t.Fatalf("timeline stamps or meta entry layout missing: %q", output)
+	}
+	if !strings.Contains(output, "Latest continuity point:</span> <span class=\"mono-inline\">cap-1</span>") {
+		t.Fatalf("missing latest continuity point header: %q", output)
+	}
+	if !strings.Contains(output, "Protocol annotations: 1") {
+		t.Fatalf("missing protocol annotation count: %q", output)
+	}
+	if !strings.Contains(output, "Protocol:</span> @yanzi pause") || !strings.Contains(output, "Semantics:</span> logging convention only") {
+		t.Fatalf("missing protocol annotation detail: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">Protocol</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">Annotation</span>") ||
+		!strings.Contains(output, "<span class=\"badge badge-muted\">PAUSE</span>") {
+		t.Fatalf("missing protocol annotation badges: %q", output)
+	}
+	if !strings.Contains(output, "<span class=\"badge badge-accent\">Latest Continuity Point</span>") {
+		t.Fatalf("missing latest continuity point badge: %q", output)
 	}
 	if !strings.Contains(output, "<span class=\"badge badge-muted\">Capture</span>") ||
 		!strings.Contains(output, "<span class=\"badge badge-muted\">Prompt</span>") ||
@@ -1001,7 +1021,7 @@ func TestExportMarkdownOnlyCheckpoints(t *testing.T) {
 		t.Fatalf("read export: %v", err)
 	}
 	output := string(data)
-	if !strings.Contains(output, "## Checkpoint:") {
+	if !strings.Contains(output, "## Checkpoint Boundary:") {
 		t.Fatalf("expected checkpoint output: %q", output)
 	}
 	if strings.Contains(output, "No captures recorded.") {

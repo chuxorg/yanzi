@@ -19,6 +19,15 @@ A checkpoint marks a stable point in the active project.
 
 `yanzi rehydrate` loads the active project, finds the latest checkpoint, and prints the captures recorded after that checkpoint.
 
+The output is continuity-oriented:
+
+- checkpoint boundary first
+- chronological captures after the boundary
+- protocol annotations rendered explicitly
+- open intent artifacts surfaced separately
+
+If no checkpoint exists, rehydrate falls back to the latest captures for the active project instead of failing.
+
 `yanzi rehydrate --dry-run` shows what would be loaded without printing the full sequence.
 
 ## Message Channel
@@ -26,3 +35,17 @@ A checkpoint marks a stable point in the active project.
 `yanzi message send`, `yanzi message list`, and `yanzi message pull` store handoff notes as captures with message metadata.
 
 This is useful for passing short instructions between operators and agents without mixing those notes into unrelated captures.
+
+## Protocol Annotations
+
+`@yanzi` lines are continuity annotations, not background automation.
+
+They are recorded to preserve operational transitions such as:
+
+- pause
+- resume
+- role changes
+- export intent
+- checkpoint intent
+
+If a workflow requires an actual command, run the corresponding `yanzi` CLI command explicitly.
