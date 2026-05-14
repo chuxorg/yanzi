@@ -1,0 +1,36 @@
+name: QA Foundation
+
+on:
+  push:
+    branches:
+      - qa/**
+    tags:
+      - "v*"
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Unit and integration tests
+        run: go test ./... -count=1
+
+      - name: Build CLI
+        run: go build ./cmd/yanzi
+
+      - name: E2E QA tests
+        run: go test ./test/e2e -v -count=1
+
+      - name: Documentation validation
+        run: go run ./test/qa/docvalidate --root .

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Yanzi Log</title>
+  <style>
+    :root{color-scheme:light;--bg:#eef2f7;--surface:#ffffff;--surface-muted:#f8fafc;--text:#172033;--muted:#526075;--border:#ced6e0;--border-strong:#90a0b8;--accent:#0f766e;--accent-soft:#dff7f2;--checkpoint-bg:#10233d;--checkpoint-border:#f2c14e;--checkpoint-text:#f8fafc;--meta-bg:#f7f8fb;--shadow:0 10px 30px rgba(15,23,42,.08)}
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;margin:0;background:linear-gradient(180deg,#f8fafc 0%,var(--bg) 100%);color:var(--text);line-height:1.45}
+    main{max-width:1080px;margin:0 auto;padding:24px 16px 40px}
+    header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:var(--shadow)}
+    .header-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+    h1{margin:0 0 8px;font-size:1.4rem}
+    .meta-line{margin:2px 0;color:var(--muted);font-size:.95rem}
+    .counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .count{background:var(--surface-muted);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:.9rem}
+    .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #e5e7eb}
+    .search-group{flex:1 1 320px}
+    .search-label{display:block;font-size:.88rem;font-weight:600;color:var(--muted);margin-bottom:6px}
+    .search-input{width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;font:inherit;background:#fff;color:var(--text)}
+    .match-count{font-size:.92rem;color:var(--muted);white-space:nowrap}
+    .timeline{position:relative;display:flex;flex-direction:column;gap:18px;padding:8px 0 8px 92px}
+    .timeline::before{content:"";position:absolute;left:38px;top:0;bottom:0;width:4px;border-radius:999px;background:linear-gradient(180deg,#c8d3e3 0%,#93a7c5 45%,#c8d3e3 100%)}
+    .timeline-entry{position:relative}
+    .timeline-entry[hidden]{display:none !important}
+    .timeline-marker{position:absolute;left:-97px;top:20px;width:22px;height:22px;border-radius:999px;border:3px solid #fff;background:#9fb0c7;box-shadow:0 0 0 2px rgba(144,160,184,.38),0 6px 14px rgba(15,23,42,.1)}
+    .timeline-card,.capture,.checkpoint,.meta-event{box-shadow:var(--shadow)}
+    .capture{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px}
+    .capture h3{margin:0;font-size:1rem}
+    .event-header{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}
+    .event-main{min-width:0;flex:1 1 320px}
+    .event-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .checkpoint{background:linear-gradient(135deg,#0f172a 0%,var(--checkpoint-bg) 100%);border:1px solid var(--checkpoint-border);border-radius:18px;padding:18px 18px 18px 20px;color:var(--checkpoint-text);position:relative;overflow:hidden}
+    .checkpoint::before{content:"CHECKPOINT";position:absolute;top:10px;right:12px;font-size:.72rem;letter-spacing:.18em;color:rgba(248,250,252,.55)}
+    .checkpoint h2{margin:0 0 6px;font-size:1.05rem;padding-right:120px}
+    .checkpoint .label,.checkpoint .meta-line,.checkpoint .mono-inline{color:inherit}
+    .meta-event{background:var(--meta-bg);border:1px dashed var(--border-strong);border-radius:14px;padding:12px 14px;color:#374151}
+    .timeline-entry-checkpoint .timeline-marker{left:-101px;top:14px;width:30px;height:30px;background:radial-gradient(circle at 30% 30%,#fff4c3 0%,#f2c14e 45%,#8a6610 100%);box-shadow:0 0 0 3px rgba(242,193,78,.24),0 10px 18px rgba(15,23,42,.15)}
+    .timeline-entry-meta .timeline-marker{background:#d8dee8;box-shadow:0 0 0 2px rgba(144,160,184,.32),0 5px 10px rgba(15,23,42,.08)}
+    .label{font-weight:600}
+    .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;border:1px solid var(--border);background:var(--surface-muted);font-size:.78rem;font-weight:600;letter-spacing:.01em;color:var(--muted)}
+    .badge-strong{border-color:rgba(242,193,78,.45);background:rgba(242,193,78,.16);color:#f8e6ac}
+    .badge-accent{border-color:rgba(15,118,110,.22);background:rgba(15,118,110,.09);color:#0f5c56}
+    .badge-muted{background:#f3f6fa}
+    .checkpoint .badge{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#f8fafc}
+    table{border-collapse:collapse;margin:8px 0 6px;width:auto}
+    th,td{border:1px solid #e5e7eb;padding:4px 8px;font-size:.9rem;text-align:left}
+    .field-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}
+    .mono-inline{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:rgba(15,23,42,.05);border-radius:6px;padding:2px 6px;max-width:100%;overflow-wrap:anywhere}
+    .event-actions{gap:6px}
+    .copy-btn,.toggle-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;min-width:110px;height:34px;border:1px solid var(--border);background:var(--surface-muted);border-radius:999px;padding:0 12px;font:inherit;font-size:.82rem;font-weight:600;color:var(--text);cursor:pointer;white-space:nowrap}
+    .copy-btn:hover,.toggle-btn:hover,.search-input:focus{border-color:var(--accent)}
+    .copy-btn:focus,.toggle-btn:focus,.search-input:focus{outline:2px solid rgba(15,118,110,.2);outline-offset:2px}
+    .copy-btn[data-copied="true"]{background:var(--accent-soft);border-color:var(--accent);color:#0f5132}
+    .artifact-shell{display:flex;flex-direction:column;gap:12px}
+    .artifact-summary{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .artifact-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .artifact-preview{margin:0;color:var(--muted);font-size:.94rem;white-space:pre-wrap}
+    .artifact-body{padding-top:2px}
+    .toggle-row{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0 6px}
+    .block-label{font-weight:600;font-size:.95rem}
+    .preview-text{margin:0 0 10px;padding:10px 12px;border:1px dashed #d7dde7;border-radius:10px;background:#fbfcfe;color:var(--muted);font-size:.92rem;white-space:pre-wrap}
+    .content-block[hidden]{display:none !important}
+    .artifact-body[hidden]{display:none !important}
+    pre{margin:0;background:#111827;color:#e5e7eb;border-radius:10px;padding:12px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .timeline-divider{position:relative;height:18px;margin:0}
+    .timeline-divider::before{content:"";position:absolute;left:-54px;right:0;top:8px;border-top:1px dashed rgba(144,160,184,.55)}
+    .timeline-section{position:relative;margin:2px 0 4px}
+    .timeline-section-label{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;border:1px solid var(--border-strong);background:rgba(255,255,255,.9);color:var(--muted);font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+    .checkpoint-divider{margin:0 0 10px;padding:8px 12px;border-left:4px solid var(--checkpoint-border);border-radius:12px;background:rgba(242,193,78,.08);color:#5b6472;font-size:.9rem}
+    .timeline-time{font-weight:700;white-space:nowrap}
+    .empty-state{padding:18px;border:1px dashed var(--border-strong);border-radius:14px;text-align:center;color:var(--muted);background:rgba(255,255,255,.7)}
+    @media (max-width:760px){.timeline{padding-left:76px}.timeline::before{left:28px}.timeline-marker{left:-79px;width:20px;height:20px}.timeline-entry-checkpoint .timeline-marker{left:-82px;width:26px;height:26px}.timeline-divider::before{left:-44px}}
+    @media (max-width:640px){main{padding:16px 12px 32px}header{padding:14px}.checkpoint h2{padding-right:0}.event-actions{width:100%}.artifact-summary{flex-direction:column}.timeline{padding-left:0}.timeline::before{left:12px}.timeline-marker{left:3px;top:-6px;width:16px;height:16px;border-width:2px}.timeline-entry-checkpoint .timeline-marker{left:0;top:-10px;width:22px;height:22px}.timeline-divider::before{left:12px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>Yanzi Agent Log</h1>
+        <div class="meta-line"><span class="label">Project:</span> qa-e2e-project</div>
+        <div class="meta-line"><span class="label">Checkpoint:</span> <span class="mono-inline"><normalized></span> - QA baseline</div>
+        <div class="meta-line"><span class="label">Exported:</span> <normalized></div>
+        <div class="meta-line"><span class="label">Version:</span> dev</div>
+      </div>
+      <div class="counts">
+        <div class="count">Total artifacts: 1</div>
+        <div class="count">Total events: 2</div>
+        <div class="count">Checkpoints: 1</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search-group">
+        <label class="search-label" for="event-search">Search artifacts</label>
+        <input id="event-search" class="search-input" type="search" placeholder="Search prompt, response, metadata, summary, or timestamp">
+      </div>
+      <div id="match-count" class="match-count" aria-live="polite">Showing 2 of 2 events</div>
+    </div>
+  </header>
+  <section class="timeline">
+    <div class="timeline-entry event-card" data-search="capture <normalized> <normalized> qa-agent cli <normalized> Summarize the latest state transitions.
+ State transitions were captured, reviewed, and exported.
+ Capture Prompt Response Hash Role: qa-agent Source: cli Metadata phase qa">
+      <div class="timeline-marker" aria-hidden="true"></div>
+      <section class="capture timeline-card">
+      <div class="artifact-shell">
+      <div class="artifact-summary">
+        <div class="event-main">
+          <div class="artifact-title-row">
+            <h3>Artifact: <span class="mono-inline"><normalized></span></h3>
+            <span class="js-timestamp timeline-time" data-timestamp="<normalized>" title="<normalized>"><normalized></span>
+          </div>
+          <p class="artifact-preview">Summarize the latest state transitions.</p>
+          <div class="badge-row">
+            <span class="badge badge-muted">Capture</span>
+            <span class="badge badge-muted">Prompt</span>
+            <span class="badge badge-muted">Response</span>
+            <span class="badge badge-muted">Hash</span>
+            <span class="badge badge-accent">Role: qa-agent</span>
+            <span class="badge badge-accent">Source: cli</span>
+            <span class="badge badge-muted">Metadata</span>
+          </div>
+        </div>
+        <div class="event-actions">
+          <button type="button" class="toggle-btn artifact-toggle" data-target="artifact-body-0" aria-expanded="false" title="Show full artifact" aria-label="Show full artifact">Show details</button>
+        </div>
+      </div>
+      <div class="artifact-body" id="artifact-body-0" hidden>
+      <div class="event-header">
+        <div class="event-main">
+          <div class="field-row"><span class="label">Role:</span> <span>qa-agent</span></div>
+          <div class="field-row"><span class="label">Hash:</span> <code class="mono-inline"><normalized></code></div>
+        </div>
+        <div class="event-actions">
+          <button type="button" class="copy-btn" data-copy-text="<normalized>" title="Copy capture ID" aria-label="Copy capture ID">Copy capture ID</button>
+          <button type="button" class="copy-btn" data-copy-text="<normalized>" title="Copy capture hash" aria-label="Copy capture hash">Copy hash</button>
+          <button type="button" class="copy-btn" data-copy-source="prompt-0" title="Copy prompt" aria-label="Copy prompt">Copy prompt</button>
+          <button type="button" class="copy-btn" data-copy-source="response-0" title="Copy response" aria-label="Copy response">Copy response</button>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Metadata Key</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>phase</td><td>qa</td></tr>
+        </tbody>
+      </table>
+      <div class="toggle-row">
+        <div class="block-label">Prompt</div>
+      </div>
+      <div id="prompt-0" class="content-block">
+        <pre>Summarize the latest state transitions.
+</pre>
+      </div>
+      <div class="toggle-row">
+        <div class="block-label">Response</div>
+      </div>
+      <div id="response-0" class="content-block">
+        <pre>State transitions were captured, reviewed, and exported.
+</pre>
+      </div>
+      </div>
+      </div>
+      </section>
+    </div>
+    <div class="timeline-entry timeline-entry-checkpoint event-card" data-search="checkpoint <normalized> <normalized> QA baseline Checkpoint Boundary Rehydration Anchor Hash">
+      <div class="timeline-marker" aria-hidden="true"></div>
+      <div class="timeline-divider" aria-hidden="true"></div>
+      <div class="checkpoint-divider">Checkpoint boundary: QA baseline</div>
+      <section class="checkpoint timeline-card">
+      <div class="event-header">
+        <div class="event-main">
+          <div class="badge-row">
+            <span class="badge badge-strong">Checkpoint</span>
+            <span class="badge badge-strong">Boundary</span>
+            <span class="badge badge-strong">Rehydration Anchor</span>
+            <span class="badge badge-strong">Hash</span>
+          </div>
+          <h2>Checkpoint: <span class="mono-inline"><normalized></span></h2>
+          <div><span class="label">Summary:</span> QA baseline</div>
+          <div class="meta-line"><span class="label">Timestamp:</span> <span class="js-timestamp timeline-time" data-timestamp="<normalized>" title="<normalized>"><normalized></span></div>
+        </div>
+        <div class="event-actions">
+          <button type="button" class="copy-btn" data-copy-text="<normalized>" title="Copy checkpoint ID" aria-label="Copy checkpoint ID">Copy checkpoint ID</button>
+          <button type="button" class="copy-btn" data-copy-text="<normalized>" title="Copy checkpoint hash" aria-label="Copy checkpoint hash">Copy hash</button>
+        </div>
+      </div>
+      </section>
+    </div>
+  </section>
+  <script>
+    (function(){
+      const cards=Array.from(document.querySelectorAll('.event-card'));
+      const searchInput=document.getElementById('event-search');
+      const matchCount=document.getElementById('match-count');
+      const timestampNodes=Array.from(document.querySelectorAll('.js-timestamp'));
+      function updateCount(){
+        const visible=cards.filter(card=>!card.hidden).length;
+        if(matchCount){matchCount.textContent='Showing '+visible+' of '+cards.length+' events';}
+      }
+      function formatTimestamps(){
+        const formatter=new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+        timestampNodes.forEach(function(node){const raw=node.getAttribute('data-timestamp');if(!raw){return;}const date=new Date(raw);if(Number.isNaN(date.getTime())){return;}node.textContent=formatter.format(date);node.setAttribute('title',raw);});
+      }
+      function applyFilter(){
+        const query=(searchInput&&searchInput.value||'').trim().toLowerCase();
+        cards.forEach(card=>{const haystack=(card.getAttribute('data-search')||'').toLowerCase();card.hidden=query!==''&&!haystack.includes(query);});
+        updateCount();
+      }
+      function copyText(text){
+        if(navigator.clipboard&&window.isSecureContext){return navigator.clipboard.writeText(text);}
+        return new Promise(function(resolve,reject){
+          const input=document.createElement('textarea');
+          input.value=text;input.setAttribute('readonly','');input.style.position='fixed';input.style.opacity='0';document.body.appendChild(input);input.select();
+          try{if(document.execCommand('copy')){resolve();}else{reject(new Error('copy failed'));}}catch(err){reject(err);}finally{document.body.removeChild(input);}
+        });
+      }
+      document.addEventListener('click',function(event){
+        const toggle=event.target.closest('.toggle-btn');
+        if(toggle){
+          const target=document.getElementById(toggle.getAttribute('data-target'));
+          if(!target){return;}
+          const expanded=toggle.getAttribute('aria-expanded')==='true';
+          target.hidden=expanded;
+          toggle.setAttribute('aria-expanded',String(!expanded));
+          const showLabel=toggle.classList.contains('artifact-toggle')?'Show details':'Show';
+          const hideLabel=toggle.classList.contains('artifact-toggle')?'Hide details':'Hide';
+          toggle.textContent=expanded?showLabel:hideLabel;
+          toggle.setAttribute('title',expanded?'Show full artifact':'Hide full artifact');
+          toggle.setAttribute('aria-label',expanded?'Show full artifact':'Hide full artifact');
+          return;
+        }
+        const copyButton=event.target.closest('.copy-btn');
+        if(copyButton){
+          const sourceId=copyButton.getAttribute('data-copy-source');
+          const text=sourceId?(document.getElementById(sourceId)||{}).textContent||'':copyButton.getAttribute('data-copy-text')||'';
+          const original=copyButton.getAttribute('data-label')||copyButton.textContent;
+          copyButton.setAttribute('data-label',original);
+          copyText(text).then(function(){copyButton.textContent='Copied';copyButton.setAttribute('data-copied','true');setTimeout(function(){copyButton.textContent=original;copyButton.removeAttribute('data-copied');},1200);}).catch(function(){copyButton.textContent='Press Ctrl+C';copyButton.setAttribute('data-copied','true');setTimeout(function(){copyButton.textContent=original;copyButton.removeAttribute('data-copied');},1600);});
+        }
+      });
+      if(searchInput){searchInput.addEventListener('input',applyFilter);}
+      formatTimestamps();
+      updateCount();
+    })();
+  </script>
+</main>
+</body>
+</html>

@@ -1,0 +1,36 @@
+# Yanzi Agent Log
+
+Project: qa-e2e-project
+<normalized>
+Version: dev
+
+---
+
+### Capture: <normalized>
+
+Role: qa-agent
+Timestamp: <normalized>
+Hash: <normalized>
+
+Metadata:
+  phase: qa
+
+**Prompt**
+```text
+Summarize the latest state transitions.
+
+```
+
+**Response**
+```text
+State transitions were captured, reviewed, and exported.
+
+```
+
+---
+
+## Checkpoint: <normalized>
+
+Summary: QA baseline
+Timestamp: <normalized>
+----------------------
