@@ -9,6 +9,19 @@ Yanzi stores two kinds of project state:
 
 Intent tells you what was asked and answered. Context stores the supporting rules, references, and notes that should stay available across sessions.
 
+## Local-First Runtime
+
+Yanzi runs against a local SQLite database by default.
+
+This keeps the operational model small and explicit:
+
+- local file
+- deterministic ordering
+- short-lived CLI processes
+- no background worker or orchestration layer
+
+See [Local-First Operation](local-first.md) for concurrency expectations and lock behavior.
+
 ## Checkpoints
 
 A checkpoint marks a stable point in the active project.

@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 const (
@@ -127,7 +130,15 @@ func updateTombstone(ctx context.Context, db execContexter, target deleteTarget,
 	if updated != "" {
 		value = updated
 	}
-	_, err = db.ExecContext(ctx, fmt.Sprintf(`UPDATE intents SET %s = ? WHERE id = ?`, target.TombstoneCol), value, target.ID)
+	query := fmt.Sprintf(`UPDATE intents SET %s = ? WHERE id = ?`, target.TombstoneCol)
+	switch typed := db.(type) {
+	case *sql.Tx:
+		_, err = sqliteruntime.ExecTxContext(ctx, typed, yanzilibrary.ResolvedDBPath(), "update tombstone", query, value, target.ID)
+	case *sql.DB:
+		_, err = sqliteruntime.ExecContext(ctx, typed, yanzilibrary.ResolvedDBPath(), "update tombstone", query, value, target.ID)
+	default:
+		_, err = db.ExecContext(ctx, query, value, target.ID)
+	}
 	return err
 }
 
@@ -178,29 +189,33 @@ func collectCascadeTargets(ctx context.Context, db *sql.DB, head deleteTarget) (
 		if err != nil {
 			return nil, err
 		}
+		ids := make([]string, 0)
 		for rows.Next() {
 			var id string
 			if err := rows.Scan(&id); err != nil {
 				_ = rows.Close()
 				return nil, err
 			}
-			if _, ok := seen[id]; ok {
-				continue
-			}
-			target, err := getDeleteTarget(ctx, db, id)
-			if err != nil {
-				_ = rows.Close()
-				return nil, err
-			}
-			seen[id] = struct{}{}
-			targets = append(targets, target)
-			queue = append(queue, target)
+			ids = append(ids, id)
 		}
 		if err := rows.Err(); err != nil {
 			_ = rows.Close()
 			return nil, err
 		}
 		_ = rows.Close()
+
+		for _, id := range ids {
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			target, err := getDeleteTarget(ctx, db, id)
+			if err != nil {
+				return nil, err
+			}
+			seen[id] = struct{}{}
+			targets = append(targets, target)
+			queue = append(queue, target)
+		}
 	}
 
 	return targets, nil
@@ -232,22 +247,17 @@ func performDelete(ctx context.Context, db *sql.DB, id string, cascade, force bo
 		}
 	}
 
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-
 	updatedIDs := make([]string, 0, len(targets))
-	for _, target := range targets {
-		if err := updateTombstone(ctx, tx, target, true); err != nil {
-			return nil, err
+	if err := sqliteruntime.RunTx(ctx, db, yanzilibrary.ResolvedDBPath(), "tombstone intents", func(tx *sql.Tx) error {
+		updatedIDs = updatedIDs[:0]
+		for _, target := range targets {
+			if err := updateTombstone(ctx, tx, target, true); err != nil {
+				return err
+			}
+			updatedIDs = append(updatedIDs, target.ID)
 		}
-		updatedIDs = append(updatedIDs, target.ID)
-	}
-	if err := tx.Commit(); err != nil {
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 	return updatedIDs, nil

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/chuxorg/yanzi/internal/config"
@@ -175,6 +176,44 @@ func TestInitDBPrefersEnvOverrideOverConfig(t *testing.T) {
 	}
 	if _, err := os.Stat(configDBPath); !os.IsNotExist(err) {
 		t.Fatalf("expected config db to remain unused, stat err=%v", err)
+	}
+}
+
+func TestInitDBConfiguresWALMode(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	var journalMode string
+	if err := db.QueryRow(`PRAGMA journal_mode;`).Scan(&journalMode); err != nil {
+		t.Fatalf("query journal_mode: %v", err)
+	}
+	if journalMode != "wal" {
+		t.Fatalf("expected WAL mode, got %q", journalMode)
+	}
+}
+
+func TestInitDBReportsCorruptionClearly(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+
+	dbPath := filepath.Join(home, "corrupt.db")
+	if err := os.WriteFile(dbPath, []byte("not-a-sqlite-database"), 0o600); err != nil {
+		t.Fatalf("write corrupt db: %v", err)
+	}
+
+	_, err := InitDBAtPath(dbPath)
+	if err == nil {
+		t.Fatal("expected corruption error")
+	}
+	if !strings.Contains(strings.ToLower(err.Error()), "corrupted") && !strings.Contains(strings.ToLower(err.Error()), "unreadable") {
+		t.Fatalf("unexpected corruption error: %v", err)
 	}
 }
 
