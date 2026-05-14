@@ -14,6 +14,7 @@ delete      Tombstone an intent or artifact by id.
 restore     Remove tombstone metadata by id.
 mode        Show or set runtime mode.
 project     Manage project context.
+status      Show continuity and observability status.
 intent      Manage intent artifacts.
 context     Manage context artifacts.
 bootstrap   Load ordered context documents from .yanzi/bootstrap.yaml.
@@ -117,6 +118,7 @@ Agents need the current project state without manually reconstructing it from ev
 ### Example
 
 ```bash
+yanzi status
 yanzi rehydrate --dry-run
 yanzi rehydrate
 ```
@@ -124,6 +126,31 @@ yanzi rehydrate
 ### Flags
 
 - `--dry-run` preview what would load
+
+`yanzi rehydrate` now prints a continuity summary before the checkpoint and capture blocks. The dry-run mode also shows continuity mode, depth, latest activity, and open work count.
+
+## status
+
+### Problem
+
+Operators and agents need a quick deterministic view of project continuity without exporting or replaying the entire timeline.
+
+### Solution
+
+`yanzi status` reports continuity mode, latest checkpoint anchor, last activity, continuity depth, recent activity, and unresolved task or change-request artifacts.
+
+### Example
+
+```bash
+yanzi status
+yanzi status --recent 10
+yanzi status --format json
+```
+
+### Flags
+
+- `--format <text|json>` optional, default `text`
+- `--recent <n>` optional, default `5`
 
 ## export
 

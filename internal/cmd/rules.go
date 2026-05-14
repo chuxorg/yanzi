@@ -307,7 +307,7 @@ func renderComposedRulesHTML(project, cliVersion string, now time.Time, items []
 		})
 	}
 
-	return renderHTMLLog(project, cliVersion, now, flattenHTMLRuleSections(sections), sections...)
+	return renderHTMLLog(project, cliVersion, now, flattenHTMLRuleSections(sections), nil, sections...)
 }
 
 func flattenHTMLRuleSections(sections []htmlRuleSection) []exportItem {

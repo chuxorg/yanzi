@@ -97,6 +97,9 @@ func TestRehydrateWithRichArtifacts(t *testing.T) {
 	if !strings.Contains(output, "Project: alpha") {
 		t.Fatalf("missing project: %q", output)
 	}
+	if !strings.Contains(output, "Continuity Summary") || !strings.Contains(output, "Mode: checkpoint") || !strings.Contains(output, "Open work: 0") {
+		t.Fatalf("missing continuity summary: %q", output)
+	}
 	if !strings.Contains(output, "Checkpoint") || !strings.Contains(output, "Summary: first checkpoint") {
 		t.Fatalf("missing checkpoint block: %q", output)
 	}
@@ -177,6 +180,8 @@ func TestRehydrateDryRun(t *testing.T) {
 		t.Fatalf("RunRehydrate dry-run: %v", err)
 	}
 	if !strings.Contains(output, "Checkpoints to load: 1") ||
+		!strings.Contains(output, "Continuity mode: checkpoint") ||
+		!strings.Contains(output, "Continuity depth: 1") ||
 		!strings.Contains(output, "Context count: 2") ||
 		!strings.Contains(output, "Last checkpoint summary: first checkpoint") ||
 		!strings.Contains(output, "Intents to load: 1") {

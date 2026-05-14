@@ -34,6 +34,8 @@ A checkpoint marks a stable point in the active project.
 
 `yanzi rehydrate --dry-run` shows what would be loaded without printing the full sequence.
 
+`yanzi status` exposes the same continuity model as a lightweight observability surface. It reports the latest checkpoint anchor, continuity depth, recent activity, and unresolved explicit work artifacts.
+
 ## Message Channel
 
 `yanzi message send`, `yanzi message list`, and `yanzi message pull` store handoff notes as captures with message metadata.

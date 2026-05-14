@@ -22,6 +22,7 @@ Basic workflow:
 
 ```bash
 yanzi init demo
+yanzi status
 yanzi capture --author "Ada" --prompt "What changed?" --response "Updated the API client."
 yanzi checkpoint create --summary "API client update complete"
 yanzi rehydrate --dry-run

@@ -177,19 +177,23 @@ func RunExport(args []string, cliVersion string) error {
 	if err != nil {
 		return err
 	}
+	status, err := yanzilibrary.LoadProjectStatus(project, yanzilibrary.DefaultStatusRecentLimit)
+	if err != nil {
+		return err
+	}
 
 	path := filepath.Join(".", "YANZI_LOG.md")
-	content := []byte(renderMarkdownLog(project, cliVersion, now, items, captureCount))
+	content := []byte(renderMarkdownLog(project, cliVersion, now, items, captureCount, status))
 	if formatValue == "json" {
 		path = filepath.Join(".", "YANZI_LOG.json")
-		content, err = renderJSONLog(project, cliVersion, now, items)
+		content, err = renderJSONLog(project, cliVersion, now, items, status)
 		if err != nil {
 			return err
 		}
 	}
 	if formatValue == "html" {
 		path = filepath.Join(".", "YANZI_LOG.html")
-		content = []byte(renderHTMLLog(project, cliVersion, now, items))
+		content = []byte(renderHTMLLog(project, cliVersion, now, items, status))
 	}
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)
@@ -952,13 +956,28 @@ func renderContextFieldHTML(field string, artifact yanzilibrary.Artifact) string
 	}
 }
 
-func renderMarkdownLog(project, cliVersion string, now time.Time, items []exportItem, captureCount int) string {
+func renderMarkdownLog(project, cliVersion string, now time.Time, items []exportItem, captureCount int, status *yanzilibrary.ProjectStatus) string {
 	var b strings.Builder
 
 	b.WriteString("# Yanzi Agent Log\n\n")
 	b.WriteString(fmt.Sprintf("Project: %s\n", project))
 	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
 	b.WriteString(fmt.Sprintf("Version: %s\n\n", cliVersion))
+	if status != nil {
+		b.WriteString("## Continuity Summary\n\n")
+		b.WriteString(fmt.Sprintf("- Continuity mode: %s\n", status.ContinuityMode))
+		b.WriteString(fmt.Sprintf("- Continuity depth: %d\n", status.ContinuityDepth))
+		b.WriteString(fmt.Sprintf("- Last activity: %s\n", fallbackText(status.LastActivityAt, "(none)")))
+		if status.LatestCheckpoint != nil {
+			b.WriteString(fmt.Sprintf("- Latest checkpoint: %s (%s)\n", fallbackText(strings.TrimSpace(status.LatestCheckpoint.Summary), status.LatestCheckpoint.Hash), status.LatestCheckpoint.CreatedAt))
+		} else {
+			b.WriteString("- Latest checkpoint: (none)\n")
+		}
+		b.WriteString(fmt.Sprintf("- Open work: %d\n", len(status.UnresolvedWork)))
+		b.WriteString(fmt.Sprintf("- Captures: %d\n", status.TotalCaptures))
+		b.WriteString(fmt.Sprintf("- Protocol annotations: %d\n", status.TotalProtocolAnnotations))
+		b.WriteString(fmt.Sprintf("- Checkpoints: %d\n\n", status.TotalCheckpoints))
+	}
 	b.WriteString("---\n\n")
 
 	if len(items) == 0 && captureCount == 0 {
@@ -1007,11 +1026,25 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 }
 
 type jsonExport struct {
-	SchemaVersion int    `json:"schema_version"`
-	Project       string `json:"project"`
-	ExportedAt    string `json:"exported_at"`
-	Version       string `json:"version"`
-	Events        []any  `json:"events"`
+	SchemaVersion int                `json:"schema_version"`
+	Project       string             `json:"project"`
+	ExportedAt    string             `json:"exported_at"`
+	Version       string             `json:"version"`
+	Summary       *jsonExportSummary `json:"summary,omitempty"`
+	Events        []any              `json:"events"`
+}
+
+type jsonExportSummary struct {
+	ContinuityMode           string                `json:"continuity_mode"`
+	ContinuityDepth          int                   `json:"continuity_depth"`
+	TotalCaptures            int                   `json:"total_captures"`
+	TotalProtocolAnnotations int                   `json:"total_protocol_annotations"`
+	TotalCheckpoints         int                   `json:"total_checkpoints"`
+	TotalIntentArtifacts     int                   `json:"total_intent_artifacts"`
+	VisibleContextArtifacts  int                   `json:"visible_context_artifacts"`
+	LastActivityAt           string                `json:"last_activity_at,omitempty"`
+	LastCaptureAt            string                `json:"last_capture_at,omitempty"`
+	LatestCheckpoint         *statusJSONCheckpoint `json:"latest_checkpoint,omitempty"`
 }
 
 type jsonCheckpointEvent struct {
@@ -1039,7 +1072,13 @@ type jsonMetaEvent struct {
 	Timestamp string `json:"timestamp"`
 }
 
-func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem) ([]byte, error) {
+type exportSummaryCard struct {
+	Label string
+	Value string
+	Note  string
+}
+
+func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem, status *yanzilibrary.ProjectStatus) ([]byte, error) {
 	events := make([]any, 0, len(items))
 	for _, item := range items {
 		switch item.Kind {
@@ -1082,6 +1121,27 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 		Version:       cliVersion,
 		Events:        events,
 	}
+	if status != nil {
+		payload.Summary = &jsonExportSummary{
+			ContinuityMode:           status.ContinuityMode,
+			ContinuityDepth:          status.ContinuityDepth,
+			TotalCaptures:            status.TotalCaptures,
+			TotalProtocolAnnotations: status.TotalProtocolAnnotations,
+			TotalCheckpoints:         status.TotalCheckpoints,
+			TotalIntentArtifacts:     status.TotalIntentArtifacts,
+			VisibleContextArtifacts:  status.VisibleContextArtifacts,
+			LastActivityAt:           status.LastActivityAt,
+			LastCaptureAt:            status.LastCaptureAt,
+		}
+		if status.LatestCheckpoint != nil {
+			payload.Summary.LatestCheckpoint = &statusJSONCheckpoint{
+				Hash:      status.LatestCheckpoint.Hash,
+				Summary:   status.LatestCheckpoint.Summary,
+				CreatedAt: status.LatestCheckpoint.CreatedAt,
+				Artifacts: append([]string{}, status.LatestCheckpoint.ArtifactIDs...),
+			}
+		}
+	}
 	b, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("encode json export: %w", err)
@@ -1090,7 +1150,7 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 	return b, nil
 }
 
-func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem, sections ...htmlRuleSection) string {
+func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem, status *yanzilibrary.ProjectStatus, sections ...htmlRuleSection) string {
 	totalEvents := len(items)
 	totalCaptures := 0
 	totalCheckpoints := 0
@@ -1125,6 +1185,11 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString("    .meta-line{margin:2px 0;color:var(--muted);font-size:.95rem}\n")
 	b.WriteString("    .counts{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}\n")
 	b.WriteString("    .count{background:var(--surface-muted);border:1px solid var(--border);border-radius:999px;padding:6px 10px;font-size:.9rem}\n")
+	b.WriteString("    .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:14px}\n")
+	b.WriteString("    .summary-card{background:linear-gradient(180deg,#fbfdff 0%,#f3f7fb 100%);border:1px solid var(--border);border-radius:14px;padding:12px 14px}\n")
+	b.WriteString("    .summary-label{display:block;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}\n")
+	b.WriteString("    .summary-value{font-size:1rem;font-weight:700;color:var(--text)}\n")
+	b.WriteString("    .summary-note{margin-top:4px;font-size:.85rem;color:var(--muted)}\n")
 	b.WriteString("    .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:14px;padding-top:14px;border-top:1px solid #e5e7eb}\n")
 	b.WriteString("    .search-group{flex:1 1 320px}\n")
 	b.WriteString("    .search-label{display:block;font-size:.88rem;font-weight:600;color:var(--muted);margin-bottom:6px}\n")
@@ -1208,6 +1273,19 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 	b.WriteString(fmt.Sprintf("        <div class=\"count\">Total events: %d</div>\n", totalEvents))
 	b.WriteString(fmt.Sprintf("        <div class=\"count\">Checkpoints: %d</div>\n", totalCheckpoints))
 	b.WriteString("      </div>\n")
+	if status != nil {
+		b.WriteString("      <div class=\"summary-grid\">\n")
+		for _, card := range exportSummaryCards(status) {
+			b.WriteString("        <div class=\"summary-card\">\n")
+			b.WriteString(fmt.Sprintf("          <span class=\"summary-label\">%s</span>\n", html.EscapeString(card.Label)))
+			b.WriteString(fmt.Sprintf("          <div class=\"summary-value\">%s</div>\n", html.EscapeString(card.Value)))
+			if strings.TrimSpace(card.Note) != "" {
+				b.WriteString(fmt.Sprintf("          <div class=\"summary-note\">%s</div>\n", html.EscapeString(card.Note)))
+			}
+			b.WriteString("        </div>\n")
+		}
+		b.WriteString("      </div>\n")
+	}
 	b.WriteString("    </div>\n")
 	b.WriteString("    <div class=\"toolbar\">\n")
 	b.WriteString("      <div class=\"search-group\">\n")
@@ -1472,4 +1550,38 @@ func captureBadges(item exportItem) []string {
 
 func isRuleArtifact(item exportItem) bool {
 	return strings.TrimSpace(item.Metadata["type"]) == "context" && strings.TrimSpace(item.Metadata["subtype"]) == "rules"
+}
+
+func exportSummaryCards(status *yanzilibrary.ProjectStatus) []exportSummaryCard {
+	if status == nil {
+		return nil
+	}
+	latestCheckpoint := "(none)"
+	latestCheckpointNote := "No checkpoint anchor recorded"
+	if status.LatestCheckpoint != nil {
+		latestCheckpoint = fallbackText(strings.TrimSpace(status.LatestCheckpoint.Summary), status.LatestCheckpoint.Hash)
+		latestCheckpointNote = status.LatestCheckpoint.CreatedAt
+	}
+	return []exportSummaryCard{
+		{
+			Label: "Continuity Mode",
+			Value: status.ContinuityMode,
+			Note:  fmt.Sprintf("%d records in active continuity window", status.ContinuityDepth),
+		},
+		{
+			Label: "Latest Activity",
+			Value: fallbackText(status.LastActivityAt, "(none)"),
+			Note:  fmt.Sprintf("%d captures, %d protocol annotations", status.TotalCaptures, status.TotalProtocolAnnotations),
+		},
+		{
+			Label: "Checkpoint Anchor",
+			Value: latestCheckpoint,
+			Note:  latestCheckpointNote,
+		},
+		{
+			Label: "Open Work",
+			Value: fmt.Sprintf("%d", len(status.UnresolvedWork)),
+			Note:  fmt.Sprintf("%d visible context artifacts", status.VisibleContextArtifacts),
+		},
+	}
 }

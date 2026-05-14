@@ -69,6 +69,9 @@ func TestExportMarkdownChronological(t *testing.T) {
 	if !strings.Contains(output, "Version: v9.9.9") {
 		t.Fatalf("missing version: %q", output)
 	}
+	if !strings.Contains(output, "## Continuity Summary") || !strings.Contains(output, "- Continuity mode: checkpoint") || !strings.Contains(output, "- Protocol annotations: 1") {
+		t.Fatalf("missing continuity summary: %q", output)
+	}
 
 	idxCap1 := strings.Index(output, "### Capture: cap-1")
 	idxCheckpoint := strings.Index(output, "## Checkpoint:")
@@ -299,6 +302,13 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	}
 	if _, err := time.Parse(time.RFC3339, exportedAt); err != nil {
 		t.Fatalf("expected RFC3339 exported_at, got %q (%v)", exportedAt, err)
+	}
+	summary, ok := payload["summary"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected summary object, got %T", payload["summary"])
+	}
+	if summary["continuity_mode"] != "checkpoint" || summary["total_protocol_annotations"] != float64(1) {
+		t.Fatalf("unexpected summary payload: %#v", summary)
 	}
 
 	events, ok := payload["events"].([]any)
@@ -631,6 +641,9 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "Total artifacts: 1") || !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Checkpoints: 1") {
 		t.Fatalf("missing counts: %q", output)
+	}
+	if !strings.Contains(output, "Continuity Mode") || !strings.Contains(output, "checkpoint") || !strings.Contains(output, "Open Work") {
+		t.Fatalf("missing continuity summary cards: %q", output)
 	}
 	if !strings.Contains(output, "Checkpoint:</span> <span class=\"mono-inline\">") || !strings.Contains(output, "checkpoint 1") {
 		t.Fatalf("missing sticky header checkpoint summary: %q", output)

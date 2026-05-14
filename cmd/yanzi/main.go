@@ -63,6 +63,8 @@ func run(args []string) int {
 		err = cmd.RunMode(args[1:])
 	case "project":
 		err = cmd.RunProject(args[1:])
+	case "status":
+		err = cmd.RunStatus(args[1:])
 	case "init":
 		err = cmd.RunInit(args[1:])
 	case "intent":
@@ -117,6 +119,7 @@ commands:
   restore  Remove tombstone metadata by id.
   mode     Show or set runtime mode (local | http).
   project  Manage project context.
+  status  Show continuity and observability status for the active project.
   init  Create or bind a project to the current directory.
   intent  Manage intent artifacts.
   context  Manage context artifacts.
@@ -182,6 +185,11 @@ project args:
   use <name>            Set the active project.
   current               Show the active project.
   list                  List projects.
+
+status args:
+  (no args)             Show deterministic continuity and activity status.
+  --format text|json    Render human-readable or machine-readable output.
+  --recent <n>          Limit recent activity entries (default 5).
 
 init args:
   [name]                Create or reuse a project and bind ./.yanzi/project.
