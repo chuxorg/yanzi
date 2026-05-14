@@ -129,6 +129,8 @@ yanzi rehydrate
 
 `yanzi rehydrate` now prints a continuity summary before the checkpoint and capture blocks. The dry-run mode also shows continuity mode, depth, latest activity, and open work count.
 
+`yanzi rehydrate --format json` emits a machine contract with `schema_version`, `kind`, `project`, and aligned checkpoint fields for deterministic consumers.
+
 ## status
 
 ### Problem
@@ -151,6 +153,8 @@ yanzi status --format json
 
 - `--format <text|json>` optional, default `text`
 - `--recent <n>` optional, default `5`
+
+`yanzi status --format json` emits a stable machine-readable contract with explicit schema/version identity and deterministic activity ordering.
 
 ## export
 
@@ -188,6 +192,8 @@ Outputs:
 - `CLAUDE_CONTEXT.md`
 
 Yanzi does not interpret or rank results. It only filters and returns stored data.
+
+`yanzi export --format json` includes `schema_version`, `kind`, and an explicit continuity summary so machine consumers can distinguish export shape from other JSON surfaces.
 
 ## `yanzi export --help`
 

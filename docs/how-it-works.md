@@ -36,6 +36,8 @@ A checkpoint marks a stable point in the active project.
 
 `yanzi status` exposes the same continuity model as a lightweight observability surface. It reports the latest checkpoint anchor, continuity depth, recent activity, and unresolved explicit work artifacts.
 
+Machine-readable surfaces follow explicit JSON contracts with schema versioning and stable `kind` fields so tooling can consume them without guessing.
+
 ## Message Channel
 
 `yanzi message send`, `yanzi message list`, and `yanzi message pull` store handoff notes as captures with message metadata.

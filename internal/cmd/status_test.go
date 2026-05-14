@@ -48,7 +48,7 @@ func TestRunStatusTextIncludesContinuitySections(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"Continuity Status",
+		"Continuity Summary",
 		"Mode: checkpoint",
 		"Operational Metrics",
 		"Protocol annotations: 0",
@@ -97,6 +97,15 @@ func TestRunStatusJSONIncludesSummaryAndOpenWork(t *testing.T) {
 	if err := json.Unmarshal([]byte(output), &payload); err != nil {
 		t.Fatalf("decode json output: %v\noutput=%s", err, output)
 	}
+	if payload["schema_version"] != float64(machineContractSchemaVersion) {
+		t.Fatalf("unexpected schema version: %#v", payload["schema_version"])
+	}
+	if payload["kind"] != jsonKindStatus {
+		t.Fatalf("unexpected kind: %#v", payload["kind"])
+	}
+	if strings.Index(output, "\"schema_version\"") > strings.Index(output, "\"kind\"") || strings.Index(output, "\"kind\"") > strings.Index(output, "\"project\"") {
+		t.Fatalf("unexpected field ordering: %s", output)
+	}
 	if payload["continuity_mode"] != "fallback" {
 		t.Fatalf("unexpected continuity mode: %#v", payload["continuity_mode"])
 	}
@@ -113,5 +122,8 @@ func TestRunStatusJSONIncludesSummaryAndOpenWork(t *testing.T) {
 	recent, ok := payload["recent_activity"].([]any)
 	if !ok || len(recent) != 1 {
 		t.Fatalf("unexpected recent activity payload: %#v", payload["recent_activity"])
+	}
+	if latest := strings.Index(output, "\"latest_checkpoint\""); latest != -1 {
+		t.Fatalf("did not expect latest_checkpoint field in fallback output: %s", output)
 	}
 }

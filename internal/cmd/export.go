@@ -704,7 +704,7 @@ func renderContextMarkdownExport(title, project, cliVersion string, now time.Tim
 	b.WriteString(title)
 	b.WriteString("\n\n")
 	b.WriteString(fmt.Sprintf("Project: %s\n", project))
-	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339Nano)))
 	b.WriteString(fmt.Sprintf("Version: %s\n", cliVersion))
 	if len(artifacts) == 0 {
 		b.WriteString("\n\n_No context artifacts available._\n")
@@ -833,6 +833,7 @@ func renderArtifactContentMarkdown(content string) string {
 
 type jsonContextExport struct {
 	SchemaVersion int              `json:"schema_version"`
+	Kind          string           `json:"kind"`
 	Project       string           `json:"project"`
 	ExportedAt    string           `json:"exported_at"`
 	Version       string           `json:"version"`
@@ -841,9 +842,10 @@ type jsonContextExport struct {
 
 func renderContextJSONExport(project, cliVersion string, now time.Time, artifacts []yanzilibrary.Artifact, query contextExportQuery) ([]byte, error) {
 	payload := jsonContextExport{
-		SchemaVersion: 1,
+		SchemaVersion: machineContractSchemaVersion,
+		Kind:          jsonKindContextExport,
 		Project:       project,
-		ExportedAt:    now.Format(time.RFC3339),
+		ExportedAt:    now.Format(time.RFC3339Nano),
 		Version:       cliVersion,
 		Artifacts:     make([]map[string]any, 0, len(artifacts)),
 	}
@@ -902,7 +904,7 @@ func renderContextHTMLExport(project, cliVersion string, now time.Time, artifact
 	b.WriteString("  <header>\n")
 	b.WriteString("    <h1>Yanzi Context Export</h1>\n")
 	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Project: %s</div>\n", html.EscapeString(project)))
-	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Exported: %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
+	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Exported: %s</div>\n", html.EscapeString(now.Format(time.RFC3339Nano))))
 	b.WriteString(fmt.Sprintf("    <div class=\"muted\">Version: %s</div>\n", html.EscapeString(cliVersion)))
 	b.WriteString("  </header>\n")
 	if len(artifacts) == 0 {
@@ -961,7 +963,7 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 
 	b.WriteString("# Yanzi Agent Log\n\n")
 	b.WriteString(fmt.Sprintf("Project: %s\n", project))
-	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339Nano)))
 	b.WriteString(fmt.Sprintf("Version: %s\n\n", cliVersion))
 	if status != nil {
 		b.WriteString("## Continuity Summary\n\n")
@@ -1027,6 +1029,7 @@ func renderMarkdownLog(project, cliVersion string, now time.Time, items []export
 
 type jsonExport struct {
 	SchemaVersion int                `json:"schema_version"`
+	Kind          string             `json:"kind"`
 	Project       string             `json:"project"`
 	ExportedAt    string             `json:"exported_at"`
 	Version       string             `json:"version"`
@@ -1035,16 +1038,16 @@ type jsonExport struct {
 }
 
 type jsonExportSummary struct {
-	ContinuityMode           string                `json:"continuity_mode"`
-	ContinuityDepth          int                   `json:"continuity_depth"`
-	TotalCaptures            int                   `json:"total_captures"`
-	TotalProtocolAnnotations int                   `json:"total_protocol_annotations"`
-	TotalCheckpoints         int                   `json:"total_checkpoints"`
-	TotalIntentArtifacts     int                   `json:"total_intent_artifacts"`
-	VisibleContextArtifacts  int                   `json:"visible_context_artifacts"`
-	LastActivityAt           string                `json:"last_activity_at,omitempty"`
-	LastCaptureAt            string                `json:"last_capture_at,omitempty"`
-	LatestCheckpoint         *statusJSONCheckpoint `json:"latest_checkpoint,omitempty"`
+	ContinuityMode           string                  `json:"continuity_mode"`
+	ContinuityDepth          int                     `json:"continuity_depth"`
+	TotalCaptures            int                     `json:"total_captures"`
+	TotalProtocolAnnotations int                     `json:"total_protocol_annotations"`
+	TotalCheckpoints         int                     `json:"total_checkpoints"`
+	TotalIntentArtifacts     int                     `json:"total_intent_artifacts"`
+	VisibleContextArtifacts  int                     `json:"visible_context_artifacts"`
+	LastActivityAt           string                  `json:"last_activity_at,omitempty"`
+	LastCaptureAt            string                  `json:"last_capture_at,omitempty"`
+	LatestCheckpoint         *contractJSONCheckpoint `json:"latest_checkpoint,omitempty"`
 }
 
 type jsonCheckpointEvent struct {
@@ -1115,9 +1118,10 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 	}
 
 	payload := jsonExport{
-		SchemaVersion: 1,
+		SchemaVersion: machineContractSchemaVersion,
+		Kind:          jsonKindHistoryExport,
 		Project:       project,
-		ExportedAt:    now.Format(time.RFC3339),
+		ExportedAt:    now.Format(time.RFC3339Nano),
 		Version:       cliVersion,
 		Events:        events,
 	}
@@ -1134,11 +1138,13 @@ func renderJSONLog(project, cliVersion string, now time.Time, items []exportItem
 			LastCaptureAt:            status.LastCaptureAt,
 		}
 		if status.LatestCheckpoint != nil {
-			payload.Summary.LatestCheckpoint = &statusJSONCheckpoint{
-				Hash:      status.LatestCheckpoint.Hash,
-				Summary:   status.LatestCheckpoint.Summary,
-				CreatedAt: status.LatestCheckpoint.CreatedAt,
-				Artifacts: append([]string{}, status.LatestCheckpoint.ArtifactIDs...),
+			payload.Summary.LatestCheckpoint = &contractJSONCheckpoint{
+				Hash:                 status.LatestCheckpoint.Hash,
+				Project:              status.LatestCheckpoint.Project,
+				Summary:              status.LatestCheckpoint.Summary,
+				CreatedAt:            status.LatestCheckpoint.CreatedAt,
+				ArtifactIDs:          append([]string{}, status.LatestCheckpoint.ArtifactIDs...),
+				PreviousCheckpointID: status.LatestCheckpoint.PreviousCheckpointID,
 			}
 		}
 	}
@@ -1265,7 +1271,7 @@ func renderHTMLLog(project, cliVersion string, now time.Time, items []exportItem
 		}
 		b.WriteString("</div>\n")
 	}
-	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339))))
+	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Exported:</span> %s</div>\n", html.EscapeString(now.Format(time.RFC3339Nano))))
 	b.WriteString(fmt.Sprintf("        <div class=\"meta-line\"><span class=\"label\">Version:</span> %s</div>\n", html.EscapeString(cliVersion)))
 	b.WriteString("      </div>\n")
 	b.WriteString("      <div class=\"counts\">\n")

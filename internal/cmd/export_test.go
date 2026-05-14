@@ -290,6 +290,9 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	if got := payload["schema_version"]; got != float64(1) {
 		t.Fatalf("expected schema_version=1, got %v", got)
 	}
+	if got := payload["kind"]; got != jsonKindHistoryExport {
+		t.Fatalf("expected history export kind, got %v", got)
+	}
 	if got := payload["project"]; got != "alpha" {
 		t.Fatalf("expected project alpha, got %v", got)
 	}
@@ -300,7 +303,7 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	if !ok || exportedAt == "" {
 		t.Fatalf("expected exported_at string, got %T %v", payload["exported_at"], payload["exported_at"])
 	}
-	if _, err := time.Parse(time.RFC3339, exportedAt); err != nil {
+	if _, err := time.Parse(time.RFC3339Nano, exportedAt); err != nil {
 		t.Fatalf("expected RFC3339 exported_at, got %q (%v)", exportedAt, err)
 	}
 	summary, ok := payload["summary"].(map[string]any)
@@ -309,6 +312,10 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	}
 	if summary["continuity_mode"] != "checkpoint" || summary["total_protocol_annotations"] != float64(1) {
 		t.Fatalf("unexpected summary payload: %#v", summary)
+	}
+	latestCheckpoint, ok := summary["latest_checkpoint"].(map[string]any)
+	if !ok || latestCheckpoint["project"] != "alpha" {
+		t.Fatalf("unexpected latest checkpoint summary payload: %#v", summary["latest_checkpoint"])
 	}
 
 	events, ok := payload["events"].([]any)
@@ -348,6 +355,9 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 
 	// encoding/json emits map keys in sorted order; ensure deterministic metadata key ordering.
 	jsonText := string(data)
+	if strings.Index(jsonText, "\"schema_version\"") > strings.Index(jsonText, "\"kind\"") || strings.Index(jsonText, "\"kind\"") > strings.Index(jsonText, "\"project\"") {
+		t.Fatalf("unexpected top-level field ordering: %s", jsonText)
+	}
 	areaIdx := strings.Index(jsonText, "\"area\": \"auth\"")
 	decisionIdx := strings.Index(jsonText, "\"decision_type\": \"refactor\"")
 	if areaIdx == -1 || decisionIdx == -1 || areaIdx > decisionIdx {
@@ -409,6 +419,9 @@ func TestExportJSONOmitMetadataWhenOnlyProjectAndAllowNullMetaValue(t *testing.T
 	var payload map[string]any
 	if err := json.Unmarshal(data, &payload); err != nil {
 		t.Fatalf("unmarshal export json: %v", err)
+	}
+	if payload["kind"] != jsonKindHistoryExport {
+		t.Fatalf("unexpected kind: %#v", payload["kind"])
 	}
 	events := payload["events"].([]any)
 	capture := events[0].(map[string]any)

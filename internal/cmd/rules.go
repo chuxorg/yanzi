@@ -244,7 +244,7 @@ func renderComposedRulesMarkdown(project, cliVersion string, now time.Time, item
 	var b strings.Builder
 	b.WriteString("# Yanzi Rules Export\n\n")
 	b.WriteString(fmt.Sprintf("Project: %s\n", project))
-	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339)))
+	b.WriteString(fmt.Sprintf("Exported: %s\n", now.Format(time.RFC3339Nano)))
 	b.WriteString(fmt.Sprintf("Version: %s\n\n", cliVersion))
 
 	b.WriteString("# SYSTEM RULES\n\n")

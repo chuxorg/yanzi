@@ -13,27 +13,22 @@ import (
 )
 
 type statusJSONPayload struct {
-	Project                  string                `json:"project"`
-	ProjectCreatedAt         string                `json:"project_created_at"`
-	ContinuityMode           string                `json:"continuity_mode"`
-	ContinuityDepth          int                   `json:"continuity_depth"`
-	TotalCaptures            int                   `json:"total_captures"`
-	TotalProtocolAnnotations int                   `json:"total_protocol_annotations"`
-	TotalCheckpoints         int                   `json:"total_checkpoints"`
-	TotalIntentArtifacts     int                   `json:"total_intent_artifacts"`
-	VisibleContextArtifacts  int                   `json:"visible_context_artifacts"`
-	LastActivityAt           string                `json:"last_activity_at,omitempty"`
-	LastCaptureAt            string                `json:"last_capture_at,omitempty"`
-	LatestCheckpoint         *statusJSONCheckpoint `json:"latest_checkpoint,omitempty"`
-	RecentActivity           []statusJSONActivity  `json:"recent_activity"`
-	UnresolvedWork           []statusJSONArtifact  `json:"unresolved_work"`
-}
-
-type statusJSONCheckpoint struct {
-	Hash      string   `json:"hash"`
-	Summary   string   `json:"summary"`
-	CreatedAt string   `json:"created_at"`
-	Artifacts []string `json:"artifact_ids"`
+	SchemaVersion            int                     `json:"schema_version"`
+	Kind                     string                  `json:"kind"`
+	Project                  string                  `json:"project"`
+	ProjectCreatedAt         string                  `json:"project_created_at"`
+	ContinuityMode           string                  `json:"continuity_mode"`
+	ContinuityDepth          int                     `json:"continuity_depth"`
+	TotalCaptures            int                     `json:"total_captures"`
+	TotalProtocolAnnotations int                     `json:"total_protocol_annotations"`
+	TotalCheckpoints         int                     `json:"total_checkpoints"`
+	TotalIntentArtifacts     int                     `json:"total_intent_artifacts"`
+	VisibleContextArtifacts  int                     `json:"visible_context_artifacts"`
+	LastActivityAt           string                  `json:"last_activity_at,omitempty"`
+	LastCaptureAt            string                  `json:"last_capture_at,omitempty"`
+	LatestCheckpoint         *contractJSONCheckpoint `json:"latest_checkpoint,omitempty"`
+	RecentActivity           []statusJSONActivity    `json:"recent_activity"`
+	UnresolvedWork           []statusJSONArtifact    `json:"unresolved_work"`
 }
 
 type statusJSONActivity struct {
@@ -100,7 +95,7 @@ func RunStatus(args []string) error {
 
 func renderStatusText(status *yanzilibrary.ProjectStatus) {
 	fmt.Printf("Project: %s\n\n", status.Project)
-	fmt.Println("Continuity Status")
+	fmt.Println("Continuity Summary")
 	fmt.Printf("Mode: %s\n", status.ContinuityMode)
 	fmt.Printf("Project created: %s\n", fallbackText(status.ProjectCreatedAt, "(unknown)"))
 	fmt.Printf("Last activity: %s\n", fallbackText(status.LastActivityAt, "(none)"))
@@ -145,6 +140,8 @@ func renderStatusText(status *yanzilibrary.ProjectStatus) {
 
 func renderStatusJSON(status *yanzilibrary.ProjectStatus) error {
 	payload := statusJSONPayload{
+		SchemaVersion:            machineContractSchemaVersion,
+		Kind:                     jsonKindStatus,
 		Project:                  status.Project,
 		ProjectCreatedAt:         status.ProjectCreatedAt,
 		ContinuityMode:           status.ContinuityMode,
@@ -160,11 +157,13 @@ func renderStatusJSON(status *yanzilibrary.ProjectStatus) error {
 		UnresolvedWork:           make([]statusJSONArtifact, 0, len(status.UnresolvedWork)),
 	}
 	if status.LatestCheckpoint != nil {
-		payload.LatestCheckpoint = &statusJSONCheckpoint{
-			Hash:      status.LatestCheckpoint.Hash,
-			Summary:   status.LatestCheckpoint.Summary,
-			CreatedAt: status.LatestCheckpoint.CreatedAt,
-			Artifacts: append([]string{}, status.LatestCheckpoint.ArtifactIDs...),
+		payload.LatestCheckpoint = &contractJSONCheckpoint{
+			Hash:                 status.LatestCheckpoint.Hash,
+			Project:              status.LatestCheckpoint.Project,
+			Summary:              status.LatestCheckpoint.Summary,
+			CreatedAt:            status.LatestCheckpoint.CreatedAt,
+			ArtifactIDs:          append([]string{}, status.LatestCheckpoint.ArtifactIDs...),
+			PreviousCheckpointID: status.LatestCheckpoint.PreviousCheckpointID,
 		}
 	}
 	for _, item := range status.RecentActivity {

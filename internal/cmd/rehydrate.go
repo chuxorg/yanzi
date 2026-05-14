@@ -20,22 +20,15 @@ const (
 )
 
 type rehydrateJSONPayload struct {
-	Project        string                   `json:"project"`
-	HasCheckpoint  bool                     `json:"has_checkpoint"`
-	Fallback       bool                     `json:"fallback"`
-	FallbackReason string                   `json:"fallback_reason,omitempty"`
-	FallbackLimit  int                      `json:"fallback_limit,omitempty"`
-	Checkpoint     *rehydrateJSONCheckpoint `json:"checkpoint,omitempty"`
-	Intents        []rehydrateJSONIntent    `json:"intents"`
-}
-
-type rehydrateJSONCheckpoint struct {
-	Hash                 string   `json:"hash"`
-	Project              string   `json:"project"`
-	Summary              string   `json:"summary"`
-	CreatedAt            string   `json:"created_at"`
-	ArtifactIDs          []string `json:"artifact_ids"`
-	PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+	SchemaVersion  int                     `json:"schema_version"`
+	Kind           string                  `json:"kind"`
+	Project        string                  `json:"project"`
+	HasCheckpoint  bool                    `json:"has_checkpoint"`
+	Fallback       bool                    `json:"fallback"`
+	FallbackReason string                  `json:"fallback_reason,omitempty"`
+	FallbackLimit  int                     `json:"fallback_limit,omitempty"`
+	Checkpoint     *contractJSONCheckpoint `json:"checkpoint,omitempty"`
+	Intents        []rehydrateJSONIntent   `json:"intents"`
 }
 
 type rehydrateJSONIntent struct {
@@ -204,6 +197,8 @@ func renderRehydrateText(payload *yanzilibrary.RehydratePayload, status *yanzili
 
 func renderRehydrateJSON(payload *yanzilibrary.RehydratePayload) error {
 	out := rehydrateJSONPayload{
+		SchemaVersion: machineContractSchemaVersion,
+		Kind:          jsonKindRehydrate,
 		Project:       payload.Project,
 		HasCheckpoint: payload.LatestCheckpoint != nil,
 		Fallback:      payload.Fallback,
@@ -215,7 +210,7 @@ func renderRehydrateJSON(payload *yanzilibrary.RehydratePayload) error {
 	}
 	if payload.LatestCheckpoint != nil {
 		artifactIDs := append([]string{}, payload.LatestCheckpoint.ArtifactIDs...)
-		out.Checkpoint = &rehydrateJSONCheckpoint{
+		out.Checkpoint = &contractJSONCheckpoint{
 			Hash:                 payload.LatestCheckpoint.Hash,
 			Project:              payload.LatestCheckpoint.Project,
 			Summary:              payload.LatestCheckpoint.Summary,
