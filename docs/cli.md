@@ -268,7 +268,7 @@ Add, list, and show context artifacts.
 Examples:
 
 ```bash
-yanzi context add --type process_rule --title "Release rule" --file ./SYSTEM_RULES.md
+yanzi context add --type process_rule --title "Release rule" --file ./system-rules.md
 yanzi context list --scope project
 yanzi context list --all-projects
 yanzi context show abc123def456
@@ -308,7 +308,7 @@ Capture rules files and export only rule records.
 Examples:
 
 ```bash
-yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
+yanzi rules add ./system-rules.md --scope global --priority critical
 yanzi rules list --scope global
 yanzi rules export --format markdown
 yanzi rules export --format html --compose --profile engineer

@@ -70,5 +70,5 @@ Guidelines:
 
 Repository execution and release discipline are tracked in:
 
-- `/SYSTEM_RULES.md`
+- `/system-rules.md`
 - [docs/dev/RELEASE_PROTOCOL.md](dev/RELEASE_PROTOCOL.md)

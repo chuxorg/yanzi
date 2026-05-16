@@ -275,8 +275,8 @@ examples:
   yanzi context list --scope project
   yanzi context show abc123def456
   yanzi bootstrap --dry-run
-  yanzi rules add ./SYSTEM_RULES.md --scope global --priority critical
-  yanzi rules add ./SYSTEM_RULES.md --profile engineer
+  yanzi rules add ./system-rules.md --scope global --priority critical
+  yanzi rules add ./system-rules.md --profile engineer
   yanzi rules list --scope global
   yanzi rules list --profile engineer
   yanzi types list --json
