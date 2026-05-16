@@ -27,12 +27,17 @@ cat >> "$REPORT_FILE" <<EOF_REPORT
   - qa/execution/run-project-lifecycle.sh
   - qa/execution/normalize-output.sh
   - qa/execution/compare-snapshots.sh
-- Snapshots Validated:
+  - qa/execution/generate-report.sh
+- Snapshots Certified:
   - Expected: $EXPECTED_DIR
   - Normalized: $NORMALIZED_DIR
-- Drift Classification: $drift
+- Normalization Applied:
+  - timestamp tokens (<TIMESTAMP>)
+  - generated identifier tokens (<ID32>, <ID64>, <ULID>)
+  - machine/path tokens (<REPO_PATH>, <HOME_PATH>, <WORKSPACE_PATH>, <TMP_PATH>)
+- Drift Findings Classification: $drift
 - Result: $status
-- Operational Notes: Deterministic workflow executed with filesystem-first evidence capture.
+- Certification Notes: First human-reviewed deterministic baseline established for project-lifecycle scenario.
 
 ### Drift Findings
 

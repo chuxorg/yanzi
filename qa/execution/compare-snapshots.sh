@@ -50,7 +50,7 @@ else
 fi
 
 case "$status" in
-  PASS) drift="Expected Drift" ;;
+  PASS) drift="No Drift" ;;
   WARN) drift="Formatting Drift" ;;
   FAIL) drift="Regression Drift" ;;
   *) drift="Operational Drift" ; status="FAIL" ;;

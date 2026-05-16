@@ -1,0 +1,5 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi capture --author qa-operator --title Deterministic\ capture --prompt Create\ deterministic\ QA\ baseline. --response Baseline\ created\ for\ operational\ certification. --profile deterministic --meta scenario=project-lifecycle --meta stage=foundation 
+== OUTPUT ==
+id: fc698c984081bf8912ba7fcc8477917c
+hash: ed7ad7c8afba4eba913523ebf9dd032f23e590cb0c6358f8cb1e0f027ecc7b8f

@@ -1,0 +1,7 @@
+== COMMAND ==
+<REPO_PATH>/yanzi checkpoint list 
+== OUTPUT ==
+Project: deterministic-project
+
+CreatedAt	Summary
+<TIMESTAMP>	Deterministic checkpoint

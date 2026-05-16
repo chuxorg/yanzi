@@ -1,0 +1,4 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi export --format html 
+== OUTPUT ==
+Exported YANZI_LOG.html

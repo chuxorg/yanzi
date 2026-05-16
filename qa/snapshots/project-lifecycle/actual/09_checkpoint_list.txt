@@ -1,0 +1,7 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi checkpoint list 
+== OUTPUT ==
+Project: deterministic-project
+
+CreatedAt	Summary
+2026-05-16T20:09:41.973881Z	Deterministic checkpoint
