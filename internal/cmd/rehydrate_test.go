@@ -97,6 +97,9 @@ func TestRehydrateWithRichArtifacts(t *testing.T) {
 	if !strings.Contains(output, "Project: alpha") {
 		t.Fatalf("missing project: %q", output)
 	}
+	if !strings.Contains(output, "Continuity Summary") || !strings.Contains(output, "Mode: checkpoint") || !strings.Contains(output, "Open work: 0") {
+		t.Fatalf("missing continuity summary: %q", output)
+	}
 	if !strings.Contains(output, "Checkpoint") || !strings.Contains(output, "Summary: first checkpoint") {
 		t.Fatalf("missing checkpoint block: %q", output)
 	}
@@ -177,6 +180,8 @@ func TestRehydrateDryRun(t *testing.T) {
 		t.Fatalf("RunRehydrate dry-run: %v", err)
 	}
 	if !strings.Contains(output, "Checkpoints to load: 1") ||
+		!strings.Contains(output, "Continuity mode: checkpoint") ||
+		!strings.Contains(output, "Continuity depth: 1") ||
 		!strings.Contains(output, "Context count: 2") ||
 		!strings.Contains(output, "Last checkpoint summary: first checkpoint") ||
 		!strings.Contains(output, "Intents to load: 1") {
@@ -278,12 +283,21 @@ func TestRehydrateJSONOutput(t *testing.T) {
 	if payload["project"] != "alpha" {
 		t.Fatalf("unexpected project: %#v", payload["project"])
 	}
+	if payload["schema_version"] != float64(machineContractSchemaVersion) || payload["kind"] != jsonKindRehydrate {
+		t.Fatalf("unexpected contract identity: %#v", payload)
+	}
+	if strings.Index(output, "\"schema_version\"") > strings.Index(output, "\"kind\"") || strings.Index(output, "\"kind\"") > strings.Index(output, "\"project\"") {
+		t.Fatalf("unexpected field ordering: %s", output)
+	}
 	if payload["has_checkpoint"] != true || payload["fallback"] != false {
 		t.Fatalf("unexpected checkpoint/fallback flags: %#v", payload)
 	}
 	checkpoint, ok := payload["checkpoint"].(map[string]any)
 	if !ok || checkpoint["summary"] != "first checkpoint" {
 		t.Fatalf("unexpected checkpoint payload: %#v", payload["checkpoint"])
+	}
+	if checkpoint["project"] != "alpha" {
+		t.Fatalf("unexpected checkpoint project: %#v", checkpoint)
 	}
 	intents, ok := payload["intents"].([]any)
 	if !ok || len(intents) != 1 {
@@ -336,6 +350,12 @@ func TestRehydrateJSONFallbackOutput(t *testing.T) {
 	}
 	if payload["has_checkpoint"] != false || payload["fallback"] != true {
 		t.Fatalf("unexpected fallback flags: %#v", payload)
+	}
+	if payload["schema_version"] != float64(machineContractSchemaVersion) || payload["kind"] != jsonKindRehydrate {
+		t.Fatalf("unexpected contract identity: %#v", payload)
+	}
+	if strings.Index(output, "\"schema_version\"") > strings.Index(output, "\"kind\"") || strings.Index(output, "\"kind\"") > strings.Index(output, "\"project\"") {
+		t.Fatalf("unexpected field ordering: %s", output)
 	}
 	if payload["fallback_reason"] != yanzilibrary.ErrCheckpointNotFound.Error() {
 		t.Fatalf("unexpected fallback reason: %#v", payload["fallback_reason"])

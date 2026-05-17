@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 // CreateArtifact stores a new artifact for a project.
@@ -76,7 +78,11 @@ func createArtifact(db *sql.DB, projectID, class, artifactType, title, content, 
 		metadataValue = metadata
 	}
 
-	if _, err := db.Exec(
+	if _, err := sqliteruntime.ExecContext(
+		context.Background(),
+		db,
+		ResolvedDBPath(),
+		"create artifact",
 		`INSERT INTO intents (
 			id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,

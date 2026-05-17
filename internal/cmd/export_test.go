@@ -69,6 +69,9 @@ func TestExportMarkdownChronological(t *testing.T) {
 	if !strings.Contains(output, "Version: v9.9.9") {
 		t.Fatalf("missing version: %q", output)
 	}
+	if !strings.Contains(output, "## Continuity Summary") || !strings.Contains(output, "- Continuity mode: checkpoint") || !strings.Contains(output, "- Protocol annotations: 1") {
+		t.Fatalf("missing continuity summary: %q", output)
+	}
 
 	idxCap1 := strings.Index(output, "### Capture: cap-1")
 	idxCheckpoint := strings.Index(output, "## Checkpoint:")
@@ -287,6 +290,9 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	if got := payload["schema_version"]; got != float64(1) {
 		t.Fatalf("expected schema_version=1, got %v", got)
 	}
+	if got := payload["kind"]; got != jsonKindHistoryExport {
+		t.Fatalf("expected history export kind, got %v", got)
+	}
 	if got := payload["project"]; got != "alpha" {
 		t.Fatalf("expected project alpha, got %v", got)
 	}
@@ -297,8 +303,19 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 	if !ok || exportedAt == "" {
 		t.Fatalf("expected exported_at string, got %T %v", payload["exported_at"], payload["exported_at"])
 	}
-	if _, err := time.Parse(time.RFC3339, exportedAt); err != nil {
+	if _, err := time.Parse(time.RFC3339Nano, exportedAt); err != nil {
 		t.Fatalf("expected RFC3339 exported_at, got %q (%v)", exportedAt, err)
+	}
+	summary, ok := payload["summary"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected summary object, got %T", payload["summary"])
+	}
+	if summary["continuity_mode"] != "checkpoint" || summary["total_protocol_annotations"] != float64(1) {
+		t.Fatalf("unexpected summary payload: %#v", summary)
+	}
+	latestCheckpoint, ok := summary["latest_checkpoint"].(map[string]any)
+	if !ok || latestCheckpoint["project"] != "alpha" {
+		t.Fatalf("unexpected latest checkpoint summary payload: %#v", summary["latest_checkpoint"])
 	}
 
 	events, ok := payload["events"].([]any)
@@ -338,6 +355,9 @@ func TestExportJSONCanonicalShapeAndChronology(t *testing.T) {
 
 	// encoding/json emits map keys in sorted order; ensure deterministic metadata key ordering.
 	jsonText := string(data)
+	if strings.Index(jsonText, "\"schema_version\"") > strings.Index(jsonText, "\"kind\"") || strings.Index(jsonText, "\"kind\"") > strings.Index(jsonText, "\"project\"") {
+		t.Fatalf("unexpected top-level field ordering: %s", jsonText)
+	}
 	areaIdx := strings.Index(jsonText, "\"area\": \"auth\"")
 	decisionIdx := strings.Index(jsonText, "\"decision_type\": \"refactor\"")
 	if areaIdx == -1 || decisionIdx == -1 || areaIdx > decisionIdx {
@@ -399,6 +419,9 @@ func TestExportJSONOmitMetadataWhenOnlyProjectAndAllowNullMetaValue(t *testing.T
 	var payload map[string]any
 	if err := json.Unmarshal(data, &payload); err != nil {
 		t.Fatalf("unmarshal export json: %v", err)
+	}
+	if payload["kind"] != jsonKindHistoryExport {
+		t.Fatalf("unexpected kind: %#v", payload["kind"])
 	}
 	events := payload["events"].([]any)
 	capture := events[0].(map[string]any)
@@ -631,6 +654,9 @@ func TestExportHTMLCanonicalRenderAndCounts(t *testing.T) {
 	}
 	if !strings.Contains(output, "Total artifacts: 1") || !strings.Contains(output, "Total events: 3") || !strings.Contains(output, "Checkpoints: 1") {
 		t.Fatalf("missing counts: %q", output)
+	}
+	if !strings.Contains(output, "Continuity Mode") || !strings.Contains(output, "checkpoint") || !strings.Contains(output, "Open Work") {
+		t.Fatalf("missing continuity summary cards: %q", output)
 	}
 	if !strings.Contains(output, "Checkpoint:</span> <span class=\"mono-inline\">") || !strings.Contains(output, "checkpoint 1") {
 		t.Fatalf("missing sticky header checkpoint summary: %q", output)
@@ -1111,9 +1137,9 @@ func seedCheckpointForExport(t *testing.T, db *sql.DB, project, createdAt, summa
 func captureRuleArtifactsForExportTest(t *testing.T, workdir string) {
 	t.Helper()
 
-	systemRulesPath := filepath.Join(workdir, "SYSTEM_RULES.md")
+	systemRulesPath := filepath.Join(workdir, "system-rules.md")
 	if err := os.WriteFile(systemRulesPath, []byte("# System Rules\nAlways verify changes.\n"), 0o644); err != nil {
-		t.Fatalf("write SYSTEM_RULES.md: %v", err)
+		t.Fatalf("write system-rules.md: %v", err)
 	}
 	notesPath := filepath.Join(workdir, "project-notes.md")
 	if err := os.WriteFile(notesPath, []byte("# Project Notes\nGeneral context.\n"), 0o644); err != nil {

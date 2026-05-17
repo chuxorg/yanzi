@@ -1,0 +1,4 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi project use deterministic-project 
+== OUTPUT ==
+Active project set to deterministic-project.

@@ -1,3 +1,4 @@
+---
 # Install
 
 ## Problem
@@ -8,27 +9,41 @@ Release artifacts are published at:
 
 - https://github.com/chuxorg/yanzi/releases
 
-## macOS (Homebrew - Recommended)
+## macOS (Homebrew Tap)
 
-Install using Homebrew:
+Install from the Yanzi tap:
 
 ```bash
+brew tap chuxorg/yanzi
 brew install chuxorg/yanzi/yanzi
 ```
 
-## macOS / Linux Install Script
-
-Install the latest release directly from GitHub:
+For deterministic release validation, verify the installed version:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
+yanzi --version
 ```
 
-The script detects OS and architecture, downloads the matching release asset from `https://github.com/chuxorg/yanzi/releases/latest`, and installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise.
+## macOS / Linux Install Script (Deterministic)
+
+Install a pinned candidate tag:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash -s -- --version v2.9.1-rc1
+```
+
+The script resolves the release from an explicit tag when provided and emits provenance:
+
+- requested tag
+- resolved tag
+- asset URL
+- installed runtime version
+
+The installer fails if requested/resolved/installed versions do not match.
 
 ## Windows
 
-Download `yanzi-windows-amd64.zip` from the latest release.
+Download `yanzi-windows-amd64.zip` from the target release tag.
 
 Steps:
 
@@ -38,7 +53,7 @@ Steps:
 
 ## Direct Binary
 
-Download the appropriate release artifact from the latest release:
+Download the appropriate release artifact from the target release tag:
 
 - `yanzi-darwin-arm64`
 - `yanzi-darwin-amd64`
@@ -72,9 +87,17 @@ Expected:
 yanzi vX.Y.Z
 ```
 
+## Deterministic RC Validation Flow
+
+1. Select candidate tag and SHA.
+2. Install with pinned tag (`install.sh --version <tag>`).
+3. Verify runtime version equals candidate tag.
+4. Validate Homebrew tap version path explicitly.
+5. Record PASS/WARN/FAIL in QA certification report.
+
 ## Notes
 
 - Yanzi runs locally by default.
 - No services or infrastructure are required.
 - HTTP mode is optional and not required for most workflows.
-- Homebrew upgrades depend on the tap formula being refreshed. If `brew upgrade yanzi` does not install the latest release yet, use the install script instead.
+- Homebrew distribution must be synchronized with release governance before promotion.

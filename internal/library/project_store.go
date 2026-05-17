@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 // CreateProject creates a unique project record and returns the created project.
@@ -39,8 +41,11 @@ func CreateProject(name string, description string) (*Project, error) {
 	createdAtText := createdAt.Format(time.RFC3339Nano)
 	hash := hashProjectRecord(name, description, createdAtText)
 
-	if _, err := db.ExecContext(
+	if _, err := sqliteruntime.ExecContext(
 		ctx,
+		db,
+		ResolvedDBPath(),
+		"create project",
 		`INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES (?, ?, ?, ?, ?)`,
 		name,
 		description,

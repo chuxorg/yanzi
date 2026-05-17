@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 	_ "modernc.org/sqlite"
 )
 
@@ -124,31 +125,11 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 `
 
 func openInitializedDB(path string) (*sql.DB, bool, error) {
-	if err := ensureDBFile(path); err != nil {
-		return nil, false, err
-	}
-
-	db, err := sql.Open("sqlite", path)
+	db, err := sqliteruntime.Open(path)
 	if err != nil {
-		return nil, false, fmt.Errorf("open db: %w", err)
-	}
-
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		return nil, false, fmt.Errorf("ping db: %w", err)
-	}
-	if _, err := db.Exec(`PRAGMA journal_mode=WAL;`); err != nil {
-		_ = db.Close()
 		return nil, false, err
 	}
-	if _, err := db.Exec(`PRAGMA foreign_keys=ON;`); err != nil {
-		_ = db.Close()
-		return nil, false, err
-	}
-	if _, err := db.Exec(`PRAGMA busy_timeout=5000;`); err != nil {
-		_ = db.Close()
-		return nil, false, err
-	}
+	setResolvedDBPath(path)
 
 	initialized, err := ensureSchemaVersion(context.Background(), db)
 	if err != nil {
@@ -164,37 +145,23 @@ func openInitializedDB(path string) (*sql.DB, bool, error) {
 	return db, initialized, nil
 }
 
-func ensureDBFile(path string) error {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create db directory: %w", err)
-	}
-
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
-	if err != nil {
-		return fmt.Errorf("create db file: %w", err)
-	}
-	if err := f.Close(); err != nil {
-		return fmt.Errorf("close db file: %w", err)
-	}
-	return nil
-}
-
 func ensureSchemaVersion(ctx context.Context, db *sql.DB) (bool, error) {
-	if _, err := db.ExecContext(ctx, schemaVersionTable); err != nil {
-		return false, fmt.Errorf("create schema_version: %w", err)
+	path := ResolvedDBPath()
+	if _, err := sqliteruntime.ExecContext(ctx, db, path, "create schema_version table", schemaVersionTable); err != nil {
+		return false, err
 	}
 
 	var count int
 	if err := db.QueryRowContext(ctx, `SELECT COUNT(1) FROM schema_version`).Scan(&count); err != nil {
-		return false, fmt.Errorf("read schema_version: %w", err)
+		return false, sqliteruntime.NormalizeError("read schema_version", path, err)
 	}
 	if count > 0 {
 		return false, nil
 	}
 
-	if _, err := db.ExecContext(ctx, `INSERT INTO schema_version (version, applied_at) VALUES (?, ?)`, 1, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
-		return false, fmt.Errorf("write schema_version: %w", err)
+	if _, err := sqliteruntime.ExecContext(ctx, db, path, "write schema_version",
+		`INSERT INTO schema_version (version, applied_at) VALUES (?, ?)`, 1, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+		return false, err
 	}
 	return true, nil
 }
@@ -204,9 +171,10 @@ func migrateDB(ctx context.Context, db *sql.DB) error {
 	if db == nil {
 		return errors.New("database is nil")
 	}
+	path := ResolvedDBPath()
 
-	if _, err := db.ExecContext(ctx, schemaMigrationsTable); err != nil {
-		return fmt.Errorf("create schema_migrations: %w", err)
+	if _, err := sqliteruntime.ExecContext(ctx, db, path, "create schema_migrations table", schemaMigrationsTable); err != nil {
+		return err
 	}
 
 	paths, err := listMigrationFiles(MigrationsFS())
@@ -233,20 +201,17 @@ func migrateDB(ctx context.Context, db *sql.DB) error {
 			return fmt.Errorf("read migration %s: %w", version, err)
 		}
 
-		tx, err := db.BeginTx(ctx, nil)
-		if err != nil {
-			return fmt.Errorf("begin migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, string(contents)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, version, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("record migration %s: %w", version, err)
-		}
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("commit migration %s: %w", version, err)
+		if err := sqliteruntime.RunTx(ctx, db, path, "apply migration "+version, func(tx *sql.Tx) error {
+			if _, err := sqliteruntime.ExecTxContext(ctx, tx, path, "apply migration "+version, string(contents)); err != nil {
+				return err
+			}
+			if _, err := sqliteruntime.ExecTxContext(ctx, tx, path, "record migration "+version,
+				`INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, version, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 

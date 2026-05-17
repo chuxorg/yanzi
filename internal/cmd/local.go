@@ -15,6 +15,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/core/model"
 	"github.com/chuxorg/yanzi/internal/core/store"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 func openLocalDB(cfg config.Config) (*sql.DB, error) {
@@ -73,8 +74,11 @@ func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecor
 		prevHash = record.PrevHash
 	}
 
-	_, err := db.ExecContext(
+	_, err := sqliteruntime.ExecContext(
 		ctx,
+		db,
+		yanzilibrary.ResolvedDBPath(),
+		"create intent",
 		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.ID,

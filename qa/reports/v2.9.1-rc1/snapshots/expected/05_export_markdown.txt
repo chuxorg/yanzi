@@ -1,0 +1,4 @@
+== COMMAND ==
+<REPO_PATH>/yanzi export --format markdown 
+== OUTPUT ==
+Exported YANZI_LOG.md

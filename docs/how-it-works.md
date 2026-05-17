@@ -9,6 +9,19 @@ Yanzi stores two kinds of project state:
 
 Intent tells you what was asked and answered. Context stores the supporting rules, references, and notes that should stay available across sessions.
 
+## Local-First Runtime
+
+Yanzi runs against a local SQLite database by default.
+
+This keeps the operational model small and explicit:
+
+- local file
+- deterministic ordering
+- short-lived CLI processes
+- no background worker or orchestration layer
+
+See [Local-First Operation](local-first.md) for concurrency expectations and lock behavior.
+
 ## Checkpoints
 
 A checkpoint marks a stable point in the active project.
@@ -20,6 +33,10 @@ A checkpoint marks a stable point in the active project.
 `yanzi rehydrate` loads the active project, finds the latest checkpoint, and prints the captures recorded after that checkpoint.
 
 `yanzi rehydrate --dry-run` shows what would be loaded without printing the full sequence.
+
+`yanzi status` exposes the same continuity model as a lightweight observability surface. It reports the latest checkpoint anchor, continuity depth, recent activity, and unresolved explicit work artifacts.
+
+Machine-readable surfaces follow explicit JSON contracts with schema versioning and stable `kind` fields so tooling can consume them without guessing.
 
 ## Message Channel
 
