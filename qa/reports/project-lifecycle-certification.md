@@ -216,3 +216,53 @@ status_file=/Users/developer/projects/chuxorg/yanzi-cli-qa/qa/reports/release-co
 
 ---
 
+## Run: 2026-05-17T18:50:44Z
+
+- Scenario: project-lifecycle deterministic operational certification
+- Environment: Darwin arm64
+- Repository: /Users/developer/projects/chuxorg/yanzi-cli-qa
+- Commands Executed:
+  - qa/execution/run-project-lifecycle.sh
+  - qa/execution/normalize-output.sh
+  - qa/execution/compare-snapshots.sh
+  - qa/execution/validate-release-convergence.sh (when candidate tag is provided)
+  - qa/execution/generate-report.sh
+- Snapshots Certified:
+  - Expected: /Users/developer/projects/chuxorg/yanzi-cli-qa/qa/snapshots/project-lifecycle/expected
+  - Normalized: /Users/developer/projects/chuxorg/yanzi-cli-qa/qa/snapshots/project-lifecycle/normalized
+- Normalization Applied:
+  - timestamp tokens (<TIMESTAMP>)
+  - generated identifier tokens (<ID32>, <ID64>, <ULID>)
+  - machine/path tokens (<REPO_PATH>, <HOME_PATH>, <WORKSPACE_PATH>, <TMP_PATH>)
+- Drift Findings Classification: No Drift
+- Distribution Convergence Status: PASS
+- Promotable Candidate: yes
+- Candidate Tag: v2.9.1-rc1
+- Candidate SHA: 688d3f372b2e2f9a644e70bc5bb602dd54758cb6
+- Installer Runtime Version: yanzi v2.9.1-rc1
+- Homebrew Lineage: tap:chuxorg/yanzi/yanzi
+- Result: PASS
+- Certification Notes: First human-reviewed deterministic baseline established for project-lifecycle scenario.
+
+### Drift Findings
+
+```text
+No drift detected.
+```
+
+### Convergence Findings
+
+```text
+candidate_tag=v2.9.1-rc1
+candidate_sha=688d3f372b2e2f9a644e70bc5bb602dd54758cb6
+installer_version=yanzi v2.9.1-rc1
+uninstall_check=pass
+reinstall_version=yanzi v2.9.1-rc1
+homebrew_formula_version=2.9.1-rc1
+status=PASS
+promotable=yes
+status_file=/Users/developer/projects/chuxorg/yanzi-cli-qa/qa/reports/release-convergence-status.env
+```
+
+---
+

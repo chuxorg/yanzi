@@ -57,3 +57,17 @@ Out-of-scope for this convergence closure wave:
 - Convergence analysis uses current open PR + branch state as of 2026-05-17.
 - Provenance continuity preserved by recommending closure/archival instead of deletion or history mutation.
 - Ownership boundaries preserved by keeping repo-specific promotion roles explicit (`yanzi` core, `homebrew-yanzi` distribution, QA repo provenance).
+
+## Execution Status (2026-05-17)
+
+- Completed:
+  - Confirmed PR #118 includes deterministic governance, promotion, and distribution semantics.
+  - Closed superseded feeder PR #115 with provenance-retained closure comments pointing to PR #118.
+  - Executed release convergence gate:
+    - Command: `qa/execution/validate-release-convergence.sh v2.9.1-rc1 688d3f372b2e2f9a644e70bc5bb602dd54758cb6`
+    - Outcome: `status=PASS`, `promotable=yes`
+  - Appended certification outcome using `qa/execution/generate-report.sh` (append-only update to `qa/reports/project-lifecycle-certification.md`).
+
+- Blocked by repository policy:
+  - PR #118 merge is currently blocked by branch protection (`at least 1 approving review` and required status check `validate` in GitHub PR gate).
+  - Because core PR #118 is not merged yet, deterministic sequencing prevents merging `homebrew-yanzi` PR #1 at this time.

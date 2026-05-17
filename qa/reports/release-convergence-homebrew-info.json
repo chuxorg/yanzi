@@ -11,17 +11,17 @@
       "license": null,
       "homepage": "https://github.com/chuxorg/yanzi",
       "versions": {
-        "stable": "2.7.0",
+        "stable": "2.9.1-rc1",
         "head": null,
         "bottle": false
       },
       "urls": {
         "stable": {
-          "url": "https://github.com/chuxorg/yanzi/releases/download/v2.7.0/yanzi-darwin-arm64",
+          "url": "https://github.com/chuxorg/yanzi/releases/download/v2.9.1-rc1/yanzi-darwin-arm64",
           "tag": null,
           "revision": null,
           "using": null,
-          "checksum": "c28046e91ca8d4c167e9680a489ba11f3a4754d4f10ca5d62d474042923f84e1"
+          "checksum": "a1cc830efcc0d15b86191f53bbba85455c5993ef5910c6774de28eba98924b55"
         }
       },
       "revision": 0,
@@ -68,7 +68,7 @@
       "tap_git_head": "6b1b2037388d9ca3b1282fca32e7ef245724c58e",
       "ruby_source_path": "Formula/yanzi.rb",
       "ruby_source_checksum": {
-        "sha256": "c32ad0e731e75403acfa96f30d8a30b4d8e8cb65d995a1f2f9982c2e4d911e50"
+        "sha256": "e7901c15698b101ed6c8fbdb6d055a36460417f23e1d5a0a347731f02a54133b"
       }
     }
   ],
