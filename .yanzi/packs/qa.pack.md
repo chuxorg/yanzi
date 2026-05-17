@@ -12,8 +12,8 @@ Compose the minimum deterministic governance context for QA validation and repor
 
 # Loads
 
-- .yanzi/rules/SYSTEM_RULES.md
-- .yanzi/rules/QA_RULES.md
+- .yanzi/rules/system-rules.md
+- .yanzi/rules/qa-rules.md
 - .yanzi/workflows/qa-flow.md
 - .yanzi/seeds/semantic-versioning.seed.md
 

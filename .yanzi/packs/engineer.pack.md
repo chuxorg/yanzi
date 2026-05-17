@@ -12,7 +12,7 @@ Compose the minimum deterministic governance context for feature implementation 
 
 # Loads
 
-- .yanzi/rules/SYSTEM_RULES.md
+- .yanzi/rules/system-rules.md
 - .yanzi/workflows/engineering-flow.md
 - .yanzi/seeds/gitflow.seed.md
 - .yanzi/seeds/golang.seed.md

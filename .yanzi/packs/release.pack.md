@@ -12,8 +12,8 @@ Compose the minimum deterministic governance context for QA-approved release pro
 
 # Loads
 
-- .yanzi/rules/SYSTEM_RULES.md
-- .yanzi/rules/RELEASE_RULES.md
+- .yanzi/rules/system-rules.md
+- .yanzi/rules/release-rules.md
 - .yanzi/workflows/release-flow.md
 - .yanzi/seeds/semantic-versioning.seed.md
 - .yanzi/seeds/github-actions.seed.md
