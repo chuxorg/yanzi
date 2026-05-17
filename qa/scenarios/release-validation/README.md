@@ -9,6 +9,7 @@ Certify release trustworthiness through deterministic operational checks of arti
 - Distribution verification
 - Install verification
 - Documentation verification
+- Convergence and promotable-state verification
 
 ## Deterministic Workflow
 1. Obtain release artifact set for target version.
@@ -17,6 +18,7 @@ Certify release trustworthiness through deterministic operational checks of arti
 4. Verify distribution channel exposes expected artifacts.
 5. Install and run core smoke commands.
 6. Validate release documentation command examples and behavior.
+7. Validate governed channel convergence for candidate tag lineage.
 
 ## Certification Boundary
 This scenario certifies release operational behavior and trust, not build pipeline implementation.

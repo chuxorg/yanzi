@@ -5,5 +5,7 @@
 - [ ] Runtime `--version` matches release tag.
 - [ ] Distribution channel availability is confirmed.
 - [ ] Install + smoke validation succeeds.
+- [ ] Installer pinned candidate tag resolves to matching runtime lineage.
+- [ ] Homebrew channel lineage matches certified candidate lineage.
 - [ ] Documentation command examples are verified.
 - [ ] Final certification outcome is recorded with PASS/WARN/FAIL discipline.

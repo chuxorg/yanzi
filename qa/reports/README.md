@@ -17,6 +17,7 @@ Certification reports are append-only and become part of operational provenance 
 qa/reports/
 └── vX.Y.Z/
     ├── certification-report.md
+    ├── convergence-validation.md
     ├── findings.md
     └── snapshots/
 ```
