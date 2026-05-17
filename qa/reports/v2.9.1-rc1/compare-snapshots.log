@@ -1,0 +1,4 @@
+snapshot comparison complete
+status: PASS
+drift classification: No Drift
+diff report: /Users/developer/projects/chuxorg/yanzi-cli-qa/qa/reports/project-lifecycle-diff.txt

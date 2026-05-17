@@ -1,0 +1,4 @@
+== COMMAND ==
+<REPO_PATH>/yanzi project use deterministic-project 
+== OUTPUT ==
+Active project set to deterministic-project.

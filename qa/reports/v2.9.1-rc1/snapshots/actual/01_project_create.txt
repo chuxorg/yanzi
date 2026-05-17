@@ -1,0 +1,5 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi project create deterministic-project 
+== OUTPUT ==
+Yanzi initialized at ~/.yanzi
+Project created: deterministic-project
