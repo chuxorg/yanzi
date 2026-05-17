@@ -119,7 +119,10 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
-if [ -w /usr/local/bin ]; then
+if [ -n "${YANZI_INSTALL_DIR:-}" ]; then
+  INSTALL_DIR="$YANZI_INSTALL_DIR"
+  mkdir -p "$INSTALL_DIR"
+elif [ -w /usr/local/bin ]; then
   INSTALL_DIR="/usr/local/bin"
 else
   INSTALL_DIR="$HOME/.local/bin"
