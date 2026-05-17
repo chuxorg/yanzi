@@ -2,4 +2,4 @@
 /Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi project list 
 == OUTPUT ==
 Name	CreatedAt	Description
-deterministic-project	2026-05-16T20:09:41.93817Z	
+deterministic-project	2026-05-17T17:19:27.451099Z	
