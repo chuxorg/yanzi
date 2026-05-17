@@ -226,6 +226,7 @@ Standard report sections:
 - QA certification is not autonomous release approval.
 - Automation does not replace governance.
 - CI systems do not replace validation discipline.
+- Certification must fail when installed version, lineage, or install channel is ambiguous relative to candidate tag.
 - Releases remain human-governed.
 
 # 11. Future Direction
