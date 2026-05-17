@@ -2,13 +2,43 @@
 set -eu
 
 REPO="chuxorg/yanzi"
-RELEASES_API="https://api.github.com/repos/$REPO/releases/latest"
-
 ADD_PATH=false
-for arg in "$@"; do
-  case "$arg" in
-    --add-path) ADD_PATH=true ;;
-    *) ;;
+REQUESTED_TAG=""
+
+usage() {
+  cat <<USAGE
+Usage: install.sh [--version <tag>] [--add-path]
+
+Options:
+  --version <tag>  Install a specific release tag (for example: v2.9.1-rc1).
+  --add-path       Append install directory to shell config when missing.
+USAGE
+}
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --add-path)
+      ADD_PATH=true
+      shift
+      ;;
+    --version)
+      [ "$#" -ge 2 ] || { echo "--version requires a value" >&2; exit 1; }
+      REQUESTED_TAG="$2"
+      shift 2
+      ;;
+    --version=*)
+      REQUESTED_TAG="${1#--version=}"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
   esac
 done
 
@@ -36,8 +66,25 @@ esac
 ASSET_BINARY="yanzi-${OS}-${ARCH}"
 ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
 
+if [ -n "$REQUESTED_TAG" ]; then
+  RELEASES_API="https://api.github.com/repos/$REPO/releases/tags/$REQUESTED_TAG"
+else
+  RELEASES_API="https://api.github.com/repos/$REPO/releases/latest"
+fi
+
 RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API")"
 ASSET_URLS="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
+RESOLVED_TAG="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"tag_name":/ { print $4; exit }')"
+
+if [ -z "$RESOLVED_TAG" ]; then
+  echo "Failed to resolve release tag from GitHub API response." >&2
+  exit 1
+fi
+
+if [ -n "$REQUESTED_TAG" ] && [ "$RESOLVED_TAG" != "$REQUESTED_TAG" ]; then
+  echo "Requested tag mismatch: requested=$REQUESTED_TAG resolved=$RESOLVED_TAG" >&2
+  exit 1
+fi
 
 URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
 ASSET_KIND=""
@@ -68,12 +115,7 @@ fi
 
 if [ -z "$URL" ]; then
   echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
-  echo "The most recent releases may not contain binary assets for $OS/$ARCH." >&2
-  exit 1
-fi
-VERSION="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
-if [ -z "$VERSION" ]; then
-  echo "Failed to parse release version from asset URL" >&2
+  echo "Resolved tag: $RESOLVED_TAG" >&2
   exit 1
 fi
 
@@ -93,7 +135,6 @@ trap cleanup EXIT
 if [ "$ASSET_KIND" = "tarball" ]; then
   ARCHIVE="$TMP_DIR/$ASSET_TARBALL"
   curl -fsSL "$URL" -o "$ARCHIVE"
-
   tar -xzf "$ARCHIVE" -C "$TMP_DIR"
 
   if [ ! -f "$TMP_DIR/yanzi" ]; then
@@ -108,12 +149,30 @@ else
   chmod +x "$INSTALL_DIR/yanzi"
 fi
 
-INSTALLED_OUTPUT="$("$INSTALL_DIR/yanzi" --version 2>/dev/null || true)"
-INSTALLED_VERSION="$(printf '%s\n' "$INSTALLED_OUTPUT" | awk '/^yanzi / { print; exit }')"
-if [ -z "$INSTALLED_VERSION" ]; then
+INSTALLED_OUTPUT="$($INSTALL_DIR/yanzi --version 2>/dev/null || true)"
+INSTALLED_VERSION_LINE="$(printf '%s\n' "$INSTALLED_OUTPUT" | awk '/^yanzi / { print; exit }')"
+INSTALLED_TAG="$(printf '%s\n' "$INSTALLED_VERSION_LINE" | awk '{print $2}')"
+
+if [ -z "$INSTALLED_VERSION_LINE" ] || [ -z "$INSTALLED_TAG" ]; then
   echo "Installed binary did not report a version successfully." >&2
   exit 1
 fi
+
+if [ "$INSTALLED_TAG" != "$RESOLVED_TAG" ]; then
+  echo "Installed version mismatch: resolved_tag=$RESOLVED_TAG installed_tag=$INSTALLED_TAG" >&2
+  exit 1
+fi
+
+if [ -n "$REQUESTED_TAG" ] && [ "$INSTALLED_TAG" != "$REQUESTED_TAG" ]; then
+  echo "Installed version mismatch: requested_tag=$REQUESTED_TAG installed_tag=$INSTALLED_TAG" >&2
+  exit 1
+fi
+
+REQUESTED_TAG_LABEL="${REQUESTED_TAG:-latest}"
+echo "install_provenance.requested_tag=$REQUESTED_TAG_LABEL"
+echo "install_provenance.resolved_tag=$RESOLVED_TAG"
+echo "install_provenance.asset_url=$URL"
+echo "install_provenance.installed_version=$INSTALLED_VERSION_LINE"
 
 in_path=false
 case ":$PATH:" in
@@ -151,27 +210,13 @@ if [ "$ADD_PATH" = true ]; then
   fi
 else
   if [ "$in_path" = true ]; then
-    echo "Yanzi $VERSION installed successfully."
-    echo "$INSTALLED_VERSION"
+    echo "Yanzi $RESOLVED_TAG installed successfully."
+    echo "$INSTALLED_VERSION_LINE"
     echo "Run: yanzi --help"
   else
     echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."
-    echo "$INSTALLED_VERSION"
+    echo "$INSTALLED_VERSION_LINE"
     echo "Add the following line to your shell config:"
     echo "export PATH=\"\$PATH:$INSTALL_DIR\""
-    case "${SHELL:-}" in
-      *zsh*)
-        echo "For zsh, edit: ~/.zshrc"
-        ;;
-      *bash*)
-        echo "For bash, edit: ~/.bashrc"
-        ;;
-      *fish*)
-        echo "For fish, edit: ~/.config/fish/config.fish"
-        ;;
-      *)
-        echo "Edit your shell profile (for example: ~/.profile)."
-        ;;
-    esac
   fi
 fi
