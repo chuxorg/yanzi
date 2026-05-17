@@ -1,0 +1,5 @@
+== COMMAND ==
+<REPO_PATH>/yanzi project list 
+== OUTPUT ==
+Name	CreatedAt	Description
+deterministic-project	<TIMESTAMP>	

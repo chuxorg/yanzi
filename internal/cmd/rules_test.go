@@ -19,7 +19,7 @@ func TestRunRulesAddStoresProfileMetadata(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, home, "alpha")
 
-	rulesPath := filepath.Join(home, "SYSTEM_RULES.md")
+	rulesPath := filepath.Join(home, "system-rules.md")
 	if err := os.WriteFile(rulesPath, []byte("# Rules\nAlways verify.\n"), 0o644); err != nil {
 		t.Fatalf("write rules file: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestRunRulesListFiltersByScope(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, workdir, "alpha")
 
-	globalRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	globalRules := filepath.Join(workdir, "system-rules.md")
 	projectRules := filepath.Join(workdir, "PROJECT_RULES.md")
 	_ = os.WriteFile(globalRules, []byte("# Global\n"), 0o644)
 	_ = os.WriteFile(projectRules, []byte("# Project\n"), 0o644)
@@ -111,7 +111,7 @@ func TestRunRulesListFiltersByScope(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RunRules list scope: %v", err)
 	}
-	if !strings.Contains(output, "SYSTEM_RULES.md") || !strings.Contains(output, "scope=global") {
+	if !strings.Contains(output, "system-rules.md") || !strings.Contains(output, "scope=global") {
 		t.Fatalf("expected global rule in output: %q", output)
 	}
 	if strings.Contains(output, "PROJECT_RULES.md") || strings.Contains(output, "scope=project") {
@@ -169,7 +169,7 @@ func TestRunRulesExportComposeSystemOnly(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, workdir, "alpha")
 
-	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	systemRules := filepath.Join(workdir, "system-rules.md")
 	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
 	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
 	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)
@@ -208,7 +208,7 @@ func TestRunRulesExportComposeIncludesProfileSection(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, workdir, "alpha")
 
-	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	systemRules := filepath.Join(workdir, "system-rules.md")
 	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
 	reviewerRules := filepath.Join(workdir, "REVIEWER_RULES.md")
 	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
@@ -289,7 +289,7 @@ func TestRunRulesExportComposeIncludesHTMLSections(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, workdir, "alpha")
 
-	systemRules := filepath.Join(workdir, "SYSTEM_RULES.md")
+	systemRules := filepath.Join(workdir, "system-rules.md")
 	engineerRules := filepath.Join(workdir, "ENGINEER_RULES.md")
 	_ = os.WriteFile(systemRules, []byte("# Global Rules\nAlways verify changes.\n"), 0o644)
 	_ = os.WriteFile(engineerRules, []byte("# Engineer Rules\nPrefer narrow diffs.\n"), 0o644)

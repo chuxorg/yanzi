@@ -18,6 +18,11 @@ Yanzi gives you a local workflow for:
 
 - [Problem](problem.md)
 - [Install](install.md)
+- [Local-First Operation](local-first.md)
+- [Continuity Philosophy](continuity.md)
+- [JSON Contracts](json-contracts.md)
+- [Metadata Semantics](metadata.md)
+- [Architectural Guardrails](guardrails.md)
 - [How It Works](how-it-works.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)

@@ -1,0 +1,5 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi project list 
+== OUTPUT ==
+Name	CreatedAt	Description
+deterministic-project	2026-05-17T17:02:44.375516Z	

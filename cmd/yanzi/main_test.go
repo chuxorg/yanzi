@@ -48,6 +48,9 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "export  Export active project history.") {
 		t.Fatalf("expected export command description, got: %s", output)
 	}
+	if !strings.Contains(output, "status  Show continuity and observability status for the active project.") {
+		t.Fatalf("expected status command description, got: %s", output)
+	}
 	if !strings.Contains(output, "init  Create or bind a project to the current directory.") {
 		t.Fatalf("expected init command description, got: %s", output)
 	}
@@ -80,6 +83,9 @@ func TestUsagePrintsHelp(t *testing.T) {
 	}
 	if !strings.Contains(output, "--format claude-context") {
 		t.Fatalf("expected claude-context help text, got: %s", output)
+	}
+	if !strings.Contains(output, "status args:") || !strings.Contains(output, "--recent <n>") {
+		t.Fatalf("expected status help text, got: %s", output)
 	}
 	exportSection := output[strings.Index(output, "export args:"):]
 	if strings.Contains(exportSection, "--fields a,b") || strings.Contains(exportSection, "--order <field>") || strings.Contains(exportSection, "--limit <n>") {

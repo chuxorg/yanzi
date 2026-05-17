@@ -1,0 +1,10 @@
+Inspect the formula dependency plan before installing with `brew install --ask`.
+Enable ask mode by setting `HOMEBREW_ASK=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).
+==> Fetching downloads for: yanzi
+✔︎ Formula yanzi (2.9.1-rc1)
+==> Installing yanzi from chuxorg/yanzi
+🍺  /opt/homebrew/Cellar/yanzi/2.9.1-rc1: 4 files, 15.9MB, built in 1 second
+==> Running `brew cleanup yanzi`...
+Disable this behaviour by setting `HOMEBREW_NO_INSTALL_CLEANUP=1`.
+Hide these hints with `HOMEBREW_NO_ENV_HINTS=1` (see `man brew`).

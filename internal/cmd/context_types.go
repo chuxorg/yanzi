@@ -43,10 +43,18 @@ func artifactTypeCatalogJSON() ([]byte, error) {
 	}
 	sort.Strings(intentTypeCatalog)
 	sort.Strings(contextTypeCatalog)
-	payload := map[string]any{
-		"intent":  intentTypeCatalog,
-		"context": contextTypeCatalog,
-		"aliases": aliases,
+	payload := struct {
+		SchemaVersion int               `json:"schema_version"`
+		Kind          string            `json:"kind"`
+		Intent        []string          `json:"intent"`
+		Context       []string          `json:"context"`
+		Aliases       map[string]string `json:"aliases"`
+	}{
+		SchemaVersion: machineContractSchemaVersion,
+		Kind:          jsonKindArtifactTypes,
+		Intent:        append([]string(nil), intentTypeCatalog...),
+		Context:       append([]string(nil), contextTypeCatalog...),
+		Aliases:       aliases,
 	}
 	data, err := json.MarshalIndent(payload, "", "  ")
 	if err != nil {

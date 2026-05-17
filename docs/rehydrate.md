@@ -11,8 +11,8 @@ It does four things:
 
 `yanzi rehydrate --dry-run` prints a summary instead of the full list.
 
-Default output includes the active project, checkpoint summary, and readable continuity blocks for each post-checkpoint capture with author, title, prompt snippet, response snippet, and metadata summary.
+Default output includes a continuity summary, the active project, checkpoint summary, and readable continuity blocks for each post-checkpoint capture with author, title, prompt snippet, response snippet, and metadata summary.
 
 If the active project has no checkpoint, the command warns and falls back to the latest capture window for that project instead of failing.
 
-`yanzi rehydrate --format json` prints the same rehydrate payload as machine-readable JSON, including checkpoint data when present and fallback indicators when a checkpoint is missing.
+`yanzi rehydrate --format json` prints the same rehydrate payload as machine-readable JSON, including `schema_version`, `kind`, aligned checkpoint fields, and fallback indicators when a checkpoint is missing.

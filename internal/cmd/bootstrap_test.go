@@ -18,11 +18,11 @@ func TestRunBootstrapDryRun(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".yanzi"), 0o700); err != nil {
 		t.Fatalf("mkdir bootstrap dir: %v", err)
 	}
-	rulesPath := filepath.Join(home, "SYSTEM_RULES.md")
+	rulesPath := filepath.Join(home, "system-rules.md")
 	if err := os.WriteFile(rulesPath, []byte("Never rewrite history."), 0o644); err != nil {
 		t.Fatalf("write rules file: %v", err)
 	}
-	bootstrap := "documents:\n  - type: governance\n    title: System Rules\n    path: SYSTEM_RULES.md\n    scope: global\n"
+	bootstrap := "documents:\n  - type: governance\n    title: System Rules\n    path: system-rules.md\n    scope: global\n"
 	if err := os.WriteFile(filepath.Join(home, ".yanzi", "bootstrap.yaml"), []byte(bootstrap), 0o644); err != nil {
 		t.Fatalf("write bootstrap config: %v", err)
 	}
@@ -49,11 +49,11 @@ func TestRunBootstrapLoadsContextArtifacts(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(home, ".yanzi"), 0o700); err != nil {
 		t.Fatalf("mkdir bootstrap dir: %v", err)
 	}
-	rulesPath := filepath.Join(home, "SYSTEM_RULES.md")
+	rulesPath := filepath.Join(home, "system-rules.md")
 	if err := os.WriteFile(rulesPath, []byte("Never rewrite history."), 0o644); err != nil {
 		t.Fatalf("write rules file: %v", err)
 	}
-	bootstrap := "documents:\n  - type: governance\n    title: System Rules\n    path: SYSTEM_RULES.md\n    scope: project\n"
+	bootstrap := "documents:\n  - type: governance\n    title: System Rules\n    path: system-rules.md\n    scope: project\n"
 	if err := os.WriteFile(filepath.Join(home, ".yanzi", "bootstrap.yaml"), []byte(bootstrap), 0o644); err != nil {
 		t.Fatalf("write bootstrap config: %v", err)
 	}

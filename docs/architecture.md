@@ -31,3 +31,10 @@ Yanzi is a local-first append-only datastore with a CLI over that state.
 - stored content is not interpreted by Yanzi
 - metadata is matched exactly when filters are used
 - meaning is left to the caller or agent using the stored data
+
+## Contract Stability
+
+- machine-readable outputs should expose explicit schema/version identity
+- JSON shapes should evolve additively when possible
+- checkpoint and continuity semantics should remain aligned across rehydrate, status, and export surfaces
+- orchestration concerns should not be added to storage or retrieval layers casually

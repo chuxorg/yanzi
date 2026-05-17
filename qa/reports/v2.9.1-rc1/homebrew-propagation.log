@@ -1,0 +1,4 @@
+tap_repo=/Users/developer/projects/chuxorg/homebrew-yanzi
+tap_checkout=/opt/homebrew/Library/Taps/chuxorg/homebrew-yanzi
+formula_source_commit=1fe1813044252a4441d24256d64d90f4dc332af5
+formula_applied_locally=1
