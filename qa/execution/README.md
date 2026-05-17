@@ -20,6 +20,7 @@ This directory contains explicit shell workflows for deterministic operational c
 - `run-project-lifecycle.sh`: executes project lifecycle scenario and captures actual outputs.
 - `normalize-output.sh`: normalizes volatile fields from actual outputs.
 - `compare-snapshots.sh`: compares normalized outputs against expected baselines and classifies drift.
+- `validate-release-convergence.sh`: validates installer/Homebrew lineage convergence for a candidate tag.
 - `generate-report.sh`: appends certification results to report history.
 
 ## Snapshot and Normalization Flow
@@ -36,6 +37,7 @@ Run in order:
 qa/execution/run-project-lifecycle.sh
 qa/execution/normalize-output.sh
 qa/execution/compare-snapshots.sh
+qa/execution/validate-release-convergence.sh <candidate-tag> [candidate-sha]
 qa/execution/generate-report.sh
 ```
 
