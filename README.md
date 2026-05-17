@@ -49,6 +49,12 @@ macOS or Linux install script:
 curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
 ```
 
+Deterministic candidate install:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash -s -- --version vX.Y.Z-rcN
+```
+
 Windows:
 
 1. Download `yanzi-windows-amd64.zip` from the latest release.
@@ -96,7 +102,7 @@ yanzi message pull --to claude --channel handoff
 - CLI reference: [https://chuxorg.github.io/yanzi/cli/](https://chuxorg.github.io/yanzi/cli/)
 - Install: [https://chuxorg.github.io/yanzi/install/](https://chuxorg.github.io/yanzi/install/)
 
-Homebrew upgrades depend on the tap formula being refreshed. If `brew upgrade yanzi` does not move you to the latest release immediately, use the install script above.
+Homebrew upgrades depend on the tap formula being refreshed. For governed release validation, verify Homebrew and installer channels both resolve to the same certified tag lineage.
 
 ## License
 

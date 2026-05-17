@@ -24,7 +24,13 @@ Install the latest release directly from GitHub:
 curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
 ```
 
-The script detects OS and architecture, downloads the matching release asset from `https://github.com/chuxorg/yanzi/releases/latest`, and installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise.
+For deterministic certification or RC installs, pin an explicit tag:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash -s -- --version vX.Y.Z-rcN
+```
+
+The script emits `requested_tag`, `resolved_tag`, and `asset_url` so operators can verify lineage continuity.
 
 ## Windows
 
@@ -77,4 +83,5 @@ yanzi vX.Y.Z
 - Yanzi runs locally by default.
 - No services or infrastructure are required.
 - HTTP mode is optional and not required for most workflows.
-- Homebrew upgrades depend on the tap formula being refreshed. If `brew upgrade yanzi` does not install the latest release yet, use the install script instead.
+- Homebrew upgrades depend on tap formula refresh timing.
+- Governed release validation requires verifying Homebrew lineage and installer lineage against the same certified tag before promotion.

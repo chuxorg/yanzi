@@ -27,6 +27,7 @@
 4. Merge development → master.
 5. Release build runs on merged PR event.
 6. GitHub release is created with production binaries and distribution archives.
+7. Validate distribution convergence across installer and Homebrew before promotion completion.
 
 ---
 
@@ -49,6 +50,11 @@ Example:
 ```go build -ldflags "-X main.version=v1.1.0"```
 
 Artifacts are published as GitHub releases.
+
+Promotion semantics:
+- Candidate certification PASS is required before promotion.
+- Distribution convergence validation is required after artifact publication.
+- Official release promotion is complete only when governed channels converge on the same lineage.
 
 Current release artifacts:
 - `yanzi-linux-amd64`

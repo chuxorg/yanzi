@@ -2,13 +2,29 @@
 set -eu
 
 REPO="chuxorg/yanzi"
-RELEASES_API="https://api.github.com/repos/$REPO/releases/latest"
+RELEASES_API="https://api.github.com/repos/$REPO/releases"
 
 ADD_PATH=false
-for arg in "$@"; do
-  case "$arg" in
-    --add-path) ADD_PATH=true ;;
-    *) ;;
+REQUESTED_VERSION=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --add-path)
+      ADD_PATH=true
+      shift
+      ;;
+    --version)
+      if [ "$#" -lt 2 ]; then
+        echo "Missing value for --version" >&2
+        exit 1
+      fi
+      REQUESTED_VERSION="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
   esac
 done
 
@@ -36,7 +52,13 @@ esac
 ASSET_BINARY="yanzi-${OS}-${ARCH}"
 ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
 
-RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API")"
+if [ -n "$REQUESTED_VERSION" ]; then
+  RELEASE_URL="$RELEASES_API/tags/$REQUESTED_VERSION"
+else
+  RELEASE_URL="$RELEASES_API/latest"
+fi
+
+RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASE_URL")"
 ASSET_URLS="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
 
 URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
@@ -68,12 +90,18 @@ fi
 
 if [ -z "$URL" ]; then
   echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
-  echo "The most recent releases may not contain binary assets for $OS/$ARCH." >&2
+  [ -n "$REQUESTED_VERSION" ] && echo "Requested tag: $REQUESTED_VERSION" >&2
   exit 1
 fi
-VERSION="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
-if [ -z "$VERSION" ]; then
+
+RESOLVED_TAG="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
+if [ -z "$RESOLVED_TAG" ]; then
   echo "Failed to parse release version from asset URL" >&2
+  exit 1
+fi
+
+if [ -n "$REQUESTED_VERSION" ] && [ "$REQUESTED_VERSION" != "$RESOLVED_TAG" ]; then
+  echo "Requested tag $REQUESTED_VERSION resolved to $RESOLVED_TAG (mismatch)." >&2
   exit 1
 fi
 
@@ -93,14 +121,11 @@ trap cleanup EXIT
 if [ "$ASSET_KIND" = "tarball" ]; then
   ARCHIVE="$TMP_DIR/$ASSET_TARBALL"
   curl -fsSL "$URL" -o "$ARCHIVE"
-
   tar -xzf "$ARCHIVE" -C "$TMP_DIR"
-
   if [ ! -f "$TMP_DIR/yanzi" ]; then
     echo "Missing binary in archive: yanzi" >&2
     exit 1
   fi
-
   mv -f "$TMP_DIR/yanzi" "$INSTALL_DIR/yanzi"
   chmod +x "$INSTALL_DIR/yanzi"
 else
@@ -108,12 +133,29 @@ else
   chmod +x "$INSTALL_DIR/yanzi"
 fi
 
-INSTALLED_OUTPUT="$("$INSTALL_DIR/yanzi" --version 2>/dev/null || true)"
-INSTALLED_VERSION="$(printf '%s\n' "$INSTALLED_OUTPUT" | awk '/^yanzi / { print; exit }')"
-if [ -z "$INSTALLED_VERSION" ]; then
+INSTALLED_OUTPUT="$($INSTALL_DIR/yanzi --version 2>/dev/null || true)"
+INSTALLED_VERSION_LINE="$(printf '%s\n' "$INSTALLED_OUTPUT" | awk '/^yanzi / { print; exit }')"
+if [ -z "$INSTALLED_VERSION_LINE" ]; then
   echo "Installed binary did not report a version successfully." >&2
   exit 1
 fi
+
+if [ -n "$REQUESTED_VERSION" ]; then
+  case "$INSTALLED_VERSION_LINE" in
+    *"$REQUESTED_VERSION"*) ;;
+    *)
+      echo "Installed runtime version does not match requested tag." >&2
+      echo "requested=$REQUESTED_VERSION" >&2
+      echo "installed=$INSTALLED_VERSION_LINE" >&2
+      exit 1
+      ;;
+  esac
+fi
+
+echo "requested_tag=${REQUESTED_VERSION:-<latest>}"
+echo "resolved_tag=$RESOLVED_TAG"
+echo "asset_url=$URL"
+echo "$INSTALLED_VERSION_LINE"
 
 in_path=false
 case ":$PATH:" in
@@ -146,32 +188,15 @@ if [ "$ADD_PATH" = true ]; then
       echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."
       echo "Add the following line to your shell config:"
       echo "$EXPORT_LINE"
-      echo "Edit your shell profile (for example: ~/.profile)."
     fi
   fi
 else
   if [ "$in_path" = true ]; then
-    echo "Yanzi $VERSION installed successfully."
-    echo "$INSTALLED_VERSION"
+    echo "Yanzi $RESOLVED_TAG installed successfully."
     echo "Run: yanzi --help"
   else
     echo "Yanzi was installed to $INSTALL_DIR, but that directory is not in your PATH."
-    echo "$INSTALLED_VERSION"
     echo "Add the following line to your shell config:"
     echo "export PATH=\"\$PATH:$INSTALL_DIR\""
-    case "${SHELL:-}" in
-      *zsh*)
-        echo "For zsh, edit: ~/.zshrc"
-        ;;
-      *bash*)
-        echo "For bash, edit: ~/.bashrc"
-        ;;
-      *fish*)
-        echo "For fish, edit: ~/.config/fish/config.fish"
-        ;;
-      *)
-        echo "Edit your shell profile (for example: ~/.profile)."
-        ;;
-    esac
   fi
 fi
