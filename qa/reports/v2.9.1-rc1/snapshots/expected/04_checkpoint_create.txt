@@ -1,0 +1,5 @@
+== COMMAND ==
+<REPO_PATH>/yanzi checkpoint create --summary Deterministic\ checkpoint 
+== OUTPUT ==
+id: <ID64>
+summary: Deterministic checkpoint

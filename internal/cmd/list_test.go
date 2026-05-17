@@ -15,9 +15,9 @@ func TestRunListMetaFiltersRuleArtifacts(t *testing.T) {
 	createTestProject(t, "alpha")
 	writeStateFile(t, workdir, "alpha")
 
-	systemRulesPath := filepath.Join(workdir, "SYSTEM_RULES.md")
+	systemRulesPath := filepath.Join(workdir, "system-rules.md")
 	if err := os.WriteFile(systemRulesPath, []byte("# System Rules\nAlways verify changes.\n"), 0o644); err != nil {
-		t.Fatalf("write SYSTEM_RULES.md: %v", err)
+		t.Fatalf("write system-rules.md: %v", err)
 	}
 	notesPath := filepath.Join(workdir, "notes.md")
 	if err := os.WriteFile(notesPath, []byte("This is a project note.\n"), 0o644); err != nil {

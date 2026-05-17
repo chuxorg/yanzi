@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/chuxorg/yanzi/internal/core/model"
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 	_ "modernc.org/sqlite"
 )
 
@@ -34,26 +35,8 @@ func Open(path string) (*Store, error) {
 		return nil, errors.New("sqlite path is required")
 	}
 
-	db, err := sql.Open("sqlite", path)
+	db, err := sqliteruntime.Open(path)
 	if err != nil {
-		return nil, err
-	}
-
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-
-	if _, err := db.Exec(`PRAGMA journal_mode=WAL;`); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if _, err := db.Exec(`PRAGMA foreign_keys=ON;`); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	if _, err := db.Exec(`PRAGMA busy_timeout=5000;`); err != nil {
-		_ = db.Close()
 		return nil, err
 	}
 
@@ -71,8 +54,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 	if s.db == nil {
 		return errors.New("store not initialized")
 	}
-	if _, err := s.db.ExecContext(ctx, schemaMigrationsTable); err != nil {
-		return fmt.Errorf("create schema_migrations: %w", err)
+	if _, err := sqliteruntime.ExecContext(ctx, s.db, "", "create schema_migrations table", schemaMigrationsTable); err != nil {
+		return err
 	}
 
 	paths, err := listMigrationFiles()
@@ -99,20 +82,17 @@ func (s *Store) Migrate(ctx context.Context) error {
 			return fmt.Errorf("read migration %s: %w", version, err)
 		}
 
-		tx, err := s.db.BeginTx(ctx, nil)
-		if err != nil {
-			return fmt.Errorf("begin migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, string(contents)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, version, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("record migration %s: %w", version, err)
-		}
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("commit migration %s: %w", version, err)
+		if err := sqliteruntime.RunTx(ctx, s.db, "", "apply migration "+version, func(tx *sql.Tx) error {
+			if _, err := sqliteruntime.ExecTxContext(ctx, tx, "", "apply migration "+version, string(contents)); err != nil {
+				return err
+			}
+			if _, err := sqliteruntime.ExecTxContext(ctx, tx, "", "record migration "+version,
+				`INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, version, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			return err
 		}
 	}
 
@@ -162,8 +142,11 @@ func (s *Store) CreateIntent(ctx context.Context, record model.IntentRecord) err
 		prevHash = record.PrevHash
 	}
 
-	_, err := s.db.ExecContext(
+	_, err := sqliteruntime.ExecContext(
 		ctx,
+		s.db,
+		"",
+		"create intent",
 		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.ID,

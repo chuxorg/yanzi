@@ -1,0 +1,5 @@
+== COMMAND ==
+<REPO_PATH>/yanzi capture --author qa-operator --title Deterministic\ capture --prompt Create\ deterministic\ QA\ baseline. --response Baseline\ created\ for\ operational\ certification. --profile deterministic --meta scenario=project-lifecycle --meta stage=foundation 
+== OUTPUT ==
+id: <ID32>
+hash: <ID64>

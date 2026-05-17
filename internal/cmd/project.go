@@ -14,6 +14,7 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 // RunProject manages project creation, selection, and inspection.
@@ -208,8 +209,11 @@ func createProjectLocal(ctx context.Context, db *sql.DB, name string) (yanzilibr
 	createdAtText := createdAt.Format(time.RFC3339Nano)
 	description := ""
 	hash := hashProjectRecord(name, description, createdAtText)
-	if _, err := db.ExecContext(
+	if _, err := sqliteruntime.ExecContext(
 		ctx,
+		db,
+		yanzilibrary.ResolvedDBPath(),
+		"create project",
 		`INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES (?, ?, ?, ?, ?)`,
 		name,
 		description,

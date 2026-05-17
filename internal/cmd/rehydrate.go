@@ -20,22 +20,15 @@ const (
 )
 
 type rehydrateJSONPayload struct {
-	Project        string                   `json:"project"`
-	HasCheckpoint  bool                     `json:"has_checkpoint"`
-	Fallback       bool                     `json:"fallback"`
-	FallbackReason string                   `json:"fallback_reason,omitempty"`
-	FallbackLimit  int                      `json:"fallback_limit,omitempty"`
-	Checkpoint     *rehydrateJSONCheckpoint `json:"checkpoint,omitempty"`
-	Intents        []rehydrateJSONIntent    `json:"intents"`
-}
-
-type rehydrateJSONCheckpoint struct {
-	Hash                 string   `json:"hash"`
-	Project              string   `json:"project"`
-	Summary              string   `json:"summary"`
-	CreatedAt            string   `json:"created_at"`
-	ArtifactIDs          []string `json:"artifact_ids"`
-	PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+	SchemaVersion  int                     `json:"schema_version"`
+	Kind           string                  `json:"kind"`
+	Project        string                  `json:"project"`
+	HasCheckpoint  bool                    `json:"has_checkpoint"`
+	Fallback       bool                    `json:"fallback"`
+	FallbackReason string                  `json:"fallback_reason,omitempty"`
+	FallbackLimit  int                     `json:"fallback_limit,omitempty"`
+	Checkpoint     *contractJSONCheckpoint `json:"checkpoint,omitempty"`
+	Intents        []rehydrateJSONIntent   `json:"intents"`
 }
 
 type rehydrateJSONIntent struct {
@@ -107,14 +100,18 @@ func RunRehydrate(args []string) error {
 	if err != nil {
 		return err
 	}
+	status, err := yanzilibrary.LoadProjectStatus(project, yanzilibrary.DefaultStatusRecentLimit)
+	if err != nil {
+		return err
+	}
 
 	switch strings.ToLower(strings.TrimSpace(*format)) {
 	case "text":
 		if *dryRun {
-			renderRehydrateDryRun(payload)
+			renderRehydrateDryRun(payload, status)
 			return nil
 		}
-		renderRehydrateText(payload)
+		renderRehydrateText(payload, status)
 		return nil
 	case "json":
 		if err := renderRehydrateJSON(payload); err != nil {
@@ -126,8 +123,12 @@ func RunRehydrate(args []string) error {
 	}
 }
 
-func renderRehydrateDryRun(payload *yanzilibrary.RehydratePayload) {
+func renderRehydrateDryRun(payload *yanzilibrary.RehydratePayload, status *yanzilibrary.ProjectStatus) {
 	fmt.Printf("Project: %s\n", payload.Project)
+	fmt.Printf("Continuity mode: %s\n", status.ContinuityMode)
+	fmt.Printf("Continuity depth: %d\n", status.ContinuityDepth)
+	fmt.Printf("Last activity: %s\n", fallbackText(status.LastActivityAt, "(none)"))
+	fmt.Printf("Open work: %d\n", len(status.UnresolvedWork))
 	if payload.LatestCheckpoint != nil {
 		fmt.Printf("Checkpoints to load: %d\n", 1)
 		fmt.Printf("Context count: %d\n", len(payload.LatestCheckpoint.ArtifactIDs))
@@ -141,10 +142,16 @@ func renderRehydrateDryRun(payload *yanzilibrary.RehydratePayload) {
 	fmt.Printf("Fallback window: last %d captures\n", payload.FallbackLimit)
 }
 
-func renderRehydrateText(payload *yanzilibrary.RehydratePayload) {
+func renderRehydrateText(payload *yanzilibrary.RehydratePayload, status *yanzilibrary.ProjectStatus) {
 	intents := sortedRehydrateIntents(payload.Intents)
 
 	fmt.Printf("Project: %s\n\n", payload.Project)
+	fmt.Println("Continuity Summary")
+	fmt.Printf("Mode: %s\n", status.ContinuityMode)
+	fmt.Printf("Depth: %d\n", status.ContinuityDepth)
+	fmt.Printf("Last activity: %s\n", fallbackText(status.LastActivityAt, "(none)"))
+	fmt.Printf("Open work: %d\n", len(status.UnresolvedWork))
+	fmt.Println()
 	if payload.LatestCheckpoint != nil {
 		fmt.Println("Checkpoint")
 		fmt.Printf("Timestamp: %s\n", payload.LatestCheckpoint.CreatedAt)
@@ -190,6 +197,8 @@ func renderRehydrateText(payload *yanzilibrary.RehydratePayload) {
 
 func renderRehydrateJSON(payload *yanzilibrary.RehydratePayload) error {
 	out := rehydrateJSONPayload{
+		SchemaVersion: machineContractSchemaVersion,
+		Kind:          jsonKindRehydrate,
 		Project:       payload.Project,
 		HasCheckpoint: payload.LatestCheckpoint != nil,
 		Fallback:      payload.Fallback,
@@ -201,7 +210,7 @@ func renderRehydrateJSON(payload *yanzilibrary.RehydratePayload) error {
 	}
 	if payload.LatestCheckpoint != nil {
 		artifactIDs := append([]string{}, payload.LatestCheckpoint.ArtifactIDs...)
-		out.Checkpoint = &rehydrateJSONCheckpoint{
+		out.Checkpoint = &contractJSONCheckpoint{
 			Hash:                 payload.LatestCheckpoint.Hash,
 			Project:              payload.LatestCheckpoint.Project,
 			Summary:              payload.LatestCheckpoint.Summary,

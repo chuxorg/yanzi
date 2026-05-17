@@ -1,0 +1,8 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi rehydrate --dry-run 
+== OUTPUT ==
+Project: deterministic-project
+Checkpoints to load: 1
+Context count: 0
+Last checkpoint summary: Deterministic checkpoint
+Intents to load: 0

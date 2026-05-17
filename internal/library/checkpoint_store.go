@@ -7,6 +7,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/chuxorg/yanzi/internal/sqliteruntime"
 )
 
 // CheckpointStore provides persistence for checkpoints.
@@ -77,8 +79,11 @@ func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary
 		prev = checkpoint.PreviousCheckpointID
 	}
 
-	_, err = s.db.ExecContext(
+	_, err = sqliteruntime.ExecContext(
 		ctx,
+		s.db,
+		ResolvedDBPath(),
+		"create checkpoint",
 		`INSERT INTO checkpoints (hash, project, summary, created_at, artifact_ids, previous_checkpoint_id)
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		checkpoint.Hash,

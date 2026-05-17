@@ -1,0 +1,5 @@
+== COMMAND ==
+<REPO_PATH>/yanzi project create deterministic-project 
+== OUTPUT ==
+Yanzi initialized at ~/.yanzi
+Project created: deterministic-project

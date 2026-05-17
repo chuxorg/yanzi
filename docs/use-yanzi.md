@@ -8,6 +8,8 @@ AI-assisted work loses state between sessions. Teams repeat context, miss decisi
 Impact:
 Yanzi gives teams a local record of captures, checkpoints, and handoff notes so project state is easier to review and recover.
 
+Operationally, Yanzi is local-first. Sequential CLI usage is the primary model, and light concurrent local usage is supported with bounded SQLite contention handling.
+
 ## For Engineers
 
 Install:
@@ -20,6 +22,7 @@ Basic workflow:
 
 ```bash
 yanzi init demo
+yanzi status
 yanzi capture --author "Ada" --prompt "What changed?" --response "Updated the API client."
 yanzi checkpoint create --summary "API client update complete"
 yanzi rehydrate --dry-run
@@ -45,6 +48,8 @@ yanzi message pull --to claude --channel handoff
 ```
 
 That keeps the project context and handoff notes in one place while the code work continues outside Yanzi.
+
+For the SQLite runtime and concurrency model, see [Local-First Operation](local-first.md).
 
 ## Use Cases
 

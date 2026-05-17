@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	_ "modernc.org/sqlite"
 )
 
@@ -86,5 +90,73 @@ func TestRunCaptureStoresProfileMetadata(t *testing.T) {
 	}
 	if meta["type"] == "context" {
 		t.Fatalf("did not expect generic capture to force context metadata: %#v", meta)
+	}
+}
+
+func TestRunCaptureHandlesLightConcurrentWriters(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	db, err := openLocalDB(cfg)
+	if err != nil {
+		t.Fatalf("openLocalDB: %v", err)
+	}
+	defer db.Close()
+
+	locker, err := yanzilibrary.InitDBAtPath(cfg.DBPath)
+	if err != nil {
+		t.Fatalf("InitDBAtPath: %v", err)
+	}
+	defer locker.Close()
+
+	tx, err := locker.BeginTx(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("BeginTx: %v", err)
+	}
+	if _, err := tx.ExecContext(context.Background(), `INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES (?, ?, ?, ?, ?)`,
+		"lock-holder", "", time.Now().UTC().Format(time.RFC3339Nano), nil, "lock-holder-hash"); err != nil {
+		t.Fatalf("seed lock holder: %v", err)
+	}
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 2)
+	runCapture := func(prompt string) {
+		defer wg.Done()
+		errCh <- RunCapture([]string{
+			"--author", "Ada",
+			"--prompt", prompt,
+			"--response", "ok",
+		})
+	}
+
+	wg.Add(2)
+	go runCapture("prompt one")
+	go runCapture("prompt two")
+	time.Sleep(120 * time.Millisecond)
+	if err := tx.Commit(); err != nil {
+		t.Fatalf("commit lock holder: %v", err)
+	}
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			t.Fatalf("RunCapture concurrent writer: %v", err)
+		}
+	}
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(1) FROM intents WHERE source_type = 'cli'`).Scan(&count); err != nil {
+		t.Fatalf("count intents: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("expected 2 captured intents, got %d", count)
 	}
 }

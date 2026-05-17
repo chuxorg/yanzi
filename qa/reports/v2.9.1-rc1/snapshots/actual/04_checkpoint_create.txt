@@ -1,0 +1,5 @@
+== COMMAND ==
+/Users/developer/projects/chuxorg/yanzi-cli-qa/yanzi checkpoint create --summary Deterministic\ checkpoint 
+== OUTPUT ==
+id: c9d7bbf83901c15b8ebc435a3da369417707cf1641c4fe61703412ca5da34b33
+summary: Deterministic checkpoint
