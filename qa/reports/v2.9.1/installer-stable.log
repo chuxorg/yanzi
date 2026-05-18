@@ -1,0 +1,8 @@
+install_provenance.requested_tag=latest
+install_provenance.resolved_tag=v2.9.1
+install_provenance.asset_url=https://github.com/chuxorg/yanzi/releases/download/v2.9.1/yanzi-darwin-arm64
+install_provenance.installed_version=yanzi v2.9.1
+Yanzi was installed to qa/reports/v2.9.1/installer-bin, but that directory is not in your PATH.
+yanzi v2.9.1
+Add the following line to your shell config:
+export PATH="$PATH:qa/reports/v2.9.1/installer-bin"
