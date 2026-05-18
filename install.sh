@@ -3,14 +3,23 @@ set -eu
 
 REPO="chuxorg/chux-yanzi-cli"
 RELEASES_API="https://api.github.com/repos/$REPO/releases"
+DEFAULT_STABLE_VERSION="v2.9.1"
 
 ADD_PATH=false
+REQUESTED_VERSION=""
 for arg in "$@"; do
   case "$arg" in
     --add-path) ADD_PATH=true ;;
+    --version=*) REQUESTED_VERSION="${arg#--version=}" ;;
     *) ;;
   esac
 done
+
+if [ -n "$REQUESTED_VERSION" ]; then
+  VERSION_TAG="$REQUESTED_VERSION"
+else
+  VERSION_TAG="$DEFAULT_STABLE_VERSION"
+fi
 
 OS_RAW="$(uname -s)"
 ARCH_RAW="$(uname -m)"
@@ -38,50 +47,49 @@ ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
 
 URL=""
 ASSET_KIND=""
-for page in 1 2 3 4 5 6 7 8 9 10; do
-  RELEASES_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API?per_page=100&page=$page")"
-  if [ "$RELEASES_JSON" = "[]" ]; then
-    break
-  fi
+RELEASE_ASSETS_API="$RELEASES_API/tags/$VERSION_TAG"
+RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASE_ASSETS_API")"
+ASSET_URLS="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
 
-  ASSET_URLS="$(printf '%s\n' "$RELEASES_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
+URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
+if [ -n "$URL" ]; then
+  ASSET_KIND="binary"
+fi
 
-  URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
-  if [ -n "$URL" ]; then
-    ASSET_KIND="binary"
-    break
-  fi
-
+if [ -z "$URL" ]; then
   URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_TARBALL$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="tarball"
-    break
   fi
+fi
 
+if [ -z "$URL" ]; then
   # Fallback for versioned/legacy artifact naming conventions.
   URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[-_][^/]*[-_]${OS}[-_]${ARCH}$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="binary"
-    break
   fi
+fi
 
+if [ -z "$URL" ]; then
   URL="$(printf '%s\n' "$ASSET_URLS" | grep -E "/yanzi[^/]*_${OS}_${ARCH}[^/]*\\.tar\\.gz$" | head -n 1 || true)"
   if [ -n "$URL" ]; then
     ASSET_KIND="tarball"
-    break
   fi
-done
+fi
 
 if [ -z "$URL" ]; then
-  echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
-  echo "The most recent releases may not contain binary assets for $OS/$ARCH." >&2
+  echo "Failed to find release asset for $OS/$ARCH in $REPO at tag $VERSION_TAG." >&2
+  echo "Requested release may not contain binary assets for $OS/$ARCH." >&2
   exit 1
 fi
+
 VERSION="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
 if [ -z "$VERSION" ]; then
   echo "Failed to parse release version from asset URL" >&2
   exit 1
 fi
+
 
 if [ -w /usr/local/bin ]; then
   INSTALL_DIR="/usr/local/bin"
