@@ -5,3 +5,4 @@
 - [Operational API](operational-api.md): Canonical API contract for exposing Context Library operations across REST, runtime-hosted integrations, and future transports.
 - [MCP Interface](mcp-interface.md): Contract for exposing Context Library operations through MCP as deterministic shared operational state without orchestration semantics.
 - [Federation Protocol](federation-protocol.md): Contract for exchanging Context Library artifacts and lineage across independently authoritative Yanzi nodes without central orchestration.
+- [Pack Specification](pack-specification.md): Contract for portable operational context bundles imported into the Context Library with deterministic behavior and provenance continuity.
