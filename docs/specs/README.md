@@ -6,3 +6,4 @@
 - [MCP Interface](mcp-interface.md): Contract for exposing Context Library operations through MCP as deterministic shared operational state without orchestration semantics.
 - [Federation Protocol](federation-protocol.md): Contract for exchanging Context Library artifacts and lineage across independently authoritative Yanzi nodes without central orchestration.
 - [Pack Specification](pack-specification.md): Contract for portable operational context bundles imported into the Context Library with deterministic behavior and provenance continuity.
+- [Connector Runtime](connector-runtime.md): Contract for optional connector runtime adapters that ingest and expose operational context while preserving provenance continuity and non-orchestration semantics.

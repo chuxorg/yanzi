@@ -62,6 +62,7 @@ nav:
       - MCP Interface: specs/mcp-interface.md
       - Federation Protocol: specs/federation-protocol.md
       - Pack Specification: specs/pack-specification.md
+      - Connector Runtime: specs/connector-runtime.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
