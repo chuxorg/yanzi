@@ -63,6 +63,7 @@ nav:
       - Federation Protocol: specs/federation-protocol.md
       - Pack Specification: specs/pack-specification.md
       - Connector Runtime: specs/connector-runtime.md
+      - Runtime / Daemon Architecture: specs/runtime-architecture.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md

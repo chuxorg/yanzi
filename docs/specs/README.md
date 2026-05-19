@@ -7,3 +7,4 @@
 - [Federation Protocol](federation-protocol.md): Contract for exchanging Context Library artifacts and lineage across independently authoritative Yanzi nodes without central orchestration.
 - [Pack Specification](pack-specification.md): Contract for portable operational context bundles imported into the Context Library with deterministic behavior and provenance continuity.
 - [Connector Runtime](connector-runtime.md): Contract for optional connector runtime adapters that ingest and expose operational context while preserving provenance continuity and non-orchestration semantics.
+- [Runtime / Daemon Architecture](runtime-architecture.md): Contract for optional runtime-hosted services (REST, MCP, connectors, federation, and shared deployments) that preserve core Context Library semantics.
