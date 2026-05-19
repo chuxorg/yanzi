@@ -58,6 +58,7 @@ nav:
   - Specs:
       - Overview: specs/README.md
       - Context Library Contract: specs/context-library-contract.md
+      - Storage Provider Contract: specs/storage-provider-contract.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
