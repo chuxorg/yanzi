@@ -55,6 +55,9 @@ nav:
       - Retrieval: use-cases/retrieval.md
   - Rehydrate: rehydrate.md
   - Architecture: architecture.md
+  - Specs:
+      - Overview: specs/README.md
+      - Context Library Contract: specs/context-library-contract.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
