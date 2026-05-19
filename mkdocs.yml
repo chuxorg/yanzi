@@ -59,6 +59,7 @@ nav:
       - Context Library Contract: specs/context-library-contract.md
       - Storage Provider Contract: specs/storage-provider-contract.md
       - Operational API: specs/operational-api.md
+      - MCP Interface: specs/mcp-interface.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
