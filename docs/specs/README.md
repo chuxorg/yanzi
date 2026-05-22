@@ -9,3 +9,4 @@
 - [Connector Runtime](connector-runtime.md): Contract for optional connector runtime adapters that ingest and expose operational context while preserving provenance continuity and non-orchestration semantics.
 - [Runtime / Daemon Architecture](runtime-architecture.md): Contract for optional runtime-hosted services (REST, MCP, connectors, federation, and shared deployments) that preserve core Context Library semantics.
 - [UI Operational Model](ui-operational-model.md): Contract for UI operational visibility, governance management, and lineage/provenance exploration over the Context Library without orchestration semantics.
+- [Platform Architecture](platform-architecture.md): Canonical consolidation architecture that organizes Phase 1-9 contracts into one layered operational model, deployment model, and productization direction.

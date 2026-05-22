@@ -65,6 +65,7 @@ nav:
       - Connector Runtime: specs/connector-runtime.md
       - Runtime / Daemon Architecture: specs/runtime-architecture.md
       - UI Operational Model: specs/ui-operational-model.md
+      - Platform Architecture: specs/platform-architecture.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
