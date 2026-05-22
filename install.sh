@@ -2,15 +2,24 @@
 set -eu
 
 REPO="chuxorg/yanzi"
-RELEASES_API="https://api.github.com/repos/$REPO/releases/latest"
+RELEASES_API="https://api.github.com/repos/$REPO/releases"
+DEFAULT_STABLE_VERSION="v2.9.1"
 
 ADD_PATH=false
+REQUESTED_VERSION=""
 for arg in "$@"; do
   case "$arg" in
     --add-path) ADD_PATH=true ;;
+    --version=*) REQUESTED_VERSION="${arg#--version=}" ;;
     *) ;;
   esac
 done
+
+if [ -n "$REQUESTED_VERSION" ]; then
+  VERSION_TAG="$REQUESTED_VERSION"
+else
+  VERSION_TAG="$DEFAULT_STABLE_VERSION"
+fi
 
 OS_RAW="$(uname -s)"
 ARCH_RAW="$(uname -m)"
@@ -36,11 +45,13 @@ esac
 ASSET_BINARY="yanzi-${OS}-${ARCH}"
 ASSET_TARBALL="yanzi_${OS}_${ARCH}.tar.gz"
 
-RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASES_API")"
+URL=""
+ASSET_KIND=""
+RELEASE_ASSETS_API="$RELEASES_API/tags/$VERSION_TAG"
+RELEASE_JSON="$(curl -fsSL -H "Accept: application/vnd.github+json" "$RELEASE_ASSETS_API")"
 ASSET_URLS="$(printf '%s\n' "$RELEASE_JSON" | awk -F'"' '/"browser_download_url":/ { print $4 }')"
 
 URL="$(printf '%s\n' "$ASSET_URLS" | grep "/$ASSET_BINARY$" | head -n 1 || true)"
-ASSET_KIND=""
 if [ -n "$URL" ]; then
   ASSET_KIND="binary"
 fi
@@ -67,10 +78,11 @@ if [ -z "$URL" ]; then
 fi
 
 if [ -z "$URL" ]; then
-  echo "Failed to find release asset for $OS/$ARCH in $REPO." >&2
-  echo "The most recent releases may not contain binary assets for $OS/$ARCH." >&2
+  echo "Failed to find release asset for $OS/$ARCH in $REPO at tag $VERSION_TAG." >&2
+  echo "Requested release may not contain binary assets for $OS/$ARCH." >&2
   exit 1
 fi
+
 VERSION="$(printf '%s\n' "$URL" | sed -n 's#.*releases/download/\([^/]*\)/.*#\1#p' | head -n 1)"
 if [ -z "$VERSION" ]; then
   echo "Failed to parse release version from asset URL" >&2
