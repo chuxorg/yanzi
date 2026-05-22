@@ -23,6 +23,7 @@ Yanzi gives you a local workflow for:
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
 - [API](api/index.md)
+- [Project Manager Role](roles/project-manager.md)
 
 ## Use Cases
 
