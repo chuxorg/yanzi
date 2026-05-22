@@ -25,6 +25,7 @@ Yanzi gives you a local workflow for:
 - [Architectural Guardrails](guardrails.md)
 - [How It Works](how-it-works.md)
 - [Platform Architecture](specs/platform-architecture.md)
+- [Roadmap](roadmap/README.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)

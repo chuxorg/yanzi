@@ -66,6 +66,14 @@ nav:
       - Runtime / Daemon Architecture: specs/runtime-architecture.md
       - UI Operational Model: specs/ui-operational-model.md
       - Platform Architecture: specs/platform-architecture.md
+  - Roadmap:
+      - Overview: roadmap/README.md
+      - Delivery Model: roadmap/implementation-delivery-model.md
+      - Initiatives: roadmap/initiatives/README.md
+      - Capabilities: roadmap/capabilities/README.md
+      - Phases: roadmap/phases/README.md
+      - Tasks: roadmap/tasks/README.md
+      - Releases: roadmap/releases/README.md
   - API: api/index.md
   - Agent Bootstrap: agent-bootstrap.md
   - Release Protocol: dev/RELEASE_PROTOCOL.md
