@@ -56,7 +56,7 @@ nav:
   - Code Documentation: dev/CODE_DOCUMENTATION.md
   - Branch Protection: dev/BRANCH_PROTECTION.md
   - Roles:
-      - Project Manager: roles/project-manager.md
+      - Release Steward: roles/release-steward.md
   - Generated API:
       - Overview: api/index.md
       - CLI Package: api/cmd.md
