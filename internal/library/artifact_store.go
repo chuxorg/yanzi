@@ -6,6 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/chuxorg/yanzi/internal/storage"
+	storagesqlite "github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
 // CreateArtifact stores a new artifact for a project.
@@ -18,15 +21,27 @@ func CreateArtifact(projectID, class, artifactType, title, content, metadata str
 		return Artifact{}, err
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return Artifact{}, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	return createArtifact(db, projectID, class, artifactType, title, content, metadata, scope)
+	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+		Project:  projectID,
+		Class:    class,
+		Type:     artifactType,
+		Scope:    scope,
+		Title:    title,
+		Content:  content,
+		Metadata: metadata,
+	})
+	if err != nil {
+		return Artifact{}, err
+	}
+	return artifactFromStorage(artifact), nil
 }
 
 // CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
@@ -35,80 +50,47 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 		return Artifact{}, err
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return Artifact{}, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	return createArtifact(db, projectID, ArtifactClassContext, artifactType, title, content, metadata, scope)
+	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+		Project:  projectID,
+		Class:    ArtifactClassContext,
+		Type:     artifactType,
+		Scope:    scope,
+		Title:    title,
+		Content:  content,
+		Metadata: metadata,
+	})
+	if err != nil {
+		return Artifact{}, err
+	}
+	return artifactFromStorage(artifact), nil
 }
 
 func createArtifact(db *sql.DB, projectID, class, artifactType, title, content, metadata, scope string) (Artifact, error) {
 	if db == nil {
 		return Artifact{}, fmt.Errorf("artifact store is not initialized")
 	}
-	if strings.TrimSpace(projectID) != "" {
-		exists, err := projectExists(context.Background(), db, projectID)
-		if err != nil {
-			return Artifact{}, err
-		}
-		if !exists {
-			return Artifact{}, ProjectNotFoundError{Name: projectID}
-		}
-	}
-
-	id, err := newArtifactID()
+	provider := storagesqlite.FromDB(db)
+	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+		Project:  projectID,
+		Class:    class,
+		Type:     artifactType,
+		Scope:    scope,
+		Title:    title,
+		Content:  content,
+		Metadata: metadata,
+	})
 	if err != nil {
 		return Artifact{}, err
 	}
-	createdAt := nowRFC3339Nano()
-	systemMeta, err := artifactSystemMeta(projectID, scope)
-	if err != nil {
-		return Artifact{}, err
-	}
-	hashValue := hashArtifact(id, createdAt, class, artifactType, title, content, metadata)
-
-	var metadataValue any
-	if metadata != "" {
-		metadataValue = metadata
-	}
-
-	if _, err := db.Exec(
-		`INSERT INTO intents (
-			id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		id,
-		createdAt,
-		"yanzi",
-		"artifact",
-		title,
-		content,
-		content,
-		systemMeta,
-		nil,
-		hashValue,
-		class,
-		artifactType,
-		content,
-		metadataValue,
-	); err != nil {
-		return Artifact{}, err
-	}
-
-	return Artifact{
-		ID:        id,
-		Class:     class,
-		Type:      artifactType,
-		Scope:     scope,
-		Project:   projectID,
-		Title:     title,
-		Content:   content,
-		Metadata:  metadata,
-		CreatedAt: createdAt,
-	}, nil
+	return artifactFromStorage(artifact), nil
 }
 
 // ListArtifacts lists artifacts for a project and class, optionally filtered by type.
@@ -120,15 +102,24 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 		return nil, fmt.Errorf("project is required")
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	return listArtifacts(db, projectID, class, artifactType, includeDeleted)
+	artifacts, err := provider.ListArtifacts(context.Background(), storage.ArtifactQuery{
+		Project:        projectID,
+		Class:          class,
+		Type:           artifactType,
+		IncludeDeleted: includeDeleted,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return artifactsFromStorage(artifacts), nil
 }
 
 // ListArtifactsAllProjects lists artifacts across every project for the requested class.
@@ -137,15 +128,23 @@ func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) (
 		return nil, err
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	return listArtifactsAllProjects(db, class, artifactType, includeDeleted)
+	artifacts, err := provider.ListArtifacts(context.Background(), storage.ArtifactQuery{
+		Class:          class,
+		Type:           artifactType,
+		IncludeDeleted: includeDeleted,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return artifactsFromStorage(artifacts), nil
 }
 
 func validateArtifactClassAndType(class, artifactType string) error {
@@ -283,59 +282,25 @@ func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, proje
 		return nil, errors.New("--project cannot be used with --scope global")
 	}
 
-	targetProject := strings.TrimSpace(projectFilter)
-	if targetProject == "" {
-		targetProject = strings.TrimSpace(activeProject)
-	}
-
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	rows, err := db.Query(
-		`SELECT id, class, type, title, content, metadata, meta, created_at
-		FROM intents
-		WHERE source_type = 'artifact' AND class = ?
-		ORDER BY created_at DESC, id DESC`,
-		ArtifactClassContext,
-	)
+	artifacts, err := provider.ListVisibleContextArtifacts(context.Background(), storage.ContextArtifactQuery{
+		ActiveProject:  activeProject,
+		Type:           artifactType,
+		Scope:          scopeFilter,
+		Project:        projectFilter,
+		IncludeDeleted: includeDeleted,
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	artifacts := make([]Artifact, 0)
-	for rows.Next() {
-		artifact, metaText, err := scanArtifactRow(rows)
-		if err != nil {
-			return nil, err
-		}
-		fields, err := artifactSystemFieldsFromMeta(metaText)
-		if err != nil {
-			continue
-		}
-		if !includeDeleted && fields.Deleted {
-			continue
-		}
-		artifact.Scope = fields.Scope
-		artifact.Project = fields.Project
-
-		if artifactType != "" && artifact.Type != strings.TrimSpace(artifactType) {
-			continue
-		}
-		if !contextArtifactVisible(artifact, strings.TrimSpace(scopeFilter), targetProject, strings.TrimSpace(projectFilter) != "") {
-			continue
-		}
-		artifacts = append(artifacts, artifact)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return artifacts, nil
+	return artifactsFromStorage(artifacts), nil
 }
 
 // ListVisibleContextArtifactsAllProjects returns global and project-scoped context across every project.
@@ -351,61 +316,24 @@ func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, in
 		}
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	rows, err := db.Query(
-		`SELECT id, class, type, title, content, metadata, meta, created_at
-		FROM intents
-		WHERE source_type = 'artifact' AND class = ?
-		ORDER BY created_at DESC, id DESC`,
-		ArtifactClassContext,
-	)
+	artifacts, err := provider.ListVisibleContextArtifacts(context.Background(), storage.ContextArtifactQuery{
+		Type:           artifactType,
+		Scope:          scopeFilter,
+		IncludeDeleted: includeDeleted,
+		AllProjects:    true,
+	})
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	artifacts := make([]Artifact, 0)
-	for rows.Next() {
-		artifact, metaText, err := scanArtifactRow(rows)
-		if err != nil {
-			return nil, err
-		}
-		fields, err := artifactSystemFieldsFromMeta(metaText)
-		if err != nil {
-			continue
-		}
-		if !includeDeleted && fields.Deleted {
-			continue
-		}
-		artifact.Scope = fields.Scope
-		artifact.Project = fields.Project
-		if artifactType != "" && artifact.Type != strings.TrimSpace(artifactType) {
-			continue
-		}
-		switch strings.TrimSpace(scopeFilter) {
-		case "":
-		case ContextScopeGlobal:
-			if artifact.Scope != ContextScopeGlobal {
-				continue
-			}
-		case ContextScopeProject:
-			if artifact.Scope != ContextScopeProject {
-				continue
-			}
-		}
-		artifacts = append(artifacts, artifact)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return artifacts, nil
+	return artifactsFromStorage(artifacts), nil
 }
 
 // GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
@@ -415,25 +343,41 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 		return Artifact{}, errors.New("context id is required")
 	}
 
-	artifacts, err := ListVisibleContextArtifacts(activeProject, "", "", "", true)
+	provider, err := openStorageProvider()
 	if err != nil {
 		return Artifact{}, err
 	}
+	defer func() {
+		_ = provider.Close()
+	}()
 
-	var matches []Artifact
+	artifact, err := provider.GetVisibleContextArtifact(context.Background(), idPrefix, activeProject)
+	if err != nil {
+		return Artifact{}, err
+	}
+	return artifactFromStorage(artifact), nil
+}
+
+func artifactFromStorage(artifact storage.Artifact) Artifact {
+	return Artifact{
+		ID:        artifact.ID,
+		Class:     artifact.Class,
+		Type:      artifact.Type,
+		Scope:     artifact.Scope,
+		Project:   artifact.Project,
+		Title:     artifact.Title,
+		Content:   artifact.Content,
+		Metadata:  artifact.Metadata,
+		CreatedAt: artifact.CreatedAt,
+	}
+}
+
+func artifactsFromStorage(artifacts []storage.Artifact) []Artifact {
+	out := make([]Artifact, 0, len(artifacts))
 	for _, artifact := range artifacts {
-		if artifact.ID == idPrefix || strings.HasPrefix(artifact.ID, idPrefix) {
-			matches = append(matches, artifact)
-		}
+		out = append(out, artifactFromStorage(artifact))
 	}
-	switch len(matches) {
-	case 0:
-		return Artifact{}, fmt.Errorf("context artifact not found: %s", idPrefix)
-	case 1:
-		return matches[0], nil
-	default:
-		return Artifact{}, fmt.Errorf("context artifact id is ambiguous: %s", idPrefix)
-	}
+	return out
 }
 
 func scanArtifactRow(scanner interface {

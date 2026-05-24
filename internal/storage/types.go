@@ -10,6 +10,17 @@ const (
 	ProviderSQLite ProviderName = "sqlite"
 )
 
+const (
+	// ArtifactClassIntent is the current intent artifact class.
+	ArtifactClassIntent = "intent"
+	// ArtifactClassContext is the current context artifact class.
+	ArtifactClassContext = "context"
+	// ContextScopeGlobal is the current globally visible context scope.
+	ContextScopeGlobal = "global"
+	// ContextScopeProject is the current project-visible context scope.
+	ContextScopeProject = "project"
+)
+
 // HealthStatus reports internal provider readiness without exposing a CLI surface.
 type HealthStatus string
 
@@ -34,6 +45,16 @@ type ArtifactQuery struct {
 	IncludeDeleted bool
 }
 
+// ContextArtifactQuery captures current context visibility dimensions.
+type ContextArtifactQuery struct {
+	ActiveProject  string
+	Type           string
+	Scope          string
+	Project        string
+	IncludeDeleted bool
+	AllProjects    bool
+}
+
 // ProjectQuery captures current project lookup dimensions.
 type ProjectQuery struct {
 	Name string
@@ -54,6 +75,30 @@ type ExportQuery struct {
 // VerificationQuery captures current hash verification dimensions.
 type VerificationQuery struct {
 	ID string
+}
+
+// CreateArtifactInput captures current artifact creation inputs.
+type CreateArtifactInput struct {
+	Project  string
+	Class    string
+	Type     string
+	Scope    string
+	Title    string
+	Content  string
+	Metadata string
+}
+
+// Artifact is the provider-level artifact record used by current storage behavior.
+type Artifact struct {
+	ID        string
+	Class     string
+	Type      string
+	Scope     string
+	Project   string
+	Title     string
+	Content   string
+	Metadata  string
+	CreatedAt string
 }
 
 // CreateProjectInput captures current project creation inputs.
