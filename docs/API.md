@@ -759,7 +759,7 @@ type Artifact struct {
 ```
 
 <a name="CreateArtifact"></a>
-### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L12>)
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L15>)
 
 ```go
 func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
@@ -768,7 +768,7 @@ func CreateArtifact(projectID, class, artifactType, title, content, metadata str
 CreateArtifact stores a new artifact for a project.
 
 <a name="CreateContextArtifact"></a>
-### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L33>)
+### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L48>)
 
 ```go
 func CreateContextArtifact(projectID, artifactType, scope, title, content, metadata string) (Artifact, error)
@@ -777,7 +777,7 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
 
 <a name="GetVisibleContextArtifact"></a>
-### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L412>)
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L340>)
 
 ```go
 func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
@@ -786,7 +786,7 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="ListArtifacts"></a>
-### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L115>)
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L97>)
 
 ```go
 func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -795,7 +795,7 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 ListArtifacts lists artifacts for a project and class, optionally filtered by type.
 
 <a name="ListArtifactsAllProjects"></a>
-### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L135>)
+### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L126>)
 
 ```go
 func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -804,7 +804,7 @@ func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) (
 ListArtifactsAllProjects lists artifacts across every project for the requested class.
 
 <a name="ListVisibleContextArtifacts"></a>
-### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L271>)
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L270>)
 
 ```go
 func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
@@ -813,7 +813,7 @@ func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, proje
 ListVisibleContextArtifacts returns global context plus project context visible to the caller.
 
 <a name="ListVisibleContextArtifactsAllProjects"></a>
-### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L342>)
+### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L307>)
 
 ```go
 func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, includeDeleted bool) ([]Artifact, error)
@@ -1056,12 +1056,16 @@ import "github.com/chuxorg/yanzi/internal/storage"
 
 ## Index
 
+- [Constants](<#constants>)
 - [Variables](<#variables>)
+- [type Artifact](<#Artifact>)
 - [type ArtifactOperations](<#ArtifactOperations>)
 - [type ArtifactQuery](<#ArtifactQuery>)
 - [type Checkpoint](<#Checkpoint>)
 - [type CheckpointOperations](<#CheckpointOperations>)
 - [type CheckpointQuery](<#CheckpointQuery>)
+- [type ContextArtifactQuery](<#ContextArtifactQuery>)
+- [type CreateArtifactInput](<#CreateArtifactInput>)
 - [type CreateCheckpointInput](<#CreateCheckpointInput>)
 - [type CreateProjectInput](<#CreateProjectInput>)
 - [type ExportQuery](<#ExportQuery>)
@@ -1077,6 +1081,23 @@ import "github.com/chuxorg/yanzi/internal/storage"
 - [type VerificationQuery](<#VerificationQuery>)
 
 
+## Constants
+
+<a name="ArtifactClassIntent"></a>
+
+```go
+const (
+    // ArtifactClassIntent is the current intent artifact class.
+    ArtifactClassIntent = "intent"
+    // ArtifactClassContext is the current context artifact class.
+    ArtifactClassContext = "context"
+    // ContextScopeGlobal is the current globally visible context scope.
+    ContextScopeGlobal = "global"
+    // ContextScopeProject is the current project-visible context scope.
+    ContextScopeProject = "project"
+)
+```
+
 ## Variables
 
 <a name="ErrProviderUnavailable"></a>
@@ -1090,19 +1111,42 @@ var (
 )
 ```
 
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L92-L102>)
+
+Artifact is the provider\-level artifact record used by current storage behavior.
+
+```go
+type Artifact struct {
+    ID        string
+    Class     string
+    Type      string
+    Scope     string
+    Project   string
+    Title     string
+    Content   string
+    Metadata  string
+    CreatedAt string
+}
+```
+
 <a name="ArtifactOperations"></a>
-## type [ArtifactOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L27-L29>)
+## type [ArtifactOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L27-L33>)
 
 ArtifactOperations represents artifact persistence and retrieval capability.
 
 ```go
 type ArtifactOperations interface {
     Artifacts() bool
+    CreateArtifact(context.Context, CreateArtifactInput) (Artifact, error)
+    ListArtifacts(context.Context, ArtifactQuery) ([]Artifact, error)
+    ListVisibleContextArtifacts(context.Context, ContextArtifactQuery) ([]Artifact, error)
+    GetVisibleContextArtifact(context.Context, string, string) (Artifact, error)
 }
 ```
 
 <a name="ArtifactQuery"></a>
-## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L30-L35>)
+## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L41-L46>)
 
 ArtifactQuery captures the current artifact list dimensions.
 
@@ -1116,7 +1160,7 @@ type ArtifactQuery struct {
 ```
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L80-L87>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L125-L132>)
 
 Checkpoint is the provider\-level checkpoint record used by current storage behavior.
 
@@ -1132,7 +1176,7 @@ type Checkpoint struct {
 ```
 
 <a name="CheckpointOperations"></a>
-## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L40-L45>)
+## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L44-L49>)
 
 CheckpointOperations represents checkpoint persistence and retrieval capability.
 
@@ -1146,7 +1190,7 @@ type CheckpointOperations interface {
 ```
 
 <a name="CheckpointQuery"></a>
-## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L43-L45>)
+## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L64-L66>)
 
 CheckpointQuery captures current checkpoint list dimensions.
 
@@ -1156,8 +1200,41 @@ type CheckpointQuery struct {
 }
 ```
 
+<a name="ContextArtifactQuery"></a>
+## type [ContextArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L49-L56>)
+
+ContextArtifactQuery captures current context visibility dimensions.
+
+```go
+type ContextArtifactQuery struct {
+    ActiveProject  string
+    Type           string
+    Scope          string
+    Project        string
+    IncludeDeleted bool
+    AllProjects    bool
+}
+```
+
+<a name="CreateArtifactInput"></a>
+## type [CreateArtifactInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L81-L89>)
+
+CreateArtifactInput captures current artifact creation inputs.
+
+```go
+type CreateArtifactInput struct {
+    Project  string
+    Class    string
+    Type     string
+    Scope    string
+    Title    string
+    Content  string
+    Metadata string
+}
+```
+
 <a name="CreateCheckpointInput"></a>
-## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L73-L77>)
+## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L118-L122>)
 
 CreateCheckpointInput captures current checkpoint creation inputs.
 
@@ -1170,7 +1247,7 @@ type CreateCheckpointInput struct {
 ```
 
 <a name="CreateProjectInput"></a>
-## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L60-L63>)
+## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L105-L108>)
 
 CreateProjectInput captures current project creation inputs.
 
@@ -1182,7 +1259,7 @@ type CreateProjectInput struct {
 ```
 
 <a name="ExportQuery"></a>
-## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L48-L52>)
+## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L69-L73>)
 
 ExportQuery captures current deterministic local export dimensions.
 
@@ -1195,7 +1272,7 @@ type ExportQuery struct {
 ```
 
 <a name="Health"></a>
-## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L22-L27>)
+## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L33-L38>)
 
 Health describes the internal provider health state.
 
@@ -1209,7 +1286,7 @@ type Health struct {
 ```
 
 <a name="HealthStatus"></a>
-## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L14>)
+## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L25>)
 
 HealthStatus reports internal provider readiness without exposing a CLI surface.
 
@@ -1227,7 +1304,7 @@ const (
 ```
 
 <a name="ImportExportOperations"></a>
-## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L53-L55>)
+## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L57-L59>)
 
 ImportExportOperations represents deterministic local import/export capability.
 
@@ -1238,7 +1315,7 @@ type ImportExportOperations interface {
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L66-L70>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L111-L115>)
 
 Project is the provider\-level project record used by current storage behavior.
 
@@ -1251,7 +1328,7 @@ type Project struct {
 ```
 
 <a name="ProjectOperations"></a>
-## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L32-L37>)
+## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L36-L41>)
 
 ProjectOperations represents project persistence and retrieval capability.
 
@@ -1265,7 +1342,7 @@ type ProjectOperations interface {
 ```
 
 <a name="ProjectQuery"></a>
-## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L38-L40>)
+## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L59-L61>)
 
 ProjectQuery captures current project lookup dimensions.
 
@@ -1316,7 +1393,7 @@ const (
 ```
 
 <a name="VerificationOperations"></a>
-## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L48-L50>)
+## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L52-L54>)
 
 VerificationOperations represents local digest verification capability.
 
@@ -1327,7 +1404,7 @@ type VerificationOperations interface {
 ```
 
 <a name="VerificationQuery"></a>
-## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L55-L57>)
+## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L76-L78>)
 
 VerificationQuery captures current hash verification dimensions.
 
@@ -1604,13 +1681,17 @@ import "github.com/chuxorg/yanzi/internal/storage/sqlite"
   - [func \(p \*Provider\) Artifacts\(\) bool](<#Provider.Artifacts>)
   - [func \(p \*Provider\) Checkpoints\(\) bool](<#Provider.Checkpoints>)
   - [func \(p \*Provider\) Close\(\) error](<#Provider.Close>)
+  - [func \(p \*Provider\) CreateArtifact\(ctx context.Context, input storage.CreateArtifactInput\) \(storage.Artifact, error\)](<#Provider.CreateArtifact>)
   - [func \(p \*Provider\) CreateCheckpoint\(ctx context.Context, input storage.CreateCheckpointInput\) \(storage.Checkpoint, error\)](<#Provider.CreateCheckpoint>)
   - [func \(p \*Provider\) CreateProject\(ctx context.Context, input storage.CreateProjectInput\) \(storage.Project, error\)](<#Provider.CreateProject>)
+  - [func \(p \*Provider\) GetVisibleContextArtifact\(ctx context.Context, idPrefix, activeProject string\) \(storage.Artifact, error\)](<#Provider.GetVisibleContextArtifact>)
   - [func \(p \*Provider\) Health\(ctx context.Context\) storage.Health](<#Provider.Health>)
   - [func \(p \*Provider\) ImportExport\(\) bool](<#Provider.ImportExport>)
   - [func \(p \*Provider\) ListAllCheckpoints\(ctx context.Context\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListAllCheckpoints>)
+  - [func \(p \*Provider\) ListArtifacts\(ctx context.Context, query storage.ArtifactQuery\) \(\[\]storage.Artifact, error\)](<#Provider.ListArtifacts>)
   - [func \(p \*Provider\) ListCheckpoints\(ctx context.Context, project string\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListCheckpoints>)
   - [func \(p \*Provider\) ListProjects\(ctx context.Context\) \(\[\]storage.Project, error\)](<#Provider.ListProjects>)
+  - [func \(p \*Provider\) ListVisibleContextArtifacts\(ctx context.Context, query storage.ContextArtifactQuery\) \(\[\]storage.Artifact, error\)](<#Provider.ListVisibleContextArtifacts>)
   - [func \(p \*Provider\) Name\(\) storage.ProviderName](<#Provider.Name>)
   - [func \(p \*Provider\) ProjectExists\(ctx context.Context, name string\) \(bool, error\)](<#Provider.ProjectExists>)
   - [func \(p \*Provider\) Projects\(\) bool](<#Provider.Projects>)
@@ -1674,6 +1755,15 @@ func (p *Provider) Close() error
 
 Close closes the provider handle.
 
+<a name="Provider.CreateArtifact"></a>
+### func \(\*Provider\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L37>)
+
+```go
+func (p *Provider) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (storage.Artifact, error)
+```
+
+CreateArtifact stores an artifact using current SQLite artifact semantics.
+
 <a name="Provider.CreateCheckpoint"></a>
 ### func \(\*Provider\) [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L19>)
 
@@ -1691,6 +1781,15 @@ func (p *Provider) CreateProject(ctx context.Context, input storage.CreateProjec
 ```
 
 CreateProject creates a project using current SQLite project semantics.
+
+<a name="Provider.GetVisibleContextArtifact"></a>
+### func \(\*Provider\) [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L182>)
+
+```go
+func (p *Provider) GetVisibleContextArtifact(ctx context.Context, idPrefix, activeProject string) (storage.Artifact, error)
+```
+
+GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="Provider.Health"></a>
 ### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L97>)
@@ -1719,6 +1818,15 @@ func (p *Provider) ListAllCheckpoints(ctx context.Context) ([]storage.Checkpoint
 
 ListAllCheckpoints returns all checkpoints using current CLI all\-project ordering.
 
+<a name="Provider.ListArtifacts"></a>
+### func \(\*Provider\) [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L111>)
+
+```go
+func (p *Provider) ListArtifacts(ctx context.Context, query storage.ArtifactQuery) ([]storage.Artifact, error)
+```
+
+ListArtifacts lists artifacts using current project/class/type filtering semantics.
+
 <a name="Provider.ListCheckpoints"></a>
 ### func \(\*Provider\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L88>)
 
@@ -1736,6 +1844,15 @@ func (p *Provider) ListProjects(ctx context.Context) ([]storage.Project, error)
 ```
 
 ListProjects returns projects ordered by creation time, oldest first.
+
+<a name="Provider.ListVisibleContextArtifacts"></a>
+### func \(\*Provider\) [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L138>)
+
+```go
+func (p *Provider) ListVisibleContextArtifacts(ctx context.Context, query storage.ContextArtifactQuery) ([]storage.Artifact, error)
+```
+
+ListVisibleContextArtifacts lists context artifacts with current visibility rules.
 
 <a name="Provider.Name"></a>
 ### func \(\*Provider\) [Name](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L76>)
