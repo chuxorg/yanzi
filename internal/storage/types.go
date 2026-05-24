@@ -1,5 +1,7 @@
 package storage
 
+import "time"
+
 // ProviderName identifies a storage provider implementation.
 type ProviderName string
 
@@ -52,4 +54,17 @@ type ExportQuery struct {
 // VerificationQuery captures current hash verification dimensions.
 type VerificationQuery struct {
 	ID string
+}
+
+// CreateProjectInput captures current project creation inputs.
+type CreateProjectInput struct {
+	Name        string
+	Description string
+}
+
+// Project is the provider-level project record used by current storage behavior.
+type Project struct {
+	Name        string
+	Description string
+	CreatedAt   time.Time
 }
