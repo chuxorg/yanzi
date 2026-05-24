@@ -68,3 +68,20 @@ type Project struct {
 	Description string
 	CreatedAt   time.Time
 }
+
+// CreateCheckpointInput captures current checkpoint creation inputs.
+type CreateCheckpointInput struct {
+	Project     string
+	Summary     string
+	ArtifactIDs []string
+}
+
+// Checkpoint is the provider-level checkpoint record used by current storage behavior.
+type Checkpoint struct {
+	Project              string
+	Summary              string
+	CreatedAt            string
+	ArtifactIDs          []string
+	PreviousCheckpointID string
+	Hash                 string
+}

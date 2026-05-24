@@ -82,8 +82,8 @@ func TestCheckpointProviderContract(t *testing.T) {
 	if second.Summary != "second" {
 		t.Fatalf("unexpected summary: %q", second.Summary)
 	}
-	if second.ArtifactIDs == nil || len(second.ArtifactIDs) != 0 {
-		t.Fatalf("expected empty stored artifact id list, got %#v", second.ArtifactIDs)
+	if second.ArtifactIDs != nil {
+		t.Fatalf("expected nil returned artifact id list for nil input, got %#v", second.ArtifactIDs)
 	}
 
 	beta, err := provider.CreateCheckpoint(ctx, storage.CreateCheckpointInput{Project: "beta", Summary: "beta checkpoint"})

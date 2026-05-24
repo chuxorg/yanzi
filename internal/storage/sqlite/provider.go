@@ -244,3 +244,8 @@ func (p *Provider) isMigrationApplied(ctx context.Context, version string) (bool
 	}
 	return count > 0, nil
 }
+
+// FromDB wraps an existing SQLite handle with provider operations.
+func FromDB(db *sql.DB) *Provider {
+	return &Provider{db: db}
+}
