@@ -39,6 +39,9 @@ type ProjectOperations interface {
 // CheckpointOperations represents checkpoint persistence and retrieval capability.
 type CheckpointOperations interface {
 	Checkpoints() bool
+	CreateCheckpoint(context.Context, CreateCheckpointInput) (Checkpoint, error)
+	ListCheckpoints(context.Context, string) ([]Checkpoint, error)
+	ListAllCheckpoints(context.Context) ([]Checkpoint, error)
 }
 
 // VerificationOperations represents local digest verification capability.

@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/config"
@@ -176,37 +175,5 @@ func checkpointUsageError() error {
 }
 
 func listAllCheckpointsLocal(ctx context.Context, db *sql.DB) ([]yanzilibrary.Checkpoint, error) {
-	rows, err := db.QueryContext(ctx, `SELECT hash, project, summary, created_at, artifact_ids, previous_checkpoint_id FROM checkpoints`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	checkpoints := make([]yanzilibrary.Checkpoint, 0)
-	for rows.Next() {
-		var checkpoint yanzilibrary.Checkpoint
-		var artifactIDs string
-		var previous sql.NullString
-		if err := rows.Scan(&checkpoint.Hash, &checkpoint.Project, &checkpoint.Summary, &checkpoint.CreatedAt, &artifactIDs, &previous); err != nil {
-			return nil, err
-		}
-		if previous.Valid {
-			checkpoint.PreviousCheckpointID = previous.String
-		}
-		checkpoints = append(checkpoints, checkpoint)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	sort.SliceStable(checkpoints, func(i, j int) bool {
-		if checkpoints[i].Project == checkpoints[j].Project {
-			if checkpoints[i].CreatedAt == checkpoints[j].CreatedAt {
-				return checkpoints[i].Hash > checkpoints[j].Hash
-			}
-			return checkpoints[i].CreatedAt > checkpoints[j].CreatedAt
-		}
-		return checkpoints[i].Project < checkpoints[j].Project
-	})
-	return checkpoints, nil
+	return yanzilibrary.ListAllCheckpoints(ctx, db)
 }
