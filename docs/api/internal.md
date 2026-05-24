@@ -232,7 +232,7 @@ func RunChain(args []string) error
 RunChain prints the intent chain from oldest to newest.
 
 <a name="RunCheckpoint"></a>
-## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L34>)
+## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L33>)
 
 ```go
 func RunCheckpoint(args []string) error
@@ -399,7 +399,7 @@ args starts with `apply` or `export` followed by the corresponding flags.
 ```
 
 <a name="RunProject"></a>
-## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L28>)
+## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L26>)
 
 ```go
 func RunProject(args []string) error
@@ -627,6 +627,7 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func ListVisibleContextArtifactsAllProjects\(artifactType, scopeFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifactsAllProjects>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
+  - [func ListAllCheckpoints\(ctx context.Context, db \*sql.DB\) \(\[\]Checkpoint, error\)](<#ListAllCheckpoints>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
   - [func \(c Checkpoint\) Normalize\(\) Checkpoint](<#Checkpoint.Normalize>)
   - [func \(c Checkpoint\) Validate\(\) error](<#Checkpoint.Validate>)
@@ -827,7 +828,7 @@ type Checkpoint struct {
 ```
 
 <a name="CreateCheckpoint"></a>
-### func [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L155>)
+### func [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L55>)
 
 ```go
 func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, artifactIDs []string) (Checkpoint, error)
@@ -835,8 +836,17 @@ func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, 
 
 CreateCheckpoint is a convenience wrapper for CheckpointStore.CreateCheckpoint.
 
+<a name="ListAllCheckpoints"></a>
+### func [ListAllCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L65>)
+
+```go
+func ListAllCheckpoints(ctx context.Context, db *sql.DB) ([]Checkpoint, error)
+```
+
+ListAllCheckpoints is a convenience wrapper for all\-project checkpoint listing.
+
 <a name="ListCheckpoints"></a>
-### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L160>)
+### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L60>)
 
 ```go
 func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpoint, error)
@@ -892,7 +902,7 @@ func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary
 CreateCheckpoint creates a new checkpoint artifact for a project.
 
 <a name="CheckpointStore.ListCheckpoints"></a>
-### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L99>)
+### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L39>)
 
 ```go
 func (s *CheckpointStore) ListCheckpoints(ctx context.Context, project string) ([]Checkpoint, error)
@@ -955,7 +965,7 @@ type Project struct {
 ```
 
 <a name="CreateProject"></a>
-### func [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L15>)
+### func [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L14>)
 
 ```go
 func CreateProject(name string, description string) (*Project, error)
@@ -964,7 +974,7 @@ func CreateProject(name string, description string) (*Project, error)
 CreateProject creates a unique project record and returns the created project.
 
 <a name="ListProjects"></a>
-### func [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L65>)
+### func [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L40>)
 
 ```go
 func ListProjects() ([]Project, error)
@@ -1039,12 +1049,16 @@ import "github.com/chuxorg/yanzi/internal/storage"
 - [Variables](<#variables>)
 - [type ArtifactOperations](<#ArtifactOperations>)
 - [type ArtifactQuery](<#ArtifactQuery>)
+- [type Checkpoint](<#Checkpoint>)
 - [type CheckpointOperations](<#CheckpointOperations>)
 - [type CheckpointQuery](<#CheckpointQuery>)
+- [type CreateCheckpointInput](<#CreateCheckpointInput>)
+- [type CreateProjectInput](<#CreateProjectInput>)
 - [type ExportQuery](<#ExportQuery>)
 - [type Health](<#Health>)
 - [type HealthStatus](<#HealthStatus>)
 - [type ImportExportOperations](<#ImportExportOperations>)
+- [type Project](<#Project>)
 - [type ProjectOperations](<#ProjectOperations>)
 - [type ProjectQuery](<#ProjectQuery>)
 - [type Provider](<#Provider>)
@@ -1078,7 +1092,7 @@ type ArtifactOperations interface {
 ```
 
 <a name="ArtifactQuery"></a>
-## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L28-L33>)
+## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L30-L35>)
 
 ArtifactQuery captures the current artifact list dimensions.
 
@@ -1091,19 +1105,38 @@ type ArtifactQuery struct {
 }
 ```
 
+<a name="Checkpoint"></a>
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L80-L87>)
+
+Checkpoint is the provider\-level checkpoint record used by current storage behavior.
+
+```go
+type Checkpoint struct {
+    Project              string
+    Summary              string
+    CreatedAt            string
+    ArtifactIDs          []string
+    PreviousCheckpointID string
+    Hash                 string
+}
+```
+
 <a name="CheckpointOperations"></a>
-## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L37-L39>)
+## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L40-L45>)
 
 CheckpointOperations represents checkpoint persistence and retrieval capability.
 
 ```go
 type CheckpointOperations interface {
     Checkpoints() bool
+    CreateCheckpoint(context.Context, CreateCheckpointInput) (Checkpoint, error)
+    ListCheckpoints(context.Context, string) ([]Checkpoint, error)
+    ListAllCheckpoints(context.Context) ([]Checkpoint, error)
 }
 ```
 
 <a name="CheckpointQuery"></a>
-## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L41-L43>)
+## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L43-L45>)
 
 CheckpointQuery captures current checkpoint list dimensions.
 
@@ -1113,8 +1146,33 @@ type CheckpointQuery struct {
 }
 ```
 
+<a name="CreateCheckpointInput"></a>
+## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L73-L77>)
+
+CreateCheckpointInput captures current checkpoint creation inputs.
+
+```go
+type CreateCheckpointInput struct {
+    Project     string
+    Summary     string
+    ArtifactIDs []string
+}
+```
+
+<a name="CreateProjectInput"></a>
+## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L60-L63>)
+
+CreateProjectInput captures current project creation inputs.
+
+```go
+type CreateProjectInput struct {
+    Name        string
+    Description string
+}
+```
+
 <a name="ExportQuery"></a>
-## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L46-L50>)
+## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L48-L52>)
 
 ExportQuery captures current deterministic local export dimensions.
 
@@ -1127,7 +1185,7 @@ type ExportQuery struct {
 ```
 
 <a name="Health"></a>
-## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L20-L25>)
+## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L22-L27>)
 
 Health describes the internal provider health state.
 
@@ -1141,7 +1199,7 @@ type Health struct {
 ```
 
 <a name="HealthStatus"></a>
-## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L12>)
+## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L14>)
 
 HealthStatus reports internal provider readiness without exposing a CLI surface.
 
@@ -1159,7 +1217,7 @@ const (
 ```
 
 <a name="ImportExportOperations"></a>
-## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L47-L49>)
+## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L53-L55>)
 
 ImportExportOperations represents deterministic local import/export capability.
 
@@ -1169,19 +1227,35 @@ type ImportExportOperations interface {
 }
 ```
 
+<a name="Project"></a>
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L66-L70>)
+
+Project is the provider\-level project record used by current storage behavior.
+
+```go
+type Project struct {
+    Name        string
+    Description string
+    CreatedAt   time.Time
+}
+```
+
 <a name="ProjectOperations"></a>
-## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L32-L34>)
+## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L32-L37>)
 
 ProjectOperations represents project persistence and retrieval capability.
 
 ```go
 type ProjectOperations interface {
     Projects() bool
+    CreateProject(context.Context, CreateProjectInput) (Project, error)
+    ListProjects(context.Context) ([]Project, error)
+    ProjectExists(context.Context, string) (bool, error)
 }
 ```
 
 <a name="ProjectQuery"></a>
-## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L36-L38>)
+## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L38-L40>)
 
 ProjectQuery captures current project lookup dimensions.
 
@@ -1214,7 +1288,7 @@ type Provider interface {
 ```
 
 <a name="ProviderName"></a>
-## type [ProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L4>)
+## type [ProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L6>)
 
 ProviderName identifies a storage provider implementation.
 
@@ -1232,7 +1306,7 @@ const (
 ```
 
 <a name="VerificationOperations"></a>
-## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L42-L44>)
+## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L48-L50>)
 
 VerificationOperations represents local digest verification capability.
 
@@ -1243,7 +1317,7 @@ type VerificationOperations interface {
 ```
 
 <a name="VerificationQuery"></a>
-## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L53-L55>)
+## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L55-L57>)
 
 VerificationQuery captures current hash verification dimensions.
 
@@ -1515,13 +1589,20 @@ import "github.com/chuxorg/yanzi/internal/storage/sqlite"
 ## Index
 
 - [type Provider](<#Provider>)
+  - [func FromDB\(db \*sql.DB\) \*Provider](<#FromDB>)
   - [func Open\(ctx context.Context, path string, migrations fs.FS\) \(\*Provider, bool, error\)](<#Open>)
   - [func \(p \*Provider\) Artifacts\(\) bool](<#Provider.Artifacts>)
   - [func \(p \*Provider\) Checkpoints\(\) bool](<#Provider.Checkpoints>)
   - [func \(p \*Provider\) Close\(\) error](<#Provider.Close>)
+  - [func \(p \*Provider\) CreateCheckpoint\(ctx context.Context, input storage.CreateCheckpointInput\) \(storage.Checkpoint, error\)](<#Provider.CreateCheckpoint>)
+  - [func \(p \*Provider\) CreateProject\(ctx context.Context, input storage.CreateProjectInput\) \(storage.Project, error\)](<#Provider.CreateProject>)
   - [func \(p \*Provider\) Health\(ctx context.Context\) storage.Health](<#Provider.Health>)
   - [func \(p \*Provider\) ImportExport\(\) bool](<#Provider.ImportExport>)
+  - [func \(p \*Provider\) ListAllCheckpoints\(ctx context.Context\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListAllCheckpoints>)
+  - [func \(p \*Provider\) ListCheckpoints\(ctx context.Context, project string\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListCheckpoints>)
+  - [func \(p \*Provider\) ListProjects\(ctx context.Context\) \(\[\]storage.Project, error\)](<#Provider.ListProjects>)
   - [func \(p \*Provider\) Name\(\) storage.ProviderName](<#Provider.Name>)
+  - [func \(p \*Provider\) ProjectExists\(ctx context.Context, name string\) \(bool, error\)](<#Provider.ProjectExists>)
   - [func \(p \*Provider\) Projects\(\) bool](<#Provider.Projects>)
   - [func \(p \*Provider\) SQLDB\(\) \*sql.DB](<#Provider.SQLDB>)
   - [func \(p \*Provider\) Verification\(\) bool](<#Provider.Verification>)
@@ -1537,6 +1618,15 @@ type Provider struct {
     // contains filtered or unexported fields
 }
 ```
+
+<a name="FromDB"></a>
+### func [FromDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L249>)
+
+```go
+func FromDB(db *sql.DB) *Provider
+```
+
+FromDB wraps an existing SQLite handle with provider operations.
 
 <a name="Open"></a>
 ### func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L40>)
@@ -1574,6 +1664,24 @@ func (p *Provider) Close() error
 
 Close closes the provider handle.
 
+<a name="Provider.CreateCheckpoint"></a>
+### func \(\*Provider\) [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L19>)
+
+```go
+func (p *Provider) CreateCheckpoint(ctx context.Context, input storage.CreateCheckpointInput) (storage.Checkpoint, error)
+```
+
+CreateCheckpoint creates a checkpoint using current SQLite checkpoint semantics.
+
+<a name="Provider.CreateProject"></a>
+### func \(\*Provider\) [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L17>)
+
+```go
+func (p *Provider) CreateProject(ctx context.Context, input storage.CreateProjectInput) (storage.Project, error)
+```
+
+CreateProject creates a project using current SQLite project semantics.
+
 <a name="Provider.Health"></a>
 ### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L97>)
 
@@ -1592,6 +1700,33 @@ func (p *Provider) ImportExport() bool
 
 
 
+<a name="Provider.ListAllCheckpoints"></a>
+### func \(\*Provider\) [ListAllCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L112>)
+
+```go
+func (p *Provider) ListAllCheckpoints(ctx context.Context) ([]storage.Checkpoint, error)
+```
+
+ListAllCheckpoints returns all checkpoints using current CLI all\-project ordering.
+
+<a name="Provider.ListCheckpoints"></a>
+### func \(\*Provider\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L88>)
+
+```go
+func (p *Provider) ListCheckpoints(ctx context.Context, project string) ([]storage.Checkpoint, error)
+```
+
+ListCheckpoints returns project checkpoints ordered newest first.
+
+<a name="Provider.ListProjects"></a>
+### func \(\*Provider\) [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L56>)
+
+```go
+func (p *Provider) ListProjects(ctx context.Context) ([]storage.Project, error)
+```
+
+ListProjects returns projects ordered by creation time, oldest first.
+
 <a name="Provider.Name"></a>
 ### func \(\*Provider\) [Name](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L76>)
 
@@ -1600,6 +1735,15 @@ func (p *Provider) Name() storage.ProviderName
 ```
 
 Name returns the provider identifier.
+
+<a name="Provider.ProjectExists"></a>
+### func \(\*Provider\) [ProjectExists](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L90>)
+
+```go
+func (p *Provider) ProjectExists(ctx context.Context, name string) (bool, error)
+```
+
+ProjectExists checks whether a project row exists for the provided name.
 
 <a name="Provider.Projects"></a>
 ### func \(\*Provider\) [Projects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L112>)
