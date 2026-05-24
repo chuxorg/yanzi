@@ -694,7 +694,7 @@ func HashCheckpoint(checkpoint Checkpoint) (string, error)
 HashCheckpoint computes a deterministic SHA\-256 hash for a Checkpoint. The hash preimage excludes the hash field and uses canonical field order.
 
 <a name="InitDB"></a>
-## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L59>)
+## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L47>)
 
 ```go
 func InitDB() (*sql.DB, error)
@@ -703,7 +703,7 @@ func InitDB() (*sql.DB, error)
 InitDB resolves the database path, ensures migrations, and returns a SQLite handle.
 
 <a name="InitDBAtPath"></a>
-## func [InitDBAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L69>)
+## func [InitDBAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L57>)
 
 ```go
 func InitDBAtPath(path string) (*sql.DB, error)
@@ -712,7 +712,7 @@ func InitDBAtPath(path string) (*sql.DB, error)
 InitDBAtPath ensures migrations and returns a SQLite handle for the provided path.
 
 <a name="Initialize"></a>
-## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L40>)
+## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L28>)
 
 ```go
 func Initialize() (bool, error)
@@ -730,7 +730,7 @@ func MigrationsFS() fs.FS
 MigrationsFS exposes embedded migration files for libraryd.
 
 <a name="ResolvedDBPath"></a>
-## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L80>)
+## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L68>)
 
 ```go
 func ResolvedDBPath() string
@@ -1038,6 +1038,231 @@ func RehydrateProjectWithFallback(project string, fallbackLimit int) (*Rehydrate
 
 RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
 
+# storage
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage"
+```
+
+## Index
+
+- [Variables](<#variables>)
+- [type ArtifactOperations](<#ArtifactOperations>)
+- [type ArtifactQuery](<#ArtifactQuery>)
+- [type CheckpointOperations](<#CheckpointOperations>)
+- [type CheckpointQuery](<#CheckpointQuery>)
+- [type ExportQuery](<#ExportQuery>)
+- [type Health](<#Health>)
+- [type HealthStatus](<#HealthStatus>)
+- [type ImportExportOperations](<#ImportExportOperations>)
+- [type ProjectOperations](<#ProjectOperations>)
+- [type ProjectQuery](<#ProjectQuery>)
+- [type Provider](<#Provider>)
+- [type ProviderName](<#ProviderName>)
+- [type VerificationOperations](<#VerificationOperations>)
+- [type VerificationQuery](<#VerificationQuery>)
+
+
+## Variables
+
+<a name="ErrProviderUnavailable"></a>
+
+```go
+var (
+    // ErrProviderUnavailable indicates that a provider cannot service requests.
+    ErrProviderUnavailable = errors.New("storage provider unavailable")
+    // ErrUnsupportedProvider indicates that provider selection requested an implementation not present in this build.
+    ErrUnsupportedProvider = errors.New("unsupported storage provider")
+)
+```
+
+<a name="ArtifactOperations"></a>
+## type [ArtifactOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L27-L29>)
+
+ArtifactOperations represents artifact persistence and retrieval capability.
+
+```go
+type ArtifactOperations interface {
+    Artifacts() bool
+}
+```
+
+<a name="ArtifactQuery"></a>
+## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L28-L33>)
+
+ArtifactQuery captures the current artifact list dimensions.
+
+```go
+type ArtifactQuery struct {
+    Project        string
+    Class          string
+    Type           string
+    IncludeDeleted bool
+}
+```
+
+<a name="CheckpointOperations"></a>
+## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L37-L39>)
+
+CheckpointOperations represents checkpoint persistence and retrieval capability.
+
+```go
+type CheckpointOperations interface {
+    Checkpoints() bool
+}
+```
+
+<a name="CheckpointQuery"></a>
+## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L41-L43>)
+
+CheckpointQuery captures current checkpoint list dimensions.
+
+```go
+type CheckpointQuery struct {
+    Project string
+}
+```
+
+<a name="ExportQuery"></a>
+## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L46-L50>)
+
+ExportQuery captures current deterministic local export dimensions.
+
+```go
+type ExportQuery struct {
+    Project        string
+    MetaFilters    map[string]string
+    IncludeDeleted bool
+}
+```
+
+<a name="Health"></a>
+## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L20-L25>)
+
+Health describes the internal provider health state.
+
+```go
+type Health struct {
+    Provider ProviderName
+    Status   HealthStatus
+    Path     string
+    Error    string
+}
+```
+
+<a name="HealthStatus"></a>
+## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L12>)
+
+HealthStatus reports internal provider readiness without exposing a CLI surface.
+
+```go
+type HealthStatus string
+```
+
+<a name="HealthReady"></a>
+
+```go
+const (
+    HealthReady       HealthStatus = "ready"
+    HealthUnavailable HealthStatus = "unavailable"
+)
+```
+
+<a name="ImportExportOperations"></a>
+## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L47-L49>)
+
+ImportExportOperations represents deterministic local import/export capability.
+
+```go
+type ImportExportOperations interface {
+    ImportExport() bool
+}
+```
+
+<a name="ProjectOperations"></a>
+## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L32-L34>)
+
+ProjectOperations represents project persistence and retrieval capability.
+
+```go
+type ProjectOperations interface {
+    Projects() bool
+}
+```
+
+<a name="ProjectQuery"></a>
+## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L36-L38>)
+
+ProjectQuery captures current project lookup dimensions.
+
+```go
+type ProjectQuery struct {
+    Name string
+}
+```
+
+<a name="Provider"></a>
+## type [Provider](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L13-L24>)
+
+Provider is the current internal storage boundary.
+
+The SQLDB method intentionally preserves existing SQLite\-backed call sites for CAP\-001 Phase 1. Future phases can move operations behind narrower methods without changing CLI contracts.
+
+```go
+type Provider interface {
+    ArtifactOperations
+    ProjectOperations
+    CheckpointOperations
+    VerificationOperations
+    ImportExportOperations
+
+    Name() ProviderName
+    Health(context.Context) Health
+    SQLDB() *sql.DB
+    Close() error
+}
+```
+
+<a name="ProviderName"></a>
+## type [ProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L4>)
+
+ProviderName identifies a storage provider implementation.
+
+```go
+type ProviderName string
+```
+
+<a name="ProviderSQLite"></a>
+
+```go
+const (
+    // ProviderSQLite is the embedded local SQLite provider.
+    ProviderSQLite ProviderName = "sqlite"
+)
+```
+
+<a name="VerificationOperations"></a>
+## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L42-L44>)
+
+VerificationOperations represents local digest verification capability.
+
+```go
+type VerificationOperations interface {
+    Verification() bool
+}
+```
+
+<a name="VerificationQuery"></a>
+## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L53-L55>)
+
+VerificationQuery captures current hash verification dimensions.
+
+```go
+type VerificationQuery struct {
+    ID string
+}
+```
+
 # hash
 
 ```go
@@ -1223,6 +1448,192 @@ func (s *Store) ListIntents(ctx context.Context, limit int) ([]model.IntentRecor
 
 ```go
 func (s *Store) Migrate(ctx context.Context) error
+```
+
+
+
+# registry
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage/registry"
+```
+
+## Index
+
+- [func EnsureLocalStateDir\(\) error](<#EnsureLocalStateDir>)
+- [func Open\(ctx context.Context, cfg config.Config, opts Options\) \(storage.Provider, error\)](<#Open>)
+- [func OpenAtPath\(ctx context.Context, path string, opts Options\) \(storage.Provider, bool, error\)](<#OpenAtPath>)
+- [func ValidateProviderName\(name string\) error](<#ValidateProviderName>)
+- [type Options](<#Options>)
+
+
+<a name="EnsureLocalStateDir"></a>
+## func [EnsureLocalStateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L42>)
+
+```go
+func EnsureLocalStateDir() error
+```
+
+EnsureLocalStateDir preserves existing local SQLite directory creation.
+
+<a name="Open"></a>
+## func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L24>)
+
+```go
+func Open(ctx context.Context, cfg config.Config, opts Options) (storage.Provider, error)
+```
+
+Open returns the configured storage provider.
+
+CAP\-001 Phase 1 supports SQLite only and preserves existing local db\_path resolution. No provider config key is active yet.
+
+<a name="OpenAtPath"></a>
+## func [OpenAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L37>)
+
+```go
+func OpenAtPath(ctx context.Context, path string, opts Options) (storage.Provider, bool, error)
+```
+
+OpenAtPath returns the SQLite provider at a specific path.
+
+<a name="ValidateProviderName"></a>
+## func [ValidateProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L54>)
+
+```go
+func ValidateProviderName(name string) error
+```
+
+ValidateProviderName rejects future provider names until implementations exist.
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L16-L18>)
+
+Options contains provider construction inputs that are not user\-facing config.
+
+```go
+type Options struct {
+    Migrations fs.FS
+}
+```
+
+# sqlite
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage/sqlite"
+```
+
+## Index
+
+- [type Provider](<#Provider>)
+  - [func Open\(ctx context.Context, path string, migrations fs.FS\) \(\*Provider, bool, error\)](<#Open>)
+  - [func \(p \*Provider\) Artifacts\(\) bool](<#Provider.Artifacts>)
+  - [func \(p \*Provider\) Checkpoints\(\) bool](<#Provider.Checkpoints>)
+  - [func \(p \*Provider\) Close\(\) error](<#Provider.Close>)
+  - [func \(p \*Provider\) Health\(ctx context.Context\) storage.Health](<#Provider.Health>)
+  - [func \(p \*Provider\) ImportExport\(\) bool](<#Provider.ImportExport>)
+  - [func \(p \*Provider\) Name\(\) storage.ProviderName](<#Provider.Name>)
+  - [func \(p \*Provider\) Projects\(\) bool](<#Provider.Projects>)
+  - [func \(p \*Provider\) SQLDB\(\) \*sql.DB](<#Provider.SQLDB>)
+  - [func \(p \*Provider\) Verification\(\) bool](<#Provider.Verification>)
+
+
+<a name="Provider"></a>
+## type [Provider](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L34-L37>)
+
+Provider is the embedded SQLite storage provider.
+
+```go
+type Provider struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="Open"></a>
+### func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L40>)
+
+```go
+func Open(ctx context.Context, path string, migrations fs.FS) (*Provider, bool, error)
+```
+
+Open initializes a SQLite provider at path using the provided migration files.
+
+<a name="Provider.Artifacts"></a>
+### func \(\*Provider\) [Artifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L111>)
+
+```go
+func (p *Provider) Artifacts() bool
+```
+
+
+
+<a name="Provider.Checkpoints"></a>
+### func \(\*Provider\) [Checkpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L113>)
+
+```go
+func (p *Provider) Checkpoints() bool
+```
+
+
+
+<a name="Provider.Close"></a>
+### func \(\*Provider\) [Close](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L89>)
+
+```go
+func (p *Provider) Close() error
+```
+
+Close closes the provider handle.
+
+<a name="Provider.Health"></a>
+### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L97>)
+
+```go
+func (p *Provider) Health(ctx context.Context) storage.Health
+```
+
+Health reports internal readiness for the provider.
+
+<a name="Provider.ImportExport"></a>
+### func \(\*Provider\) [ImportExport](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L115>)
+
+```go
+func (p *Provider) ImportExport() bool
+```
+
+
+
+<a name="Provider.Name"></a>
+### func \(\*Provider\) [Name](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L76>)
+
+```go
+func (p *Provider) Name() storage.ProviderName
+```
+
+Name returns the provider identifier.
+
+<a name="Provider.Projects"></a>
+### func \(\*Provider\) [Projects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L112>)
+
+```go
+func (p *Provider) Projects() bool
+```
+
+
+
+<a name="Provider.SQLDB"></a>
+### func \(\*Provider\) [SQLDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L81>)
+
+```go
+func (p *Provider) SQLDB() *sql.DB
+```
+
+SQLDB exposes the current SQLite handle for existing local call sites.
+
+<a name="Provider.Verification"></a>
+### func \(\*Provider\) [Verification](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L114>)
+
+```go
+func (p *Provider) Verification() bool
 ```
 
 
