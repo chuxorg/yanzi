@@ -1,6 +1,9 @@
 package storage
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // ProviderName identifies a storage provider implementation.
 type ProviderName string
@@ -75,6 +78,62 @@ type ExportQuery struct {
 // VerificationQuery captures current hash verification dimensions.
 type VerificationQuery struct {
 	ID string
+}
+
+// ExportItemKind identifies the current export timeline item category.
+type ExportItemKind string
+
+const (
+	// ExportItemCheckpoint is a checkpoint boundary in a deterministic export.
+	ExportItemCheckpoint ExportItemKind = "checkpoint"
+	// ExportItemCapture is a captured prompt/response record in a deterministic export.
+	ExportItemCapture ExportItemKind = "capture"
+	// ExportItemMeta is a current meta-command/event record in a deterministic export.
+	ExportItemMeta ExportItemKind = "meta"
+)
+
+// IntentRecord is the provider-level form of the current intent record used by verification reads.
+type IntentRecord struct {
+	ID         string
+	CreatedAt  string
+	Author     string
+	SourceType string
+	Title      string
+	Prompt     string
+	Response   string
+	Meta       json.RawMessage
+	PrevHash   string
+	Hash       string
+}
+
+// ExportCapture is the provider-level capture payload used by current export renderers.
+type ExportCapture struct {
+	ID        string
+	CreatedAt string
+	Author    string
+	Source    string
+	Title     string
+	Hash      string
+	Prompt    string
+	Response  string
+	Metadata  map[string]string
+}
+
+// ExportMeta is the provider-level meta event payload used by current export renderers.
+type ExportMeta struct {
+	CreatedAt string
+	Command   string
+	Value     string
+}
+
+// ExportItem is the provider-level event used by current deterministic exports.
+type ExportItem struct {
+	Kind       ExportItemKind
+	Timestamp  string
+	RowID      int64
+	Capture    ExportCapture
+	Checkpoint Checkpoint
+	Meta       ExportMeta
 }
 
 // CreateArtifactInput captures current artifact creation inputs.
