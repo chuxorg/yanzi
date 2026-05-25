@@ -22,18 +22,18 @@ No Postgres, object storage, runtime-hosted, REST-backed, MCP-backed, federation
 
 The provider boundary is internal to the Go codebase. It is not a user-facing API.
 
-The current Phase 1 provider contract exposes:
+The current provider contract exposes:
 
 - provider identity
 - provider health
 - artifact capability and, as of CAP-001 Phase 2B, current artifact operations
 - project capability
 - checkpoint capability
-- verification capability
-- import/export capability
+- verification capability and, as of CAP-001 Phase 2C, current verification read operations
+- import/export capability and, as of CAP-001 Phase 2C, current export read operations
 - current SQLite database handle for backward-compatible call sites
 
-The database handle is intentionally retained during Phase 1 to avoid broad persistence rewrites. Future phases may move individual operations behind narrower provider methods after compatibility coverage is in place.
+The database handle is intentionally retained while remaining call sites are migrated incrementally. Future phases may move individual operations behind narrower provider methods after compatibility coverage is in place.
 
 ## Required Current Capabilities
 
@@ -65,14 +65,17 @@ A provider conforming to the current Yanzi behavior must preserve the following 
 ### Verification
 
 - retrieve stored intent records for digest verification
+- retrieve stored intent records by hash for chain traversal
 - preserve hash preimage compatibility
 - preserve verification result semantics
 
 ### Import and Export
 
 - preserve existing deterministic export inputs and ordering
+- preserve checkpoint boundary export behavior
 - preserve artifact directory export behavior
 - preserve metadata filtering behavior
+- preserve tombstone visibility behavior
 - avoid changing generated export formats
 
 ### Health
@@ -186,6 +189,32 @@ SQLite remains the only provider. No config keys, schemas, migrations, command o
 
 Preserved compatibility detail: normal artifact and context lists hide deleted artifacts, while current context show resolution still includes deleted context artifacts when resolving a visible full ID or unique prefix.
 
+## CAP-001 Phase 2C Implementation Status
+
+Export and verification read paths are now routed through the SQLite provider.
+
+Migrated operation groups:
+
+- export timeline capture reads
+- export checkpoint boundary reads
+- export metadata filter reads
+- export deleted/tombstone visibility reads
+- verification lookup by intent ID
+- chain traversal lookup by previous hash
+
+Operation groups intentionally left outside provider migration in this phase:
+
+- capture intent write paths
+- list/show generic intent read paths
+- rehydration query operations
+- tombstone command mutation logic
+- export rendering logic
+- artifact directory rendering logic
+
+SQLite remains the only provider. No config keys, schemas, migrations, command outputs, export formats, verification behavior, chain behavior, rehydration behavior, or user workflows changed.
+
+Preserved compatibility detail: metadata-filtered exports continue to omit checkpoint boundaries and meta-command events. Normal exports continue to include meta-command events. Verification and chain traversal continue to use the existing intent hash preimage and `prev_hash` lookup behavior.
+
 ## Implementation Notes
 
 The current implementation lives in:
@@ -196,6 +225,8 @@ The current implementation lives in:
 - `internal/storage/registry/registry.go`
 - `internal/storage/sqlite/provider.go`
 - `internal/storage/sqlite/artifact.go`
+- `internal/storage/sqlite/export.go`
+- `internal/storage/sqlite/verification.go`
 
 The existing library database entry points remain available and backward compatible:
 
