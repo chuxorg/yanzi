@@ -56,4 +56,5 @@ type VerificationOperations interface {
 // ImportExportOperations represents deterministic local import/export capability.
 type ImportExportOperations interface {
 	ImportExport() bool
+	ListExportItems(context.Context, ExportQuery) ([]ExportItem, int, error)
 }

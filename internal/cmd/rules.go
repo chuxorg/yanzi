@@ -191,13 +191,15 @@ func runRulesComposeExport(cliVersion, formatValue, scopeFilter, profileFilter s
 		return errors.New("export is only available in local mode")
 	}
 
-	db, err := openLocalDB(cfg)
+	provider, err := openLocalProvider(cfg)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		_ = provider.Close()
+	}()
 
-	items, _, err := loadExportItems(context.Background(), db, project, map[string]string{
+	items, _, err := loadExportItems(context.Background(), provider, project, map[string]string{
 		"type":    "context",
 		"subtype": "rules",
 	}, includeDeleted)

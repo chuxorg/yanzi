@@ -15,6 +15,8 @@ import (
 	"github.com/chuxorg/yanzi/internal/core/model"
 	"github.com/chuxorg/yanzi/internal/core/store"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/storage"
+	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
 
 func openLocalDB(cfg config.Config) (*sql.DB, error) {
@@ -23,6 +25,10 @@ func openLocalDB(cfg config.Config) (*sql.DB, error) {
 		return nil, err
 	}
 	return yanzilibrary.InitDBAtPath(path)
+}
+
+func openLocalProvider(cfg config.Config) (storage.Provider, error) {
+	return registry.Open(context.Background(), cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 }
 
 func buildLocalIntent(req createIntentInput) (model.IntentRecord, error) {
