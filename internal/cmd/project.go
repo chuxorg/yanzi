@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -60,13 +58,7 @@ func runProjectCreate(args []string) error {
 
 	switch cfg.Mode {
 	case config.ModeLocal:
-		db, err := openLocalDB(cfg)
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		project, err := createProjectLocal(context.Background(), db, name)
+		project, err := yanzilibrary.CreateProject(name, "")
 		if err != nil {
 			return err
 		}
@@ -97,13 +89,7 @@ func runProjectList(args []string) error {
 
 	switch cfg.Mode {
 	case config.ModeLocal:
-		db, err := openLocalDB(cfg)
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		projects, err := listProjectsLocal(context.Background(), db)
+		projects, err := yanzilibrary.ListProjects()
 		if err != nil {
 			return err
 		}
@@ -133,13 +119,7 @@ func runProjectUse(args []string) error {
 
 	switch cfg.Mode {
 	case config.ModeLocal:
-		db, err := openLocalDB(cfg)
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		projects, err := listProjectsLocal(context.Background(), db)
+		projects, err := yanzilibrary.ListProjects()
 		if err != nil {
 			return err
 		}
@@ -190,83 +170,14 @@ func projectUsageError() error {
 	return errors.New("usage: yanzi project <create|list|use|current>")
 }
 
-func createProjectLocal(ctx context.Context, db *sql.DB, name string) (yanzilibrary.Project, error) {
-	name = strings.TrimSpace(name)
-	if name == "" {
-		return yanzilibrary.Project{}, errors.New("project name is required")
-	}
-
-	var count int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(1) FROM projects WHERE name = ?`, name).Scan(&count); err != nil {
-		return yanzilibrary.Project{}, err
-	}
-	if count > 0 {
-		return yanzilibrary.Project{}, fmt.Errorf("project already exists: %s", name)
-	}
-
-	createdAt := time.Now().UTC()
-	createdAtText := createdAt.Format(time.RFC3339Nano)
-	description := ""
-	hash := hashProjectRecord(name, description, createdAtText)
-	if _, err := db.ExecContext(
-		ctx,
-		`INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES (?, ?, ?, ?, ?)`,
-		name,
-		description,
-		createdAtText,
-		nil,
-		hash,
-	); err != nil {
-		if isProjectUniqueViolation(err) {
-			return yanzilibrary.Project{}, fmt.Errorf("project already exists: %s", name)
-		}
-		return yanzilibrary.Project{}, err
-	}
-	return yanzilibrary.Project{
-		Name:        name,
-		Description: description,
-		CreatedAt:   createdAt,
-	}, nil
-}
-
-func listProjectsLocal(ctx context.Context, db *sql.DB) ([]yanzilibrary.Project, error) {
-	rows, err := db.QueryContext(ctx, `SELECT name, description, created_at FROM projects ORDER BY created_at ASC, name ASC`)
+func createProjectLocal(_ context.Context, _ *sql.DB, name string) (yanzilibrary.Project, error) {
+	project, err := yanzilibrary.CreateProject(name, "")
 	if err != nil {
-		return nil, err
+		return yanzilibrary.Project{}, err
 	}
-	defer rows.Close()
-
-	projects := make([]yanzilibrary.Project, 0)
-	for rows.Next() {
-		var project yanzilibrary.Project
-		var description sql.NullString
-		var createdAtText string
-		if err := rows.Scan(&project.Name, &description, &createdAtText); err != nil {
-			return nil, err
-		}
-		if description.Valid {
-			project.Description = description.String
-		}
-		project.CreatedAt, err = time.Parse(time.RFC3339Nano, createdAtText)
-		if err != nil {
-			return nil, fmt.Errorf("parse project created_at for %s: %w", project.Name, err)
-		}
-		projects = append(projects, project)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return projects, nil
+	return *project, nil
 }
 
-func hashProjectRecord(name, description, createdAt string) string {
-	sum := sha256.Sum256([]byte(name + "\n" + description + "\n" + createdAt))
-	return hex.EncodeToString(sum[:])
-}
-
-func isProjectUniqueViolation(err error) bool {
-	if err == nil {
-		return false
-	}
-	return strings.Contains(strings.ToLower(err.Error()), "unique")
+func listProjectsLocal(_ context.Context, _ *sql.DB) ([]yanzilibrary.Project, error) {
+	return yanzilibrary.ListProjects()
 }

@@ -138,6 +138,28 @@ CAP-001 Phase 1 must preserve:
 - existing verification behavior
 - existing data upgrade without manual migration
 
+## CAP-001 Phase 2A Implementation Status
+
+Project and checkpoint operations are now routed through the SQLite provider.
+
+Migrated operation groups:
+
+- project creation
+- project listing
+- project existence checks used by current storage paths
+- checkpoint creation
+- project-scoped checkpoint listing
+- all-project checkpoint listing
+
+Unmigrated operation groups remain intentionally outside provider methods in this phase:
+
+- capture and artifact operations
+- export operations
+- verification operations
+- rehydration query operations
+
+SQLite remains the only provider. No config keys, schemas, migrations, command outputs, or user workflows changed.
+
 ## Implementation Notes
 
 The current implementation lives in:

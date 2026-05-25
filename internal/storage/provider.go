@@ -31,11 +31,17 @@ type ArtifactOperations interface {
 // ProjectOperations represents project persistence and retrieval capability.
 type ProjectOperations interface {
 	Projects() bool
+	CreateProject(context.Context, CreateProjectInput) (Project, error)
+	ListProjects(context.Context) ([]Project, error)
+	ProjectExists(context.Context, string) (bool, error)
 }
 
 // CheckpointOperations represents checkpoint persistence and retrieval capability.
 type CheckpointOperations interface {
 	Checkpoints() bool
+	CreateCheckpoint(context.Context, CreateCheckpointInput) (Checkpoint, error)
+	ListCheckpoints(context.Context, string) ([]Checkpoint, error)
+	ListAllCheckpoints(context.Context) ([]Checkpoint, error)
 }
 
 // VerificationOperations represents local digest verification capability.

@@ -102,3 +102,13 @@ func createLegacyDatabase(t *testing.T, path string) {
 		}
 	}
 }
+
+func openTestProvider(t *testing.T) *sqlite.Provider {
+	t.Helper()
+	provider, _, err := sqlite.Open(context.Background(), filepath.Join(t.TempDir(), "yanzi.db"), yanzilibrary.MigrationsFS())
+	if err != nil {
+		t.Fatalf("Open provider: %v", err)
+	}
+	t.Cleanup(func() { _ = provider.Close() })
+	return provider
+}
