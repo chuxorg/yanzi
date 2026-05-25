@@ -17,7 +17,7 @@ func CreateProject(name string, description string) (*Project, error) {
 		return nil, errors.New("project name is required")
 	}
 
-	provider, err := openProjectProvider()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func CreateProject(name string, description string) (*Project, error) {
 
 // ListProjects returns all projects ordered by creation time, oldest first.
 func ListProjects() ([]Project, error) {
-	provider, err := openProjectProvider()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func ListProjects() ([]Project, error) {
 	return projects, nil
 }
 
-func openProjectProvider() (storage.Provider, error) {
+func openStorageProvider() (storage.Provider, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err

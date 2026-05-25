@@ -26,6 +26,10 @@ type Provider interface {
 // ArtifactOperations represents artifact persistence and retrieval capability.
 type ArtifactOperations interface {
 	Artifacts() bool
+	CreateArtifact(context.Context, CreateArtifactInput) (Artifact, error)
+	ListArtifacts(context.Context, ArtifactQuery) ([]Artifact, error)
+	ListVisibleContextArtifacts(context.Context, ContextArtifactQuery) ([]Artifact, error)
+	GetVisibleContextArtifact(context.Context, string, string) (Artifact, error)
 }
 
 // ProjectOperations represents project persistence and retrieval capability.

@@ -26,7 +26,7 @@ The current Phase 1 provider contract exposes:
 
 - provider identity
 - provider health
-- artifact capability
+- artifact capability and, as of CAP-001 Phase 2B, current artifact operations
 - project capability
 - checkpoint capability
 - verification capability
@@ -160,6 +160,32 @@ Unmigrated operation groups remain intentionally outside provider methods in thi
 
 SQLite remains the only provider. No config keys, schemas, migrations, command outputs, or user workflows changed.
 
+## CAP-001 Phase 2B Implementation Status
+
+Artifact operations are now routed through the SQLite provider.
+
+Migrated operation groups:
+
+- intent artifact creation
+- context artifact creation
+- project-scoped artifact listing
+- all-project artifact listing
+- visible context artifact listing
+- visible context artifact lookup by full ID or unique prefix
+- existing deleted/tombstone artifact visibility behavior used by artifact lists and context show resolution
+
+Operation groups intentionally left outside provider migration in this phase:
+
+- export operations
+- verification operations
+- rehydration query operations
+- capture intent storage paths that are not artifact-specific
+- tombstone command mutation logic beyond preserving artifact visibility semantics
+
+SQLite remains the only provider. No config keys, schemas, migrations, command outputs, export formats, verification behavior, rehydration behavior, or user workflows changed.
+
+Preserved compatibility detail: normal artifact and context lists hide deleted artifacts, while current context show resolution still includes deleted context artifacts when resolving a visible full ID or unique prefix.
+
 ## Implementation Notes
 
 The current implementation lives in:
@@ -169,6 +195,7 @@ The current implementation lives in:
 - `internal/storage/errors.go`
 - `internal/storage/registry/registry.go`
 - `internal/storage/sqlite/provider.go`
+- `internal/storage/sqlite/artifact.go`
 
 The existing library database entry points remain available and backward compatible:
 
