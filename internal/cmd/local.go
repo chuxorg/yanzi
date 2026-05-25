@@ -101,16 +101,16 @@ func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecor
 	return err
 }
 
-func verifyLocalIntent(ctx context.Context, db *sql.DB, id string) (verifyResult, error) {
-	record, err := dbGetIntent(ctx, db, id)
+func verifyLocalIntent(ctx context.Context, provider storage.Provider, id string) (verifyResult, error) {
+	record, err := provider.GetVerificationIntent(ctx, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, storage.ErrNotFound) {
 			return verifyResult{}, fmt.Errorf("intent not found: %s", id)
 		}
 		return verifyResult{}, err
 	}
 
-	computed, err := hash.HashIntent(record)
+	computed, err := hash.HashIntent(modelIntentFromStorage(record))
 	result := verifyResult{
 		ID:           record.ID,
 		StoredHash:   record.Hash,
@@ -125,28 +125,29 @@ func verifyLocalIntent(ctx context.Context, db *sql.DB, id string) (verifyResult
 	return result, nil
 }
 
-func chainLocalIntent(ctx context.Context, db *sql.DB, id string) (chainResult, error) {
-	head, err := dbGetIntent(ctx, db, id)
+func chainLocalIntent(ctx context.Context, provider storage.Provider, id string) (chainResult, error) {
+	head, err := provider.GetVerificationIntent(ctx, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, storage.ErrNotFound) {
 			return chainResult{}, fmt.Errorf("intent not found: %s", id)
 		}
 		return chainResult{}, err
 	}
 
-	intents := []model.IntentRecord{head}
+	headIntent := modelIntentFromStorage(head)
+	intents := []model.IntentRecord{headIntent}
 	current := head
 	var missing []string
 	for current.PrevHash != "" {
-		prev, err := dbGetIntentByHash(ctx, db, current.PrevHash)
+		prev, err := provider.GetVerificationIntentByHash(ctx, current.PrevHash)
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
+			if errors.Is(err, storage.ErrNotFound) {
 				missing = append(missing, current.PrevHash)
 				break
 			}
 			return chainResult{}, err
 		}
-		intents = append(intents, prev)
+		intents = append(intents, modelIntentFromStorage(prev))
 		current = prev
 	}
 
@@ -160,6 +161,21 @@ func chainLocalIntent(ctx context.Context, db *sql.DB, id string) (chainResult, 
 		Intents:      intents,
 		MissingLinks: missing,
 	}, nil
+}
+
+func modelIntentFromStorage(record storage.IntentRecord) model.IntentRecord {
+	return model.IntentRecord{
+		ID:         record.ID,
+		CreatedAt:  record.CreatedAt,
+		Author:     record.Author,
+		SourceType: record.SourceType,
+		Title:      record.Title,
+		Prompt:     record.Prompt,
+		Response:   record.Response,
+		Meta:       record.Meta,
+		PrevHash:   record.PrevHash,
+		Hash:       record.Hash,
+	}
 }
 
 func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) ([]model.IntentRecord, error) {

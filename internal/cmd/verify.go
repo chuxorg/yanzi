@@ -45,13 +45,15 @@ func RunVerify(args []string) error {
 		}
 	case config.ModeLocal:
 		ctx := context.Background()
-		db, err := openLocalDB(cfg)
+		provider, err := openLocalProvider(cfg)
 		if err != nil {
 			return err
 		}
-		defer db.Close()
+		defer func() {
+			_ = provider.Close()
+		}()
 
-		localResp, err := verifyLocalIntent(ctx, db, id)
+		localResp, err := verifyLocalIntent(ctx, provider, id)
 		if err != nil {
 			return err
 		}
