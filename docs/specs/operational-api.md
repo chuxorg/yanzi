@@ -83,9 +83,11 @@ CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a de
 
 CAP-002 Phase 5 narrows the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
 
+CAP-002 Phase 6 exposes the first artifact write endpoint, `POST /v0/artifacts`, for capture creation only. The handler delegates to `ArtifactWriteStore.CreateCapture`, and read-after-write uses `GET /v0/artifacts/{id}` through the read boundary. Mutation, tombstone, export, verification, and rehydration endpoints remain deferred.
+
 ## Implementation Status
 
-Current status: API foundation only.
+Current status: artifact capture endpoint available; broader operational API remains deferred.
 
 Implemented in CAP-002 Phase 1:
 
@@ -112,10 +114,12 @@ Current health/status limitation:
 
 Deferred endpoint work:
 
-- full artifact endpoint implementation
+- artifact list endpoint implementation
+- artifact update/delete/tombstone endpoint implementation
 - project and checkpoint endpoint implementation
-- capture endpoint migration
 - rehydration endpoint work
+- export endpoint work
+- verification endpoint work
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
@@ -123,8 +127,9 @@ Deferred endpoint work:
 
 Current artifact endpoint status:
 
-- `/v0/artifacts` remains a deferred placeholder
-- no public artifact list, show, or create endpoint is exposed yet
+- `GET /v0/artifacts/{id}` is available for capture read-after-write
+- `GET /v0/artifacts` remains deferred
+- no artifact list endpoint is exposed yet
 
 Current internal read status:
 
@@ -143,16 +148,16 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- implement artifact read endpoints only through the read boundary
+- implement artifact list endpoints only through the read boundary
 - implement future write endpoints only through the write boundary
-- keep public capture endpoints, public mutation endpoints, rehydration reads, and public tombstone APIs deferred to later CAP-002 phases
+- keep public mutation endpoints, rehydration reads, and public tombstone APIs deferred to later CAP-002 phases
 
 ## Artifact Write Boundary
 
 Current artifact mutation endpoint status:
 
-- `/v0/artifacts` remains a deferred placeholder
-- no public artifact create, update, patch, delete, capture, or tombstone endpoint is exposed yet
+- `POST /v0/artifacts` creates capture records through the write boundary
+- no artifact update, patch, delete, or tombstone endpoint is exposed yet
 
 Current internal write status:
 
@@ -161,6 +166,7 @@ Current internal write status:
 - library artifact creation delegates through that boundary
 - local `yanzi delete` and `yanzi restore` delegate through that boundary
 - artifact creation inside the boundary uses provider-compatible SQLite artifact writes
+- `POST /v0/artifacts` delegates to `ArtifactWriteStore.CreateCapture`
 
 Preserved current behavior and quirks:
 
@@ -171,10 +177,50 @@ Preserved current behavior and quirks:
 - tombstone still writes deletion metadata to `metadata` for normal captures and to `meta` for `source_type = artifact` rows
 - restore still removes deletion metadata from the same column selected by tombstone behavior
 
+## Artifact Capture Endpoint
+
+Implemented in CAP-002 Phase 6:
+
+- `POST /v0/artifacts`
+- `GET /v0/artifacts/{id}`
+
+`POST /v0/artifacts` request fields:
+
+- `author` required
+- `source_type` optional, default `cli`
+- `title` optional
+- `prompt` required
+- `response` required
+- `metadata` optional string map
+- `project` optional project association stored in capture metadata before hashing
+- `prev_hash` optional lineage link
+
+`POST /v0/artifacts` response fields:
+
+- `id`
+- `created_at`
+- `author`
+- `source_type`
+- `title` when supplied
+- `prompt`
+- `response`
+- `metadata` when present
+- `prev_hash` when supplied
+- `hash`
+
+Endpoint behavior:
+
+- writes are routed through `ArtifactWriteStore.CreateCapture`
+- read-after-write is routed through `ArtifactReadStore.GetIntentRecord`
+- malformed payloads use deterministic API error envelopes
+- collection `GET /v0/artifacts` remains deferred
+- `PUT`, `PATCH`, `DELETE`, and tombstone APIs remain unavailable
+- no daemonization, auth/RBAC, orchestration, federation, MCP, Postgres, export, verification, or rehydration behavior is introduced
+
 Remaining write-side debt:
 
 - capture writes do not yet have a provider contract method
 - tombstone and restore mutations do not yet have provider contract methods
 - direct SQLite writes remain inside `ArtifactWriteStore` for those deferred operations
-- public capture, artifact mutation, and tombstone APIs remain deferred
+- artifact update/delete/tombstone APIs remain deferred
 - future APIs must delegate through `ArtifactWriteStore` or a provider-backed successor rather than reaching into SQLDB directly
