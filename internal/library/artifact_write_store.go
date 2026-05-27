@@ -36,6 +36,7 @@ type CaptureWriteInput struct {
 	Prompt     string
 	Response   string
 	Meta       json.RawMessage
+	Project    string
 	PrevHash   string
 }
 
@@ -155,6 +156,10 @@ func buildCaptureRecord(input CaptureWriteInput) (model.IntentRecord, error) {
 	if err != nil {
 		return model.IntentRecord{}, err
 	}
+	meta, err := captureMetaWithProject(input.Meta, input.Project)
+	if err != nil {
+		return model.IntentRecord{}, err
+	}
 
 	record := model.IntentRecord{
 		ID:         id,
@@ -165,7 +170,7 @@ func buildCaptureRecord(input CaptureWriteInput) (model.IntentRecord, error) {
 		Prompt:     input.Prompt,
 		Response:   input.Response,
 		PrevHash:   input.PrevHash,
-		Meta:       input.Meta,
+		Meta:       meta,
 	}
 	sum, err := hash.HashIntent(record)
 	if err != nil {
@@ -173,6 +178,27 @@ func buildCaptureRecord(input CaptureWriteInput) (model.IntentRecord, error) {
 	}
 	record.Hash = sum
 	return record, nil
+}
+
+func captureMetaWithProject(meta json.RawMessage, project string) (json.RawMessage, error) {
+	project = strings.TrimSpace(project)
+	if project == "" {
+		return meta, nil
+	}
+
+	payload := map[string]string{}
+	if len(meta) > 0 {
+		if err := json.Unmarshal(meta, &payload); err != nil {
+			return nil, fmt.Errorf("decode meta: %w", err)
+		}
+	}
+	payload["project"] = project
+
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("encode meta: %w", err)
+	}
+	return encoded, nil
 }
 
 func newCaptureID() (string, error) {

@@ -19,7 +19,7 @@ const (
 func NewHandler(deps handlers.Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerGet(mux, healthPath, handlers.NewHealthHandler(deps))
-	registerDeferredGroup(mux, artifactsPath, "artifacts")
+	registerArtifacts(mux, handlers.NewArtifactHandler(deps))
 	registerDeferredGroup(mux, projectsPath, "projects")
 	registerDeferredGroup(mux, checkpointsPath, "checkpoints")
 	return mux
@@ -33,4 +33,9 @@ func registerDeferredGroup(mux *http.ServeMux, path, group string) {
 	handler := middleware.AllowMethods(handlers.NewDeferredRouteHandler(group), http.MethodGet)
 	mux.Handle(path, handler)
 	mux.Handle(path+"/", handler)
+}
+
+func registerArtifacts(mux *http.ServeMux, handler http.Handler) {
+	mux.Handle(artifactsPath, handler)
+	mux.Handle(artifactsPath+"/", handler)
 }
