@@ -41,6 +41,19 @@ func TestProviderSatisfiesContractAndReportsHealth(t *testing.T) {
 	if health.Path != path {
 		t.Fatalf("expected health path %q, got %q", path, health.Path)
 	}
+	if health.MigrationState != storage.HealthMigrationApplied {
+		t.Fatalf("expected applied migration health, got %+v", health)
+	}
+	if !health.Writable {
+		t.Fatalf("expected writable health, got %+v", health)
+	}
+	if err := provider.Close(); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	closedHealth := provider.Health(context.Background())
+	if closedHealth.Status != storage.HealthUnavailable {
+		t.Fatalf("expected unavailable health after close, got %+v", closedHealth)
+	}
 }
 
 func TestProviderAppliesArtifactColumnMigrationToExistingDatabase(t *testing.T) {
@@ -73,6 +86,23 @@ func TestProviderAppliesArtifactColumnMigrationToExistingDatabase(t *testing.T) 
 	}
 	if class != "intent" || artifactType != "prompt" || content != "legacy prompt" || metadata != `{"project":"alpha"}` {
 		t.Fatalf("unexpected migrated row: class=%q type=%q content=%q metadata=%q", class, artifactType, content, metadata)
+	}
+}
+
+func TestProviderHealthReportsMissingMigrationState(t *testing.T) {
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "empty.db"))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	provider := sqlite.FromDB(db)
+	health := provider.Health(context.Background())
+	if health.Status != storage.HealthUnavailable {
+		t.Fatalf("expected unavailable health for unmigrated db, got %+v", health)
+	}
+	if health.MigrationState != storage.HealthMigrationMissing {
+		t.Fatalf("expected missing migration state, got %+v", health)
 	}
 }
 

@@ -32,12 +32,23 @@ const (
 	HealthUnavailable HealthStatus = "unavailable"
 )
 
+// HealthMigrationState reports whether the provider sees the current local schema state.
+type HealthMigrationState string
+
+const (
+	HealthMigrationApplied HealthMigrationState = "applied"
+	HealthMigrationMissing HealthMigrationState = "missing"
+	HealthMigrationUnknown HealthMigrationState = "unknown"
+)
+
 // Health describes the internal provider health state.
 type Health struct {
-	Provider ProviderName
-	Status   HealthStatus
-	Path     string
-	Error    string
+	Provider       ProviderName
+	Status         HealthStatus
+	Path           string
+	MigrationState HealthMigrationState
+	Writable       bool
+	Error          string
 }
 
 // ArtifactQuery captures the current artifact list dimensions.

@@ -4,6 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strconv"
 	"testing"
 
@@ -169,6 +172,103 @@ func TestRehydrateProjectFallsBackToRecentProjectIntents(t *testing.T) {
 	}
 }
 
+func TestRehydrateCompatibilityAfterLegacyDatabaseUpgrade(t *testing.T) {
+	home := t.TempDir()
+	dbPath := filepath.Join(home, "state", "legacy.db")
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, dbPath)
+
+	createLegacyRehydrateDatabase(t, dbPath)
+
+	payload, err := RehydrateProject("alpha")
+	if err != nil {
+		t.Fatalf("RehydrateProject upgraded legacy db: %v", err)
+	}
+	if payload.Fallback {
+		t.Fatalf("did not expect fallback after legacy upgrade: %+v", payload)
+	}
+	if payload.LatestCheckpoint == nil || payload.LatestCheckpoint.Summary != "legacy checkpoint" {
+		t.Fatalf("unexpected checkpoint after legacy upgrade: %+v", payload.LatestCheckpoint)
+	}
+	if len(payload.Intents) != 1 || payload.Intents[0].ID != "legacy-after" {
+		t.Fatalf("unexpected post-checkpoint intents after legacy upgrade: %+v", payload.Intents)
+	}
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("open upgraded db: %v", err)
+	}
+	defer db.Close()
+	for _, column := range []string{"class", "type", "content", "metadata"} {
+		var count int
+		if err := db.QueryRow(`SELECT COUNT(1) FROM pragma_table_info('intents') WHERE name = ?`, column).Scan(&count); err != nil {
+			t.Fatalf("check upgraded column %s: %v", column, err)
+		}
+		if count != 1 {
+			t.Fatalf("expected upgraded intents column %s", column)
+		}
+	}
+}
+
+func TestRehydrateCompatibilityRepeatedCheckpointComposition(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := CreateProject("alpha", ""); err != nil {
+		t.Fatalf("CreateProject alpha: %v", err)
+	}
+	seedRehydrateCheckpoint(t, db, "alpha", "2025-01-01T00:00:10Z", "stable checkpoint")
+	seedRehydrateIntent(t, db, rehydrateTestIntent{
+		ID:        "before",
+		CreatedAt: "2025-01-01T00:00:09Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "before prompt",
+		Response:  "before response",
+	})
+	seedRehydrateIntent(t, db, rehydrateTestIntent{
+		ID:        "after-a",
+		CreatedAt: "2025-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "after a",
+		Response:  "response a",
+	})
+	seedRehydrateIntent(t, db, rehydrateTestIntent{
+		ID:        "after-b",
+		CreatedAt: "2025-01-01T00:00:12Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "after b",
+		Response:  "response b",
+	})
+
+	first, err := RehydrateProject("alpha")
+	if err != nil {
+		t.Fatalf("first RehydrateProject: %v", err)
+	}
+	second, err := RehydrateProject("alpha")
+	if err != nil {
+		t.Fatalf("second RehydrateProject: %v", err)
+	}
+	if !reflect.DeepEqual(first, second) {
+		t.Fatalf("repeated rehydration differed: first=%+v second=%+v", first, second)
+	}
+	if len(first.Intents) != 2 || first.Intents[0].ID != "after-a" || first.Intents[1].ID != "after-b" {
+		t.Fatalf("unexpected repeated rehydration composition: %+v", first.Intents)
+	}
+}
+
 type rehydrateTestIntent struct {
 	ID        string
 	CreatedAt string
@@ -279,4 +379,37 @@ func nullIfEmptyString(value string) any {
 
 func rehydrateTestTimestamp(second int) string {
 	return "2025-01-01T00:00:" + strconv.FormatInt(int64(second/10), 10) + strconv.Itoa(second%10) + "Z"
+}
+
+func createLegacyRehydrateDatabase(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		t.Fatalf("create legacy db dir: %v", err)
+	}
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatalf("open legacy db: %v", err)
+	}
+	defer db.Close()
+
+	statements := []string{
+		`CREATE TABLE schema_version (version INTEGER NOT NULL, applied_at TIMESTAMP NOT NULL);`,
+		`INSERT INTO schema_version (version, applied_at) VALUES (1, '2026-01-01T00:00:00Z');`,
+		`CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL);`,
+		`INSERT INTO schema_migrations (version, applied_at) VALUES ('0001_create_intent_table.sql', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO schema_migrations (version, applied_at) VALUES ('0002_create_projects_table.sql', '2026-01-01T00:00:00Z');`,
+		`INSERT INTO schema_migrations (version, applied_at) VALUES ('0003_create_checkpoints_table.sql', '2026-01-01T00:00:00Z');`,
+		`CREATE TABLE intents (id TEXT PRIMARY KEY, created_at TEXT NOT NULL, author TEXT NOT NULL, source_type TEXT NOT NULL, title TEXT, prompt TEXT NOT NULL, response TEXT NOT NULL, meta TEXT, prev_hash TEXT, hash TEXT NOT NULL);`,
+		`CREATE TABLE projects (name TEXT PRIMARY KEY, description TEXT, created_at TEXT NOT NULL, prev_hash TEXT, hash TEXT NOT NULL);`,
+		`CREATE TABLE checkpoints (hash TEXT PRIMARY KEY, project TEXT NOT NULL, summary TEXT NOT NULL, created_at TEXT NOT NULL, artifact_ids TEXT NOT NULL, previous_checkpoint_id TEXT);`,
+		`INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES ('alpha', '', '2025-01-01T00:00:00Z', NULL, 'project-hash');`,
+		`INSERT INTO checkpoints (hash, project, summary, created_at, artifact_ids, previous_checkpoint_id) VALUES ('checkpoint-hash', 'alpha', 'legacy checkpoint', '2025-01-01T00:00:10Z', '[]', NULL);`,
+		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash) VALUES ('legacy-before', '2025-01-01T00:00:09Z', 'Ada', 'cli', 'Before', 'before prompt', 'before response', '{"project":"alpha"}', NULL, 'legacy-before-hash');`,
+		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash) VALUES ('legacy-after', '2025-01-01T00:00:11Z', 'Ada', 'cli', 'After', 'after prompt', 'after response', '{"project":"alpha"}', NULL, 'legacy-after-hash');`,
+	}
+	for _, statement := range statements {
+		if _, err := db.Exec(statement); err != nil {
+			t.Fatalf("exec legacy statement %q: %v", statement, err)
+		}
+	}
 }

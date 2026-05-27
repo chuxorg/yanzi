@@ -90,20 +90,45 @@ func (p *Provider) Close() error {
 	if p == nil || p.db == nil {
 		return nil
 	}
-	return p.db.Close()
+	db := p.db
+	p.db = nil
+	return db.Close()
 }
 
 // Health reports internal readiness for the provider.
 func (p *Provider) Health(ctx context.Context) storage.Health {
-	health := storage.Health{Provider: storage.ProviderSQLite, Path: p.path, Status: storage.HealthReady}
+	health := storage.Health{
+		Provider:       storage.ProviderSQLite,
+		MigrationState: storage.HealthMigrationUnknown,
+		Status:         storage.HealthReady,
+	}
 	if p == nil || p.db == nil {
 		health.Status = storage.HealthUnavailable
 		health.Error = storage.ErrProviderUnavailable.Error()
 		return health
 	}
+	health.Path = p.path
 	if err := p.db.PingContext(ctx); err != nil {
 		health.Status = storage.HealthUnavailable
 		health.Error = err.Error()
+		return health
+	}
+	migrationState, err := p.migrationState(ctx)
+	health.MigrationState = migrationState
+	if err != nil {
+		health.Status = storage.HealthUnavailable
+		health.Error = err.Error()
+		return health
+	}
+	writable, err := p.writable(ctx)
+	health.Writable = writable
+	if err != nil {
+		health.Status = storage.HealthUnavailable
+		health.Error = err.Error()
+		return health
+	}
+	if migrationState != storage.HealthMigrationApplied || !writable {
+		health.Status = storage.HealthUnavailable
 	}
 	return health
 }
@@ -248,4 +273,58 @@ func (p *Provider) isMigrationApplied(ctx context.Context, version string) (bool
 // FromDB wraps an existing SQLite handle with provider operations.
 func FromDB(db *sql.DB) *Provider {
 	return &Provider{db: db}
+}
+
+func (p *Provider) migrationState(ctx context.Context) (storage.HealthMigrationState, error) {
+	required := map[string][]string{
+		"schema_version":    {"version", "applied_at"},
+		"schema_migrations": {"version", "applied_at"},
+		"intents":           {"id", "created_at", "author", "source_type", "prompt", "response", "hash", "class", "type", "content", "metadata"},
+		"projects":          {"name", "description", "created_at", "hash"},
+		"checkpoints":       {"hash", "project", "summary", "created_at", "artifact_ids", "previous_checkpoint_id"},
+	}
+	for table, columns := range required {
+		present, err := p.tableHasColumns(ctx, table, columns)
+		if err != nil {
+			return storage.HealthMigrationUnknown, err
+		}
+		if !present {
+			return storage.HealthMigrationMissing, nil
+		}
+	}
+	return storage.HealthMigrationApplied, nil
+}
+
+func (p *Provider) tableHasColumns(ctx context.Context, table string, columns []string) (bool, error) {
+	rows, err := p.db.QueryContext(ctx, `SELECT name FROM pragma_table_info(?)`, table)
+	if err != nil {
+		return false, fmt.Errorf("inspect table %s: %w", table, err)
+	}
+	defer rows.Close()
+
+	found := map[string]struct{}{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return false, fmt.Errorf("scan table %s columns: %w", table, err)
+		}
+		found[name] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("inspect table %s columns: %w", table, err)
+	}
+	for _, column := range columns {
+		if _, ok := found[column]; !ok {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (p *Provider) writable(ctx context.Context) (bool, error) {
+	var queryOnly int
+	if err := p.db.QueryRowContext(ctx, `PRAGMA query_only`).Scan(&queryOnly); err != nil {
+		return false, fmt.Errorf("check sqlite writable state: %w", err)
+	}
+	return queryOnly == 0, nil
 }
