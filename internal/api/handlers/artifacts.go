@@ -15,9 +15,10 @@ import (
 const artifactsBasePath = "/v0/artifacts"
 
 // NewArtifactHandler returns the read-only CAP-002 artifact handler.
-func NewArtifactHandler() http.Handler {
+func NewArtifactHandler(deps Dependencies) http.Handler {
+	deps = deps.withDefaults()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg, err := config.Load()
+		cfg, err := deps.LoadConfig()
 		if err != nil {
 			responses.WriteError(w, http.StatusInternalServerError, "config_load_failed", err.Error())
 			return
@@ -28,23 +29,15 @@ func NewArtifactHandler() http.Handler {
 			return
 		}
 
-		dbPath, err := config.EffectiveLocalDBPath(cfg)
+		readStore, closer, err := deps.OpenArtifactReadStore(r.Context(), cfg)
 		if err != nil {
-			responses.WriteError(w, http.StatusInternalServerError, "db_path_resolution_failed", err.Error())
+			responses.WriteError(w, http.StatusInternalServerError, "artifact_read_open_failed", err.Error())
 			return
 		}
-
-		db, err := yanzilibrary.InitDBAtPath(dbPath)
-		if err != nil {
-			responses.WriteError(w, http.StatusInternalServerError, "db_open_failed", err.Error())
-			return
-		}
-		defer db.Close()
-
-		readStore := yanzilibrary.NewArtifactReadStore(db)
+		defer closer.Close()
 		trimmedPath := strings.TrimPrefix(r.URL.Path, artifactsBasePath)
 		if trimmedPath == "" || trimmedPath == "/" {
-			handleArtifactList(w, r, readStore)
+			handleArtifactList(w, r, deps, readStore)
 			return
 		}
 
@@ -57,8 +50,8 @@ func NewArtifactHandler() http.Handler {
 	})
 }
 
-func handleArtifactList(w http.ResponseWriter, r *http.Request, readStore *yanzilibrary.ArtifactReadStore) {
-	query, err := artifactReadQueryFromRequest(r)
+func handleArtifactList(w http.ResponseWriter, r *http.Request, deps Dependencies, readStore ArtifactReadStore) {
+	query, err := artifactReadQueryFromRequest(r, deps.LoadActiveProject)
 	if err != nil {
 		responses.WriteError(w, http.StatusBadRequest, "invalid_request", err.Error())
 		return
@@ -86,7 +79,7 @@ func handleArtifactList(w http.ResponseWriter, r *http.Request, readStore *yanzi
 	responses.WriteJSON(w, http.StatusOK, resp)
 }
 
-func handleArtifactGet(w http.ResponseWriter, r *http.Request, readStore *yanzilibrary.ArtifactReadStore, id string) {
+func handleArtifactGet(w http.ResponseWriter, r *http.Request, readStore ArtifactReadStore, id string) {
 	intent, err := readStore.GetIntentRecord(r.Context(), id)
 	if err != nil {
 		if strings.Contains(strings.ToLower(err.Error()), "not found") {
@@ -114,7 +107,7 @@ func handleArtifactGet(w http.ResponseWriter, r *http.Request, readStore *yanzil
 	})
 }
 
-func artifactReadQueryFromRequest(r *http.Request) (yanzilibrary.ArtifactReadQuery, error) {
+func artifactReadQueryFromRequest(r *http.Request, loadActiveProject ActiveProjectLoadFunc) (yanzilibrary.ArtifactReadQuery, error) {
 	values := r.URL.Query()
 	metaFilters := map[string]string{}
 	for _, raw := range values["meta"] {
@@ -149,7 +142,7 @@ func artifactReadQueryFromRequest(r *http.Request) (yanzilibrary.ArtifactReadQue
 	}
 
 	if !allProjects {
-		activeProject, err := loadAPIActiveProject()
+		activeProject, err := loadActiveProject()
 		if err != nil {
 			return yanzilibrary.ArtifactReadQuery{}, err
 		}

@@ -78,7 +78,7 @@ func TestArtifactHandlerListsScopedArtifactsWithDeterministicOrder(t *testing.T)
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts?author=alice&profile=engineer&meta=kind=note", nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler().ServeHTTP(rec, req)
+	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%q", rec.Code, rec.Body.String())
@@ -137,7 +137,7 @@ func TestArtifactHandlerGetsArtifactByID(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts/"+id, nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler().ServeHTTP(rec, req)
+	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%q", rec.Code, rec.Body.String())
@@ -176,7 +176,7 @@ func TestArtifactHandlerReturnsNotFoundForMissingArtifact(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts/missing-id", nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler().ServeHTTP(rec, req)
+	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d body=%q", rec.Code, rec.Body.String())

@@ -19,7 +19,7 @@ const (
 func NewHandler(deps handlers.Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerGet(mux, healthPath, handlers.NewHealthHandler(deps))
-	registerGetPrefix(mux, artifactsPath, handlers.NewArtifactHandler())
+	registerGetPrefix(mux, artifactsPath, handlers.NewArtifactHandler(deps))
 	registerDeferredGroup(mux, projectsPath, "projects")
 	registerDeferredGroup(mux, checkpointsPath, "checkpoints")
 	return mux
