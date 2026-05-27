@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -84,6 +85,64 @@ func TestRunRestoreMakesDeletedRecordVisibleAgain(t *testing.T) {
 	}
 	if !strings.Contains(listOutput, "Restore me") {
 		t.Fatalf("expected restored record in list: %q", listOutput)
+	}
+}
+
+func TestRunDeleteUsesCurrentTombstoneColumns(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
+
+	capture := createTestIntentRecord(t, createIntentInput{
+		Author:     "alice",
+		SourceType: "cli",
+		Title:      "Capture tombstone",
+		Prompt:     "prompt",
+		Response:   "response",
+	})
+	artifact, err := yanzilibrary.CreateArtifact("alpha", yanzilibrary.ArtifactClassIntent, "decision", "Artifact tombstone", "content", "")
+	if err != nil {
+		t.Fatalf("CreateArtifact: %v", err)
+	}
+
+	if err := RunDelete([]string{capture.ID}); err != nil {
+		t.Fatalf("RunDelete capture: %v", err)
+	}
+	if err := RunDelete([]string{artifact.ID}); err != nil {
+		t.Fatalf("RunDelete artifact: %v", err)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("config.Load: %v", err)
+	}
+	db, err := openLocalDB(cfg)
+	if err != nil {
+		t.Fatalf("openLocalDB: %v", err)
+	}
+	defer db.Close()
+
+	var captureMeta string
+	var captureMetadata string
+	if err := db.QueryRow(`SELECT meta, metadata FROM intents WHERE id = ?`, capture.ID).Scan(&captureMeta, &captureMetadata); err != nil {
+		t.Fatalf("query capture tombstone: %v", err)
+	}
+	if strings.Contains(captureMeta, `"deleted"`) || !strings.Contains(captureMetadata, `"deleted":"true"`) {
+		t.Fatalf("expected capture tombstone in metadata only, meta=%q metadata=%q", captureMeta, captureMetadata)
+	}
+
+	var artifactMeta string
+	var artifactMetadata sql.NullString
+	if err := db.QueryRow(`SELECT meta, metadata FROM intents WHERE id = ?`, artifact.ID).Scan(&artifactMeta, &artifactMetadata); err != nil {
+		t.Fatalf("query artifact tombstone: %v", err)
+	}
+	if !strings.Contains(artifactMeta, `"deleted":"true"`) {
+		t.Fatalf("expected artifact tombstone in meta, got %q", artifactMeta)
+	}
+	if artifactMetadata.Valid && strings.Contains(artifactMetadata.String, `"deleted"`) {
+		t.Fatalf("did not expect artifact tombstone in metadata, got %q", artifactMetadata.String)
 	}
 }
 
