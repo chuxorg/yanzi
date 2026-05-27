@@ -23,7 +23,7 @@ func NewHandler(deps handlers.Dependencies) http.Handler {
 	registerDeferredGroup(mux, artifactsPath, "artifacts")
 	registerMethods(mux, projectsPath, handlers.NewProjectsHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, projectCurrentPath, handlers.NewCurrentProjectHandler(deps), http.MethodGet, http.MethodPost)
-	registerDeferredGroup(mux, checkpointsPath, "checkpoints")
+	registerMethods(mux, checkpointsPath, handlers.NewCheckpointsHandler(deps), http.MethodGet, http.MethodPost)
 	return mux
 }
 
