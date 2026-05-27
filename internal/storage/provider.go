@@ -51,9 +51,12 @@ type CheckpointOperations interface {
 // VerificationOperations represents local digest verification capability.
 type VerificationOperations interface {
 	Verification() bool
+	GetVerificationIntent(context.Context, string) (IntentRecord, error)
+	GetVerificationIntentByHash(context.Context, string) (IntentRecord, error)
 }
 
 // ImportExportOperations represents deterministic local import/export capability.
 type ImportExportOperations interface {
 	ImportExport() bool
+	ListExportItems(context.Context, ExportQuery) ([]ExportItem, int, error)
 }

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/storage"
 )
 
 var openExportInBrowser = openBrowser
@@ -127,11 +127,13 @@ func RunExport(args []string, cliVersion string) error {
 		return errors.New("export is only available in local mode")
 	}
 
-	db, err := openLocalDB(cfg)
+	provider, err := openLocalProvider(cfg)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	defer func() {
+		_ = provider.Close()
+	}()
 
 	now := time.Now().UTC()
 	if retrievalMode {
@@ -173,7 +175,7 @@ func RunExport(args []string, cliVersion string) error {
 	}
 
 	ctx := context.Background()
-	items, captureCount, err := loadExportItems(ctx, db, project, map[string]string(metaFilters), *includeDeleted)
+	items, captureCount, err := loadExportItems(ctx, provider, project, map[string]string(metaFilters), *includeDeleted)
 	if err != nil {
 		return err
 	}
@@ -388,109 +390,47 @@ func openBrowser(path string) error {
 	return nil
 }
 
-func loadExportItems(ctx context.Context, db *sql.DB, project string, metaFilters map[string]string, includeDeleted bool) ([]exportItem, int, error) {
-	intents := make([]exportItem, 0)
-	captureCount := 0
-
-	intentRows, err := db.QueryContext(ctx, `SELECT rowid, id, created_at, author, source_type, prompt, response, hash, meta, metadata
-		FROM intents
-		WHERE source_type <> 'artifact'
-		ORDER BY created_at ASC, rowid ASC`)
+func loadExportItems(ctx context.Context, provider storage.Provider, project string, metaFilters map[string]string, includeDeleted bool) ([]exportItem, int, error) {
+	storageItems, captureCount, err := provider.ListExportItems(ctx, storage.ExportQuery{
+		Project:        project,
+		MetaFilters:    metaFilters,
+		IncludeDeleted: includeDeleted,
+	})
 	if err != nil {
 		return nil, 0, err
 	}
-	defer intentRows.Close()
-
-	for intentRows.Next() {
-		var (
-			rowID                                                          int64
-			id, createdAt, author, sourceType, prompt, response, hashValue string
-			metaText                                                       sql.NullString
-			metadataText                                                   sql.NullString
-		)
-		if err := intentRows.Scan(&rowID, &id, &createdAt, &author, &sourceType, &prompt, &response, &hashValue, &metaText, &metadataText); err != nil {
-			return nil, 0, err
-		}
-		meta, err := mergedIntentMetadata(metaText.String, metadataText.String)
-		if err != nil {
-			continue
-		}
-		if strings.TrimSpace(meta["project"]) != project {
-			continue
-		}
-		if !includeDeleted && isDeletedMetadata(meta) {
-			continue
-		}
-		if len(metaFilters) > 0 {
-			if !metadataMatchesAll(meta, metaFilters) {
-				continue
-			}
-		}
-
-		if isMetaCommandSource(sourceType) {
-			if len(metaFilters) > 0 {
-				continue
-			}
-			intents = append(intents, exportItem{
-				Kind:      exportItemMeta,
-				Timestamp: createdAt,
-				Command:   strings.TrimSpace(prompt),
-				Value:     strings.TrimSpace(response),
-				RowID:     rowID,
-			})
-			continue
-		}
-
-		captureCount++
-		intents = append(intents, exportItem{
-			Kind:      exportItemCapture,
-			Timestamp: createdAt,
-			CaptureID: id,
-			Role:      author,
-			Source:    sourceType,
-			Hash:      hashValue,
-			Prompt:    prompt,
-			Response:  response,
-			Metadata:  exportableMetadata(meta),
-			RowID:     rowID,
-		})
+	items := make([]exportItem, 0, len(storageItems))
+	for _, item := range storageItems {
+		items = append(items, exportItemFromStorage(item))
 	}
-	if err := intentRows.Err(); err != nil {
-		return nil, 0, err
-	}
+	return items, captureCount, nil
+}
 
-	checkpoints := make([]exportItem, 0)
-	if len(metaFilters) > 0 {
-		return mergeChronological(intents, checkpoints), captureCount, nil
+func exportItemFromStorage(item storage.ExportItem) exportItem {
+	out := exportItem{
+		Timestamp: item.Timestamp,
+		RowID:     item.RowID,
 	}
-	checkpointRows, err := db.QueryContext(ctx, `SELECT rowid, hash, summary, created_at
-		FROM checkpoints
-		WHERE project = ?
-		ORDER BY created_at ASC, rowid ASC`, project)
-	if err != nil {
-		return nil, 0, err
+	switch item.Kind {
+	case storage.ExportItemCheckpoint:
+		out.Kind = exportItemCheckpoint
+		out.CheckpointID = item.Checkpoint.Hash
+		out.Summary = item.Checkpoint.Summary
+	case storage.ExportItemMeta:
+		out.Kind = exportItemMeta
+		out.Command = item.Meta.Command
+		out.Value = item.Meta.Value
+	default:
+		out.Kind = exportItemCapture
+		out.CaptureID = item.Capture.ID
+		out.Role = item.Capture.Author
+		out.Source = item.Capture.Source
+		out.Hash = item.Capture.Hash
+		out.Prompt = item.Capture.Prompt
+		out.Response = item.Capture.Response
+		out.Metadata = exportableMetadata(item.Capture.Metadata)
 	}
-	defer checkpointRows.Close()
-
-	for checkpointRows.Next() {
-		var rowID int64
-		var id, summary, createdAt string
-		if err := checkpointRows.Scan(&rowID, &id, &summary, &createdAt); err != nil {
-			return nil, 0, err
-		}
-		checkpoints = append(checkpoints, exportItem{
-			Kind:         exportItemCheckpoint,
-			Timestamp:    createdAt,
-			CheckpointID: id,
-			Summary:      summary,
-			RowID:        rowID,
-		})
-	}
-	if err := checkpointRows.Err(); err != nil {
-		return nil, 0, err
-	}
-
-	return mergeChronological(intents, checkpoints), captureCount, nil
+	return out
 }
 
 func exportArtifactDirectories(project string, metaFilters map[string]string, includeDeleted bool) error {

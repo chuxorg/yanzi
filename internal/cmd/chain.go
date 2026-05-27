@@ -43,13 +43,15 @@ func RunChain(args []string) error {
 		}
 	case config.ModeLocal:
 		ctx := context.Background()
-		db, err := openLocalDB(cfg)
+		provider, err := openLocalProvider(cfg)
 		if err != nil {
 			return err
 		}
-		defer db.Close()
+		defer func() {
+			_ = provider.Close()
+		}()
 
-		localResp, err := chainLocalIntent(ctx, db, id)
+		localResp, err := chainLocalIntent(ctx, provider, id)
 		if err != nil {
 			return err
 		}
