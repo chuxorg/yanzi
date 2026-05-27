@@ -74,11 +74,12 @@ Handlers must not:
 CAP-002 begins after the storage abstraction seam is sufficiently complete, but the following paths intentionally remain outside provider migration at this point:
 
 - capture writes
-- list/show reads
 - rehydration reads
 - tombstone mutation paths
 
 Phase 1 must not migrate those paths. Future artifact endpoint phases will address them directly.
+
+CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
 ## Implementation Status
 
@@ -111,7 +112,34 @@ Deferred endpoint work:
 
 - full artifact endpoint implementation
 - project and checkpoint endpoint implementation
-- capture/list/show endpoint migration onto handler-safe service boundaries
+- capture endpoint migration
 - rehydration endpoint work
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
+
+## Artifact Read Boundary
+
+Current artifact endpoint status:
+
+- `/v0/artifacts` remains a deferred placeholder
+- no public artifact list, show, or create endpoint is exposed yet
+
+Current internal read status:
+
+- CAP-002 Phase 3 introduces `internal/library/artifact_read_store.go` as the current local list/show read boundary
+- the CLI `list` and `show` commands delegate through that boundary
+- the boundary preserves existing SQL-backed ordering, filtering, project scoping, and deleted-record handling
+
+Preserved current behavior and quirks:
+
+- `list` remains scoped to the active project unless `--all-projects` is used
+- `list` continues to exclude `source_type = 'artifact'` rows
+- `list` continues to hide tombstoned records by default and include them only with `--include-deleted`
+- `list` ordering remains newest first by `created_at`, with `id` as the deterministic tie-breaker
+- `show` continues to look up by record ID without applying a tombstone visibility filter
+- `show` preserves the current direct `meta` column behavior and does not synthesize missing metadata from the legacy `metadata` column
+
+Future artifact endpoint work:
+
+- implement artifact read endpoints only through the read boundary
+- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases

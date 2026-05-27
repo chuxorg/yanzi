@@ -625,6 +625,11 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func ListArtifactsAllProjects\(class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifactsAllProjects>)
   - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
   - [func ListVisibleContextArtifactsAllProjects\(artifactType, scopeFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifactsAllProjects>)
+- [type ArtifactReadQuery](<#ArtifactReadQuery>)
+- [type ArtifactReadStore](<#ArtifactReadStore>)
+  - [func NewArtifactReadStore\(db \*sql.DB\) \*ArtifactReadStore](<#NewArtifactReadStore>)
+  - [func \(s \*ArtifactReadStore\) GetIntentRecord\(ctx context.Context, id string\) \(model.IntentRecord, error\)](<#ArtifactReadStore.GetIntentRecord>)
+  - [func \(s \*ArtifactReadStore\) ListIntentRecords\(ctx context.Context, query ArtifactReadQuery\) \(\[\]model.IntentRecord, error\)](<#ArtifactReadStore.ListIntentRecords>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func ListAllCheckpoints\(ctx context.Context, db \*sql.DB\) \(\[\]Checkpoint, error\)](<#ListAllCheckpoints>)
@@ -810,6 +815,59 @@ func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, in
 ```
 
 ListVisibleContextArtifactsAllProjects returns global and project\-scoped context across every project.
+
+<a name="ArtifactReadQuery"></a>
+## type [ArtifactReadQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L16-L22>)
+
+ArtifactReadQuery describes the current local list/show read behavior.
+
+```go
+type ArtifactReadQuery struct {
+    Author         string
+    Source         string
+    Limit          int
+    MetaFilters    map[string]string
+    IncludeDeleted bool
+}
+```
+
+<a name="ArtifactReadStore"></a>
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L25-L27>)
+
+ArtifactReadStore isolates the legacy SQL\-backed list/show read path.
+
+```go
+type ArtifactReadStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactReadStore"></a>
+### func [NewArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L30>)
+
+```go
+func NewArtifactReadStore(db *sql.DB) *ArtifactReadStore
+```
+
+NewArtifactReadStore constructs a read store using the provided database handle.
+
+<a name="ArtifactReadStore.GetIntentRecord"></a>
+### func \(\*ArtifactReadStore\) [GetIntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L81>)
+
+```go
+func (s *ArtifactReadStore) GetIntentRecord(ctx context.Context, id string) (model.IntentRecord, error)
+```
+
+GetIntentRecord returns the current local show record with existing not\-found behavior preserved.
+
+<a name="ArtifactReadStore.ListIntentRecords"></a>
+### func \(\*ArtifactReadStore\) [ListIntentRecords](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L35>)
+
+```go
+func (s *ArtifactReadStore) ListIntentRecords(ctx context.Context, query ArtifactReadQuery) ([]model.IntentRecord, error)
+```
+
+ListIntentRecords returns current list/show records with existing filter semantics preserved.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)

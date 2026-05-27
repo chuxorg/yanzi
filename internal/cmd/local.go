@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/core/hash"
 	"github.com/chuxorg/yanzi/internal/core/model"
-	"github.com/chuxorg/yanzi/internal/core/store"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
@@ -179,87 +177,19 @@ func modelIntentFromStorage(record storage.IntentRecord) model.IntentRecord {
 }
 
 func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) ([]model.IntentRecord, error) {
-	fetchLimit := limit
-	if fetchLimit <= 0 {
-		fetchLimit = 20
-	}
-	if author != "" || source != "" || len(metaFilters) > 0 {
-		fetchLimit = fetchLimit * 5
-		if fetchLimit < 100 {
-			fetchLimit = 100
-		}
-	}
-
-	intents, err := listLocalIntentsFromDB(ctx, db, fetchLimit, includeDeleted)
-	if err != nil {
-		return nil, err
-	}
-
-	filtered := make([]model.IntentRecord, 0, len(intents))
-	for _, intent := range intents {
-		if author != "" && intent.Author != author {
-			continue
-		}
-		if source != "" && intent.SourceType != source {
-			continue
-		}
-		filtered = append(filtered, intent)
-	}
-
-	if len(metaFilters) > 0 {
-		filtered, err = store.FilterIntentsByMeta(filtered, metaFilters)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if limit > 0 && len(filtered) > limit {
-		filtered = filtered[:limit]
-	}
-	return filtered, nil
+	readStore := yanzilibrary.NewArtifactReadStore(db)
+	return readStore.ListIntentRecords(ctx, yanzilibrary.ArtifactReadQuery{
+		Author:         author,
+		Source:         source,
+		Limit:          limit,
+		MetaFilters:    metaFilters,
+		IncludeDeleted: includeDeleted,
+	})
 }
 
 func getLocalIntent(ctx context.Context, db *sql.DB, id string) (model.IntentRecord, error) {
-	record, err := dbGetIntent(ctx, db, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return model.IntentRecord{}, fmt.Errorf("intent not found for ID %s", id)
-		}
-		return model.IntentRecord{}, err
-	}
-	return record, nil
-}
-
-func dbGetIntent(ctx context.Context, db *sql.DB, id string) (model.IntentRecord, error) {
-	var record model.IntentRecord
-	var title sql.NullString
-	var meta sql.NullString
-	var prevHash sql.NullString
-	row := db.QueryRowContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash FROM intents WHERE id = ?`, id)
-	if err := row.Scan(
-		&record.ID,
-		&record.CreatedAt,
-		&record.Author,
-		&record.SourceType,
-		&title,
-		&record.Prompt,
-		&record.Response,
-		&meta,
-		&prevHash,
-		&record.Hash,
-	); err != nil {
-		return model.IntentRecord{}, err
-	}
-	if title.Valid {
-		record.Title = title.String
-	}
-	if meta.Valid && meta.String != "" {
-		record.Meta = []byte(meta.String)
-	}
-	if prevHash.Valid {
-		record.PrevHash = prevHash.String
-	}
-	return record, nil
+	readStore := yanzilibrary.NewArtifactReadStore(db)
+	return readStore.GetIntentRecord(ctx, id)
 }
 
 func dbGetIntentByHash(ctx context.Context, db *sql.DB, intentHash string) (model.IntentRecord, error) {
@@ -292,69 +222,6 @@ func dbGetIntentByHash(ctx context.Context, db *sql.DB, intentHash string) (mode
 		record.PrevHash = prevHash.String
 	}
 	return record, nil
-}
-
-func listLocalIntentsFromDB(ctx context.Context, db *sql.DB, limit int, includeDeleted bool) ([]model.IntentRecord, error) {
-	if limit <= 0 {
-		limit = 100
-	}
-
-	rows, err := db.QueryContext(ctx, `SELECT id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, metadata FROM intents WHERE source_type <> 'artifact' ORDER BY created_at DESC, id DESC LIMIT ?`, limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var intents []model.IntentRecord
-	for rows.Next() {
-		var record model.IntentRecord
-		var title sql.NullString
-		var meta sql.NullString
-		var prevHash sql.NullString
-		var metadata sql.NullString
-		if err := rows.Scan(
-			&record.ID,
-			&record.CreatedAt,
-			&record.Author,
-			&record.SourceType,
-			&title,
-			&record.Prompt,
-			&record.Response,
-			&meta,
-			&prevHash,
-			&record.Hash,
-			&metadata,
-		); err != nil {
-			return nil, err
-		}
-		if title.Valid {
-			record.Title = title.String
-		}
-		if meta.Valid || metadata.Valid {
-			combinedMeta, err := mergedIntentMetadata(meta.String, metadata.String)
-			if err != nil {
-				return nil, err
-			}
-			if !includeDeleted && isDeletedMetadata(combinedMeta) {
-				continue
-			}
-			if len(combinedMeta) > 0 {
-				encodedMeta, err := json.Marshal(combinedMeta)
-				if err != nil {
-					return nil, fmt.Errorf("encode merged meta: %w", err)
-				}
-				record.Meta = encodedMeta
-			}
-		}
-		if prevHash.Valid {
-			record.PrevHash = prevHash.String
-		}
-		intents = append(intents, record)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return intents, nil
 }
 
 type createIntentInput struct {
