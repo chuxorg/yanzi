@@ -1,5 +1,15 @@
 package models
 
+// CurrentProjectRequest captures the active-project update shape.
+type CurrentProjectRequest struct {
+	Name string `json:"name"`
+}
+
+// CurrentProjectResponse is the active-project read response.
+type CurrentProjectResponse struct {
+	Project *Project `json:"project"`
+}
+
 // Artifact represents the current operational API artifact payload.
 type Artifact struct {
 	ID        string            `json:"id"`

@@ -8,6 +8,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/api/responses"
 	"github.com/chuxorg/yanzi/internal/config"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/projectstate"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
@@ -20,9 +21,17 @@ type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, er
 
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
 type Dependencies struct {
-	Version      string
-	LoadConfig   ConfigLoadFunc
-	OpenProvider ProviderOpenFunc
+	Version            string
+	LoadConfig         ConfigLoadFunc
+	OpenProvider       ProviderOpenFunc
+	CreateProject      func(string, string) (*yanzilibrary.Project, error)
+	ListProjects       func() ([]yanzilibrary.Project, error)
+	ProjectExists      func(string) (bool, error)
+	LoadActiveProject  func() (string, error)
+	SaveActiveProject  func(string) error
+	CreateCheckpoint   func(string, string, []string) (yanzilibrary.Checkpoint, error)
+	ListCheckpoints    func(string) ([]yanzilibrary.Checkpoint, error)
+	ListAllCheckpoints func() ([]yanzilibrary.Checkpoint, error)
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -75,6 +84,30 @@ func (d Dependencies) withDefaults() Dependencies {
 		d.OpenProvider = func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
 			return registry.Open(ctx, cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 		}
+	}
+	if d.CreateProject == nil {
+		d.CreateProject = yanzilibrary.CreateProject
+	}
+	if d.ListProjects == nil {
+		d.ListProjects = yanzilibrary.ListProjects
+	}
+	if d.ProjectExists == nil {
+		d.ProjectExists = yanzilibrary.ProjectExists
+	}
+	if d.LoadActiveProject == nil {
+		d.LoadActiveProject = projectstate.LoadActiveProject
+	}
+	if d.SaveActiveProject == nil {
+		d.SaveActiveProject = projectstate.SaveActiveProject
+	}
+	if d.CreateCheckpoint == nil {
+		d.CreateCheckpoint = yanzilibrary.CreateProjectCheckpoint
+	}
+	if d.ListCheckpoints == nil {
+		d.ListCheckpoints = yanzilibrary.ListProjectCheckpoints
+	}
+	if d.ListAllCheckpoints == nil {
+		d.ListAllCheckpoints = yanzilibrary.ListAllProjectCheckpoints
 	}
 	return d
 }

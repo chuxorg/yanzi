@@ -13,7 +13,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/storage"
 )
 
-func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
+func TestNewHandlerRegistersHealthProjectAndDeferredArtifactRoutes(t *testing.T) {
 	handler := NewHandler(handlers.Dependencies{
 		Version: "v0.0.0-test",
 		LoadConfig: func() (config.Config, error) {
@@ -33,11 +33,18 @@ func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
 		t.Fatalf("unexpected health response: code=%d body=%q", healthRec.Code, healthRec.Body.String())
 	}
 
-	deferredReq := httptest.NewRequest(http.MethodGet, "/v0/projects", nil)
+	projectReq := httptest.NewRequest(http.MethodGet, "/v0/projects", nil)
+	projectRec := httptest.NewRecorder()
+	handler.ServeHTTP(projectRec, projectReq)
+	if projectRec.Code != http.StatusOK || !strings.Contains(projectRec.Body.String(), "\"projects\"") {
+		t.Fatalf("unexpected project response: code=%d body=%q", projectRec.Code, projectRec.Body.String())
+	}
+
+	deferredReq := httptest.NewRequest(http.MethodGet, "/v0/artifacts", nil)
 	deferredRec := httptest.NewRecorder()
 	handler.ServeHTTP(deferredRec, deferredReq)
 	if deferredRec.Code != http.StatusNotImplemented || !strings.Contains(deferredRec.Body.String(), "\"status\":\"deferred\"") {
-		t.Fatalf("unexpected deferred response: code=%d body=%q", deferredRec.Code, deferredRec.Body.String())
+		t.Fatalf("unexpected deferred artifact response: code=%d body=%q", deferredRec.Code, deferredRec.Body.String())
 	}
 
 	methodReq := httptest.NewRequest(http.MethodPost, "/v0/health", nil)
