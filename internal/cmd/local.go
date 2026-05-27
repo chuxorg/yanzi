@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/core/hash"
@@ -27,76 +24,6 @@ func openLocalDB(cfg config.Config) (*sql.DB, error) {
 
 func openLocalProvider(cfg config.Config) (storage.Provider, error) {
 	return registry.Open(context.Background(), cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
-}
-
-func buildLocalIntent(req createIntentInput) (model.IntentRecord, error) {
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	id, err := newIntentID()
-	if err != nil {
-		return model.IntentRecord{}, err
-	}
-
-	record := model.IntentRecord{
-		ID:         id,
-		CreatedAt:  now,
-		Author:     req.Author,
-		SourceType: req.SourceType,
-		Title:      req.Title,
-		Prompt:     req.Prompt,
-		Response:   req.Response,
-		PrevHash:   req.PrevHash,
-		Meta:       req.Meta,
-	}
-	sum, err := hash.HashIntent(record)
-	if err != nil {
-		return model.IntentRecord{}, err
-	}
-	record.Hash = sum
-	return record, nil
-}
-
-func newIntentID() (string, error) {
-	var buf [16]byte
-	if _, err := rand.Read(buf[:]); err != nil {
-		return "", fmt.Errorf("generate id: %w", err)
-	}
-	return hex.EncodeToString(buf[:]), nil
-}
-
-func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecord) error {
-	var title any
-	if record.Title != "" {
-		title = record.Title
-	}
-	var meta any
-	if len(record.Meta) > 0 {
-		meta = string(record.Meta)
-	}
-	var prevHash any
-	if record.PrevHash != "" {
-		prevHash = record.PrevHash
-	}
-
-	_, err := db.ExecContext(
-		ctx,
-		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		record.ID,
-		record.CreatedAt,
-		record.Author,
-		record.SourceType,
-		title,
-		record.Prompt,
-		record.Response,
-		meta,
-		prevHash,
-		record.Hash,
-		"intent",
-		"prompt",
-		record.Prompt,
-		meta,
-	)
-	return err
 }
 
 func verifyLocalIntent(ctx context.Context, provider storage.Provider, id string) (verifyResult, error) {

@@ -302,12 +302,18 @@ func createTestIntentRecord(t *testing.T, input createIntentInput) client.Intent
 	if err != nil {
 		t.Fatalf("attachProjectMeta: %v", err)
 	}
-	record, err := buildLocalIntent(input)
+	writeStore := yanzilibrary.NewArtifactWriteStore(db)
+	record, err := writeStore.CreateCapture(context.Background(), yanzilibrary.CaptureWriteInput{
+		Author:     input.Author,
+		SourceType: input.SourceType,
+		Title:      input.Title,
+		Prompt:     input.Prompt,
+		Response:   input.Response,
+		Meta:       input.Meta,
+		PrevHash:   input.PrevHash,
+	})
 	if err != nil {
-		t.Fatalf("buildLocalIntent: %v", err)
-	}
-	if err := createLocalIntent(context.Background(), db, record); err != nil {
-		t.Fatalf("createLocalIntent: %v", err)
+		t.Fatalf("CreateCapture: %v", err)
 	}
 	return record
 }
