@@ -82,7 +82,7 @@ Phase 1 must not migrate those paths. Future artifact endpoint phases will addre
 
 ## Implementation Status
 
-Current status: API foundation only.
+Current status: project and checkpoint endpoints implemented; artifact endpoints intentionally deferred.
 
 Implemented in CAP-002 Phase 1:
 
@@ -93,6 +93,20 @@ Implemented in CAP-002 Phase 1:
 - health handler wired through existing config and storage provider seams
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
+
+Implemented in CAP-002 Phase 2:
+
+- `GET /v0/projects`
+- `POST /v0/projects`
+- `GET /v0/projects/current`
+- `POST /v0/projects/current`
+- `GET /v0/checkpoints`
+- `POST /v0/checkpoints`
+- provider-backed project create/list execution
+- provider-backed checkpoint create/list execution
+- active-project state handling shared with current CLI semantics
+- deterministic error response mapping for duplicate, missing, invalid, and active-project-dependent operations
+- route-level API tests for project/current/checkpoint success and failure behavior
 
 Current runtime status:
 
@@ -110,7 +124,6 @@ Current health/status limitation:
 Deferred endpoint work:
 
 - full artifact endpoint implementation
-- project and checkpoint endpoint implementation
 - capture/list/show endpoint migration onto handler-safe service boundaries
 - rehydration endpoint work
 - tombstone endpoint work
