@@ -1504,6 +1504,439 @@ type VerificationQuery struct {
 }
 ```
 
+# handlers
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/handlers"
+```
+
+## Index
+
+- [func NewDeferredRouteHandler\(group string\) http.Handler](<#NewDeferredRouteHandler>)
+- [func NewHealthHandler\(deps Dependencies\) http.Handler](<#NewHealthHandler>)
+- [type ConfigLoadFunc](<#ConfigLoadFunc>)
+- [type Dependencies](<#Dependencies>)
+- [type ProviderOpenFunc](<#ProviderOpenFunc>)
+
+
+<a name="NewDeferredRouteHandler"></a>
+## func [NewDeferredRouteHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/placeholders.go#L12>)
+
+```go
+func NewDeferredRouteHandler(group string) http.Handler
+```
+
+NewDeferredRouteHandler returns a deterministic placeholder for deferred route groups.
+
+<a name="NewHealthHandler"></a>
+## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L29>)
+
+```go
+func NewHealthHandler(deps Dependencies) http.Handler
+```
+
+NewHealthHandler returns the minimal GET /v0/health handler.
+
+<a name="ConfigLoadFunc"></a>
+## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L16>)
+
+ConfigLoadFunc loads the current Yanzi configuration for API handlers.
+
+```go
+type ConfigLoadFunc func() (config.Config, error)
+```
+
+<a name="Dependencies"></a>
+## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L22-L26>)
+
+Dependencies captures the lightweight handler dependencies used by the API foundation.
+
+```go
+type Dependencies struct {
+    Version      string
+    LoadConfig   ConfigLoadFunc
+    OpenProvider ProviderOpenFunc
+}
+```
+
+<a name="ProviderOpenFunc"></a>
+## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L19>)
+
+ProviderOpenFunc opens the current storage provider for API handlers.
+
+```go
+type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
+```
+
+# middleware
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/middleware"
+```
+
+## Index
+
+- [func AllowMethods\(next http.Handler, methods ...string\) http.Handler](<#AllowMethods>)
+
+
+<a name="AllowMethods"></a>
+## func [AllowMethods](<https://github.com/chuxorg/yanzi/blob/master/internal/api/middleware/method.go#L11>)
+
+```go
+func AllowMethods(next http.Handler, methods ...string) http.Handler
+```
+
+AllowMethods restricts a handler to the provided HTTP methods.
+
+# models
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/models"
+```
+
+## Index
+
+- [type Artifact](<#Artifact>)
+- [type ArtifactCreateRequest](<#ArtifactCreateRequest>)
+- [type ArtifactListResponse](<#ArtifactListResponse>)
+- [type Checkpoint](<#Checkpoint>)
+- [type CheckpointCreateRequest](<#CheckpointCreateRequest>)
+- [type CheckpointListResponse](<#CheckpointListResponse>)
+- [type HealthResponse](<#HealthResponse>)
+- [type Project](<#Project>)
+- [type ProjectCreateRequest](<#ProjectCreateRequest>)
+- [type ProjectListResponse](<#ProjectListResponse>)
+- [type ProviderHealth](<#ProviderHealth>)
+- [type StatusResponse](<#StatusResponse>)
+
+
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L4-L14>)
+
+Artifact represents the current operational API artifact payload.
+
+```go
+type Artifact struct {
+    ID        string            `json:"id"`
+    Class     string            `json:"class"`
+    Type      string            `json:"type"`
+    Scope     string            `json:"scope,omitempty"`
+    Project   string            `json:"project,omitempty"`
+    Title     string            `json:"title"`
+    Content   string            `json:"content"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
+    CreatedAt string            `json:"created_at"`
+}
+```
+
+<a name="ArtifactCreateRequest"></a>
+## type [ArtifactCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L17-L25>)
+
+ArtifactCreateRequest captures the current artifact creation shape.
+
+```go
+type ArtifactCreateRequest struct {
+    Project  string            `json:"project,omitempty"`
+    Class    string            `json:"class"`
+    Type     string            `json:"type"`
+    Scope    string            `json:"scope,omitempty"`
+    Title    string            `json:"title"`
+    Content  string            `json:"content"`
+    Metadata map[string]string `json:"metadata,omitempty"`
+}
+```
+
+<a name="ArtifactListResponse"></a>
+## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L28-L30>)
+
+ArtifactListResponse is the collection response for artifact queries.
+
+```go
+type ArtifactListResponse struct {
+    Artifacts []Artifact `json:"artifacts"`
+}
+```
+
+<a name="Checkpoint"></a>
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L51-L58>)
+
+Checkpoint represents the current operational API checkpoint payload.
+
+```go
+type Checkpoint struct {
+    Hash                 string   `json:"hash"`
+    Project              string   `json:"project"`
+    Summary              string   `json:"summary"`
+    CreatedAt            string   `json:"created_at"`
+    ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+    PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+```
+
+<a name="CheckpointCreateRequest"></a>
+## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L61-L65>)
+
+CheckpointCreateRequest captures the current checkpoint creation shape.
+
+```go
+type CheckpointCreateRequest struct {
+    Project     string   `json:"project"`
+    Summary     string   `json:"summary"`
+    ArtifactIDs []string `json:"artifact_ids,omitempty"`
+}
+```
+
+<a name="CheckpointListResponse"></a>
+## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L68-L70>)
+
+CheckpointListResponse is the collection response for checkpoint queries.
+
+```go
+type CheckpointListResponse struct {
+    Checkpoints []Checkpoint `json:"checkpoints"`
+}
+```
+
+<a name="HealthResponse"></a>
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L80-L84>)
+
+HealthResponse is the minimal operational health/status response.
+
+```go
+type HealthResponse struct {
+    Version  string         `json:"version"`
+    Mode     string         `json:"mode"`
+    Provider ProviderHealth `json:"provider"`
+}
+```
+
+<a name="Project"></a>
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L33-L37>)
+
+Project represents the current operational API project payload.
+
+```go
+type Project struct {
+    Name        string `json:"name"`
+    Description string `json:"description,omitempty"`
+    CreatedAt   string `json:"created_at"`
+}
+```
+
+<a name="ProjectCreateRequest"></a>
+## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L43>)
+
+ProjectCreateRequest captures the current project creation shape.
+
+```go
+type ProjectCreateRequest struct {
+    Name        string `json:"name"`
+    Description string `json:"description,omitempty"`
+}
+```
+
+<a name="ProjectListResponse"></a>
+## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L46-L48>)
+
+ProjectListResponse is the collection response for project queries.
+
+```go
+type ProjectListResponse struct {
+    Projects []Project `json:"projects"`
+}
+```
+
+<a name="ProviderHealth"></a>
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L73-L77>)
+
+ProviderHealth represents the current provider health payload for API status reads.
+
+```go
+type ProviderHealth struct {
+    Name   string `json:"name"`
+    Status string `json:"status"`
+    Error  string `json:"error,omitempty"`
+}
+```
+
+<a name="StatusResponse"></a>
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L87-L90>)
+
+StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
+
+```go
+type StatusResponse struct {
+    Status  string `json:"status"`
+    Message string `json:"message"`
+}
+```
+
+# responses
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/responses"
+```
+
+## Index
+
+- [func WriteError\(w http.ResponseWriter, status int, code, message string\)](<#WriteError>)
+- [func WriteJSON\(w http.ResponseWriter, status int, value any\)](<#WriteJSON>)
+- [type ErrorBody](<#ErrorBody>)
+- [type ErrorDetail](<#ErrorDetail>)
+
+
+<a name="WriteError"></a>
+## func [WriteError](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L32>)
+
+```go
+func WriteError(w http.ResponseWriter, status int, code, message string)
+```
+
+WriteError writes a deterministic JSON error response.
+
+<a name="WriteJSON"></a>
+## func [WriteJSON](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L20>)
+
+```go
+func WriteJSON(w http.ResponseWriter, status int, value any)
+```
+
+WriteJSON writes a JSON response with the provided status code.
+
+<a name="ErrorBody"></a>
+## type [ErrorBody](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L9-L11>)
+
+ErrorBody is the deterministic API error response envelope.
+
+```go
+type ErrorBody struct {
+    Error ErrorDetail `json:"error"`
+}
+```
+
+<a name="ErrorDetail"></a>
+## type [ErrorDetail](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L14-L17>)
+
+ErrorDetail is the machine\-readable operational API error payload.
+
+```go
+type ErrorDetail struct {
+    Code    string `json:"code"`
+    Message string `json:"message"`
+}
+```
+
+# routes
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/routes"
+```
+
+## Index
+
+- [func NewHandler\(deps handlers.Dependencies\) http.Handler](<#NewHandler>)
+
+
+<a name="NewHandler"></a>
+## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L19>)
+
+```go
+func NewHandler(deps handlers.Dependencies) http.Handler
+```
+
+NewHandler constructs the operational API route foundation.
+
+# server
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/server"
+```
+
+## Index
+
+- [type LocalOptions](<#LocalOptions>)
+- [type Options](<#Options>)
+- [type Server](<#Server>)
+  - [func New\(opts Options\) \*Server](<#New>)
+  - [func NewLocal\(opts LocalOptions\) \*Server](<#NewLocal>)
+  - [func \(s \*Server\) HTTPServer\(\) \*http.Server](<#Server.HTTPServer>)
+  - [func \(s \*Server\) Handler\(\) http.Handler](<#Server.Handler>)
+
+
+<a name="LocalOptions"></a>
+## type [LocalOptions](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/local.go#L11-L16>)
+
+LocalOptions captures the local\-only operational API server construction inputs.
+
+```go
+type LocalOptions struct {
+    Addr              string
+    Version           string
+    ReadHeaderTimeout time.Duration
+    Dependencies      handlers.Dependencies
+}
+```
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L11-L15>)
+
+Options captures the minimal HTTP server configuration for the operational API.
+
+```go
+type Options struct {
+    Addr              string
+    Handler           http.Handler
+    ReadHeaderTimeout time.Duration
+}
+```
+
+<a name="Server"></a>
+## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L18-L21>)
+
+Server is the lightweight internal HTTP server foundation for the operational API.
+
+```go
+type Server struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L24>)
+
+```go
+func New(opts Options) *Server
+```
+
+New constructs an internal operational API server with conservative defaults.
+
+<a name="NewLocal"></a>
+### func [NewLocal](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/local.go#L19>)
+
+```go
+func NewLocal(opts LocalOptions) *Server
+```
+
+NewLocal constructs a server wired to the current operational API route foundation.
+
+<a name="Server.HTTPServer"></a>
+### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L45>)
+
+```go
+func (s *Server) HTTPServer() *http.Server
+```
+
+HTTPServer exposes the underlying net/http server for controlled internal use.
+
+<a name="Server.Handler"></a>
+### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L37>)
+
+```go
+func (s *Server) Handler() http.Handler
+```
+
+Handler returns the server handler used to process HTTP requests.
+
 # hash
 
 ```go
