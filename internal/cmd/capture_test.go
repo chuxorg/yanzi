@@ -254,3 +254,43 @@ func TestRunCaptureAllowsDuplicatePayloadsAsDistinctRecords(t *testing.T) {
 		t.Fatalf("expected distinct ids and hashes, ids=%v hashes=%v", ids, hashes)
 	}
 }
+
+func TestRunCaptureOutputRemainsCLICompatible(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
+
+	output, err := captureStdout(func() error {
+		return RunCapture([]string{"--author", "Ada", "--prompt", "cli prompt", "--response", "cli response"})
+	})
+	if err != nil {
+		t.Fatalf("RunCapture: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != 2 || !strings.HasPrefix(lines[0], "id: ") || !strings.HasPrefix(lines[1], "hash: ") {
+		t.Fatalf("unexpected capture output: %q", output)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	db, err := sql.Open("sqlite", cfg.DBPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	var author string
+	var sourceType string
+	var prompt string
+	var response string
+	if err := db.QueryRow(`SELECT author, source_type, prompt, response FROM intents ORDER BY rowid DESC LIMIT 1`).Scan(&author, &sourceType, &prompt, &response); err != nil {
+		t.Fatalf("query capture: %v", err)
+	}
+	if author != "Ada" || sourceType != "cli" || prompt != "cli prompt" || response != "cli response" {
+		t.Fatalf("unexpected capture row: author=%q source=%q prompt=%q response=%q", author, sourceType, prompt, response)
+	}
+}
