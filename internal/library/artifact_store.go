@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/storage"
-	storagesqlite "github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
 // CreateArtifact stores a new artifact for a project.
@@ -29,7 +28,8 @@ func CreateArtifact(projectID, class, artifactType, title, content, metadata str
 		_ = provider.Close()
 	}()
 
-	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+	writeStore := NewArtifactWriteStore(provider.SQLDB())
+	artifact, err := writeStore.CreateArtifact(context.Background(), storage.CreateArtifactInput{
 		Project:  projectID,
 		Class:    class,
 		Type:     artifactType,
@@ -41,7 +41,7 @@ func CreateArtifact(projectID, class, artifactType, title, content, metadata str
 	if err != nil {
 		return Artifact{}, err
 	}
-	return artifactFromStorage(artifact), nil
+	return artifact, nil
 }
 
 // CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
@@ -58,7 +58,8 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 		_ = provider.Close()
 	}()
 
-	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+	writeStore := NewArtifactWriteStore(provider.SQLDB())
+	artifact, err := writeStore.CreateArtifact(context.Background(), storage.CreateArtifactInput{
 		Project:  projectID,
 		Class:    ArtifactClassContext,
 		Type:     artifactType,
@@ -70,15 +71,15 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 	if err != nil {
 		return Artifact{}, err
 	}
-	return artifactFromStorage(artifact), nil
+	return artifact, nil
 }
 
 func createArtifact(db *sql.DB, projectID, class, artifactType, title, content, metadata, scope string) (Artifact, error) {
 	if db == nil {
 		return Artifact{}, fmt.Errorf("artifact store is not initialized")
 	}
-	provider := storagesqlite.FromDB(db)
-	artifact, err := provider.CreateArtifact(context.Background(), storage.CreateArtifactInput{
+	writeStore := NewArtifactWriteStore(db)
+	return writeStore.CreateArtifact(context.Background(), storage.CreateArtifactInput{
 		Project:  projectID,
 		Class:    class,
 		Type:     artifactType,
@@ -87,10 +88,6 @@ func createArtifact(db *sql.DB, projectID, class, artifactType, title, content, 
 		Content:  content,
 		Metadata: metadata,
 	})
-	if err != nil {
-		return Artifact{}, err
-	}
-	return artifactFromStorage(artifact), nil
 }
 
 // ListArtifacts lists artifacts for a project and class, optionally filtered by type.
