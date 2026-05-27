@@ -35,6 +35,8 @@ The current provider contract exposes:
 
 The database handle is intentionally retained while remaining call sites are migrated incrementally. Future phases may move individual operations behind narrower provider methods after compatibility coverage is in place.
 
+As of CAP-001 Phase 2D, this contract is mature enough for current SQLite-backed project, checkpoint, artifact, export, and verification behavior. It is not a final multi-provider contract.
+
 ## Required Current Capabilities
 
 A provider conforming to the current Yanzi behavior must preserve the following capabilities.
@@ -82,6 +84,8 @@ A provider conforming to the current Yanzi behavior must preserve the following 
 
 - expose internal readiness for the provider
 - report unavailable state when a provider handle cannot service requests
+- report migration/schema readiness internally
+- report writable state internally where the provider can determine it
 - do not expose provider health through a CLI surface in this phase
 
 ## SQLite Provider Requirements
@@ -214,6 +218,51 @@ Operation groups intentionally left outside provider migration in this phase:
 SQLite remains the only provider. No config keys, schemas, migrations, command outputs, export formats, verification behavior, chain behavior, rehydration behavior, or user workflows changed.
 
 Preserved compatibility detail: metadata-filtered exports continue to omit checkpoint boundaries and meta-command events. Normal exports continue to include meta-command events. Verification and chain traversal continue to use the existing intent hash preimage and `prev_hash` lookup behavior.
+
+## CAP-001 Phase 2D Implementation Status
+
+Provider hardening and compatibility closure are complete for current SQLite behavior.
+
+Completed hardening:
+
+- provider health now checks connectivity, migration/schema readiness, and SQLite writable state
+- closed or nil provider handles report unavailable health deterministically
+- existing DB reuse is covered by regression tests
+- legacy DB upgrade before rehydration is covered by regression tests
+- repeated export, verification, and rehydration flows are covered by regression tests
+- malformed export metadata and checkpoint artifact ID behavior are pinned as compatibility behavior
+
+Current implementation maturity:
+
+- SQLite is production-path behavior and remains the only implemented provider
+- provider methods are stable for projects, checkpoints, artifacts, exports, and verification
+- provider health is internal-only and suitable for future operational use
+- provider tests are regression-oriented and preserve current CLI semantics
+
+Current limitations:
+
+- `SQLDB` remains exposed for backward-compatible direct SQLite call sites
+- capture intent writes still use direct SQLite helper paths
+- generic list/show intent reads still use direct SQLite helper paths
+- rehydration queries still use direct SQLite helper paths
+- tombstone mutation logic still uses direct SQLite helper paths
+- no provider config key or runtime provider selection exists
+- no future provider has been implemented or validated
+
+SQLite-only provider status:
+
+- SQLite remains the default and only provider
+- existing `YANZI_DB_PATH`, config `db_path`, and default state path behavior are unchanged
+- migrations remain embedded SQL files
+- no schema redesign was introduced
+- existing local databases remain compatible and are upgraded automatically
+
+Future-provider readiness notes:
+
+- future providers must match the documented SQLite semantics before being eligible for CLI use
+- future providers should not rely on `SQLDB`; remaining direct SQLite paths must be migrated behind explicit methods first
+- provider config switching must be introduced separately with compatibility tests and explicit user-facing documentation
+- CAP-002 Operational API work may use the internal provider health model, but must not expose new CLI behavior as part of CAP-001
 
 ## Implementation Notes
 

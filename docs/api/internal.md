@@ -1064,6 +1064,7 @@ import "github.com/chuxorg/yanzi/internal/storage"
 - [type ExportMeta](<#ExportMeta>)
 - [type ExportQuery](<#ExportQuery>)
 - [type Health](<#Health>)
+- [type HealthMigrationState](<#HealthMigrationState>)
 - [type HealthStatus](<#HealthStatus>)
 - [type ImportExportOperations](<#ImportExportOperations>)
 - [type IntentRecord](<#IntentRecord>)
@@ -1109,7 +1110,7 @@ var (
 ```
 
 <a name="Artifact"></a>
-## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L151-L161>)
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L162-L172>)
 
 Artifact is the provider\-level artifact record used by current storage behavior.
 
@@ -1143,7 +1144,7 @@ type ArtifactOperations interface {
 ```
 
 <a name="ArtifactQuery"></a>
-## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L44-L49>)
+## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L55-L60>)
 
 ArtifactQuery captures the current artifact list dimensions.
 
@@ -1157,7 +1158,7 @@ type ArtifactQuery struct {
 ```
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L184-L191>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L195-L202>)
 
 Checkpoint is the provider\-level checkpoint record used by current storage behavior.
 
@@ -1187,7 +1188,7 @@ type CheckpointOperations interface {
 ```
 
 <a name="CheckpointQuery"></a>
-## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L67-L69>)
+## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L78-L80>)
 
 CheckpointQuery captures current checkpoint list dimensions.
 
@@ -1198,7 +1199,7 @@ type CheckpointQuery struct {
 ```
 
 <a name="ContextArtifactQuery"></a>
-## type [ContextArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L52-L59>)
+## type [ContextArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L63-L70>)
 
 ContextArtifactQuery captures current context visibility dimensions.
 
@@ -1214,7 +1215,7 @@ type ContextArtifactQuery struct {
 ```
 
 <a name="CreateArtifactInput"></a>
-## type [CreateArtifactInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L140-L148>)
+## type [CreateArtifactInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L151-L159>)
 
 CreateArtifactInput captures current artifact creation inputs.
 
@@ -1231,7 +1232,7 @@ type CreateArtifactInput struct {
 ```
 
 <a name="CreateCheckpointInput"></a>
-## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L177-L181>)
+## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L188-L192>)
 
 CreateCheckpointInput captures current checkpoint creation inputs.
 
@@ -1244,7 +1245,7 @@ type CreateCheckpointInput struct {
 ```
 
 <a name="CreateProjectInput"></a>
-## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L164-L167>)
+## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L175-L178>)
 
 CreateProjectInput captures current project creation inputs.
 
@@ -1256,7 +1257,7 @@ type CreateProjectInput struct {
 ```
 
 <a name="ExportCapture"></a>
-## type [ExportCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L110-L120>)
+## type [ExportCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L121-L131>)
 
 ExportCapture is the provider\-level capture payload used by current export renderers.
 
@@ -1275,7 +1276,7 @@ type ExportCapture struct {
 ```
 
 <a name="ExportItem"></a>
-## type [ExportItem](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L130-L137>)
+## type [ExportItem](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L141-L148>)
 
 ExportItem is the provider\-level event used by current deterministic exports.
 
@@ -1291,7 +1292,7 @@ type ExportItem struct {
 ```
 
 <a name="ExportItemKind"></a>
-## type [ExportItemKind](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L84>)
+## type [ExportItemKind](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L95>)
 
 ExportItemKind identifies the current export timeline item category.
 
@@ -1313,7 +1314,7 @@ const (
 ```
 
 <a name="ExportMeta"></a>
-## type [ExportMeta](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L123-L127>)
+## type [ExportMeta](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L134-L138>)
 
 ExportMeta is the provider\-level meta event payload used by current export renderers.
 
@@ -1326,7 +1327,7 @@ type ExportMeta struct {
 ```
 
 <a name="ExportQuery"></a>
-## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L72-L76>)
+## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L83-L87>)
 
 ExportQuery captures current deterministic local export dimensions.
 
@@ -1339,17 +1340,38 @@ type ExportQuery struct {
 ```
 
 <a name="Health"></a>
-## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L36-L41>)
+## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L45-L52>)
 
 Health describes the internal provider health state.
 
 ```go
 type Health struct {
-    Provider ProviderName
-    Status   HealthStatus
-    Path     string
-    Error    string
+    Provider       ProviderName
+    Status         HealthStatus
+    Path           string
+    MigrationState HealthMigrationState
+    Writable       bool
+    Error          string
 }
+```
+
+<a name="HealthMigrationState"></a>
+## type [HealthMigrationState](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L36>)
+
+HealthMigrationState reports whether the provider sees the current local schema state.
+
+```go
+type HealthMigrationState string
+```
+
+<a name="HealthMigrationApplied"></a>
+
+```go
+const (
+    HealthMigrationApplied HealthMigrationState = "applied"
+    HealthMigrationMissing HealthMigrationState = "missing"
+    HealthMigrationUnknown HealthMigrationState = "unknown"
+)
 ```
 
 <a name="HealthStatus"></a>
@@ -1383,7 +1405,7 @@ type ImportExportOperations interface {
 ```
 
 <a name="IntentRecord"></a>
-## type [IntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L96-L107>)
+## type [IntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L107-L118>)
 
 IntentRecord is the provider\-level form of the current intent record used by verification reads.
 
@@ -1403,7 +1425,7 @@ type IntentRecord struct {
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L170-L174>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L181-L185>)
 
 Project is the provider\-level project record used by current storage behavior.
 
@@ -1430,7 +1452,7 @@ type ProjectOperations interface {
 ```
 
 <a name="ProjectQuery"></a>
-## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L62-L64>)
+## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L73-L75>)
 
 ProjectQuery captures current project lookup dimensions.
 
@@ -1494,7 +1516,7 @@ type VerificationOperations interface {
 ```
 
 <a name="VerificationQuery"></a>
-## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L79-L81>)
+## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L90-L92>)
 
 VerificationQuery captures current hash verification dimensions.
 
@@ -1804,7 +1826,7 @@ type Provider struct {
 ```
 
 <a name="FromDB"></a>
-### func [FromDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L249>)
+### func [FromDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L274>)
 
 ```go
 func FromDB(db *sql.DB) *Provider
@@ -1822,7 +1844,7 @@ func Open(ctx context.Context, path string, migrations fs.FS) (*Provider, bool, 
 Open initializes a SQLite provider at path using the provided migration files.
 
 <a name="Provider.Artifacts"></a>
-### func \(\*Provider\) [Artifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L111>)
+### func \(\*Provider\) [Artifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L136>)
 
 ```go
 func (p *Provider) Artifacts() bool
@@ -1831,7 +1853,7 @@ func (p *Provider) Artifacts() bool
 
 
 <a name="Provider.Checkpoints"></a>
-### func \(\*Provider\) [Checkpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L113>)
+### func \(\*Provider\) [Checkpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L138>)
 
 ```go
 func (p *Provider) Checkpoints() bool
@@ -1903,7 +1925,7 @@ func (p *Provider) GetVisibleContextArtifact(ctx context.Context, idPrefix, acti
 GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="Provider.Health"></a>
-### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L97>)
+### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L99>)
 
 ```go
 func (p *Provider) Health(ctx context.Context) storage.Health
@@ -1912,7 +1934,7 @@ func (p *Provider) Health(ctx context.Context) storage.Health
 Health reports internal readiness for the provider.
 
 <a name="Provider.ImportExport"></a>
-### func \(\*Provider\) [ImportExport](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L115>)
+### func \(\*Provider\) [ImportExport](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L140>)
 
 ```go
 func (p *Provider) ImportExport() bool
@@ -1993,7 +2015,7 @@ func (p *Provider) ProjectExists(ctx context.Context, name string) (bool, error)
 ProjectExists checks whether a project row exists for the provided name.
 
 <a name="Provider.Projects"></a>
-### func \(\*Provider\) [Projects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L112>)
+### func \(\*Provider\) [Projects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L137>)
 
 ```go
 func (p *Provider) Projects() bool
@@ -2011,7 +2033,7 @@ func (p *Provider) SQLDB() *sql.DB
 SQLDB exposes the current SQLite handle for existing local call sites.
 
 <a name="Provider.Verification"></a>
-### func \(\*Provider\) [Verification](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L114>)
+### func \(\*Provider\) [Verification](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L139>)
 
 ```go
 func (p *Provider) Verification() bool
