@@ -49,6 +49,7 @@ func writeOperationError(w http.ResponseWriter, err error) {
 	case strings.Contains(message, "required"),
 		strings.Contains(message, "usage:"),
 		strings.Contains(message, "invalid "),
+		strings.Contains(message, "must match"),
 		strings.Contains(message, "conflicts with"),
 		strings.Contains(message, "no active project"):
 		responses.WriteError(w, http.StatusBadRequest, "invalid_request", message)
