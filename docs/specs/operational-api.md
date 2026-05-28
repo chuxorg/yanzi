@@ -85,9 +85,11 @@ CAP-002 Phase 5 narrows the write-side portion of that debt by introducing a ded
 
 CAP-002 Phase 6 exposes the first artifact write endpoint, `POST /v0/artifacts`, for capture creation only. The handler delegates to `ArtifactWriteStore.CreateCapture`, and read-after-write uses `GET /v0/artifacts/{id}` through the read boundary. Mutation, tombstone, export, verification, and rehydration endpoints remain deferred.
 
+CAP-002 Phase 7 exposes verification and export read endpoints. Verification and chain handlers delegate through provider-backed verification helpers. Export handlers delegate through provider-backed export reads and shared deterministic renderers. No direct SQL access is introduced in handlers, and mutation, tombstone, and rehydration work remain deferred.
+
 ## Implementation Status
 
-Current status: artifact capture endpoint available; broader operational API remains deferred.
+Current status: artifact capture, verification, chain, and export read endpoints available; broader operational API remains deferred.
 
 Implemented in CAP-002 Phase 1:
 
@@ -118,8 +120,6 @@ Deferred endpoint work:
 - artifact update/delete/tombstone endpoint implementation
 - project and checkpoint endpoint implementation
 - rehydration endpoint work
-- export endpoint work
-- verification endpoint work
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
@@ -224,3 +224,57 @@ Remaining write-side debt:
 - direct SQLite writes remain inside `ArtifactWriteStore` for those deferred operations
 - artifact update/delete/tombstone APIs remain deferred
 - future APIs must delegate through `ArtifactWriteStore` or a provider-backed successor rather than reaching into SQLDB directly
+
+## Verification Endpoints
+
+Implemented in CAP-002 Phase 7:
+
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
+
+Compatibility aliases:
+
+- `GET /v0/intents/{id}/verify`
+- `GET /v0/intents/{id}/chain`
+
+Endpoint behavior:
+
+- verification delegates through shared library helpers backed by `provider.GetVerificationIntent`
+- chain traversal delegates through shared library helpers backed by `provider.GetVerificationIntentByHash`
+- verify preserves the current stored-hash vs computed-hash behavior and invalid-hash error semantics
+- chain preserves the current oldest-to-newest ordering and missing-link reporting behavior
+- handlers do not reach into SQL directly
+
+## Export Endpoints
+
+Implemented in CAP-002 Phase 7:
+
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
+
+Supported query behavior:
+
+- `project` required
+- `include_deleted` optional boolean
+- `profile` optional
+- `meta_<key>=<value>` optional exact-match metadata filters
+
+Deferred or unsupported query behavior:
+
+- checkpoint filters remain unsupported because current CLI export semantics do not provide them
+
+Endpoint behavior:
+
+- export reads delegate through `provider.ListExportItems`
+- export serialization delegates through shared deterministic library renderers reused by the CLI
+- export ordering, checkpoint interleaving, metadata visibility, meta-event handling, and project scoping preserve the current CLI behavior
+- filtered exports continue to omit checkpoints and meta events when current CLI behavior omits them
+- handlers do not perform direct SQL access
+
+Remaining read/runtime debt:
+
+- artifact list endpoints remain deferred
+- project and checkpoint management endpoints remain deferred
+- rehydration endpoints remain deferred
+- runtime daemonization, auth/RBAC, federation, MCP, Postgres, and orchestration behavior remain deferred
