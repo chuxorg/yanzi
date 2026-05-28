@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -103,7 +104,19 @@ func RunRehydrate(args []string) error {
 		return fmt.Errorf("invalid mode: %s", cfg.Mode)
 	}
 
-	payload, err := yanzilibrary.RehydrateProject(project)
+	db, err := yanzilibrary.InitDB()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+
+	payload, err := yanzilibrary.NewRehydrationService(db).RehydrateProjectWithFallback(
+		context.Background(),
+		project,
+		yanzilibrary.DefaultRehydrateFallbackLimit,
+	)
 	if err != nil {
 		return err
 	}
