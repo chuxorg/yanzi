@@ -18,11 +18,15 @@ type ConfigLoadFunc func() (config.Config, error)
 // ProviderOpenFunc opens the current storage provider for API handlers.
 type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
 
+// RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
+type RuntimeStatusFunc func() *models.RuntimeHealth
+
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
 type Dependencies struct {
-	Version      string
-	LoadConfig   ConfigLoadFunc
-	OpenProvider ProviderOpenFunc
+	Version       string
+	LoadConfig    ConfigLoadFunc
+	OpenProvider  ProviderOpenFunc
+	RuntimeStatus RuntimeStatusFunc
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -42,6 +46,9 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 				Name:   string(storage.ProviderSQLite),
 				Status: string(storage.HealthUnavailable),
 			},
+		}
+		if deps.RuntimeStatus != nil {
+			resp.Runtime = deps.RuntimeStatus()
 		}
 
 		providerCfg := cfg

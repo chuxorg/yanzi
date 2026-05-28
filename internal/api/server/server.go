@@ -1,6 +1,8 @@
 package server
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"time"
 )
@@ -47,6 +49,22 @@ func (s *Server) HTTPServer() *http.Server {
 		return nil
 	}
 	return s.httpServer
+}
+
+// Serve starts the HTTP server on the provided listener.
+func (s *Server) Serve(listener net.Listener) error {
+	if s == nil || s.httpServer == nil {
+		return nil
+	}
+	return s.httpServer.Serve(listener)
+}
+
+// Shutdown gracefully stops the HTTP server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s == nil || s.httpServer == nil {
+		return nil
+	}
+	return s.httpServer.Shutdown(ctx)
 }
 
 func (o Options) withDefaults() Options {

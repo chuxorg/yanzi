@@ -69,6 +69,12 @@ type CheckpointListResponse struct {
 	Checkpoints []Checkpoint `json:"checkpoints"`
 }
 
+// RuntimeHealth represents the current runtime bootstrap visibility payload.
+type RuntimeHealth struct {
+	Mode      string `json:"mode"`
+	StartedAt string `json:"started_at,omitempty"`
+}
+
 // RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
 type RehydrateCheckpoint struct {
 	Hash                 string   `json:"hash"`
@@ -117,6 +123,7 @@ type ProviderHealth struct {
 type HealthResponse struct {
 	Version  string         `json:"version"`
 	Mode     string         `json:"mode"`
+	Runtime  *RuntimeHealth `json:"runtime,omitempty"`
 	Provider ProviderHealth `json:"provider"`
 }
 
