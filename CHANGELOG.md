@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.10.0] - 2026-05-27
+
+### Added
+
+- CAP-002 Operational API and runtime foundation
+  - project and checkpoint endpoints
+  - artifact capture and read endpoints
+  - verification and chain endpoints
+  - export endpoints for markdown, JSON, and HTML
+  - deterministic rehydration endpoint
+  - optional shared runtime via `yanzi serve`
+
+### Notes
+
+- CLI primacy remains intact
+- local-first behavior remains the default operating model
+- no breaking CLI behavior was introduced
+- the release preserves deterministic operational semantics
+
 ## [2.9.0] - 2026-05-09
 
 ### Added
