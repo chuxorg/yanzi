@@ -29,6 +29,50 @@ type ArtifactListResponse struct {
 	Artifacts []Artifact `json:"artifacts"`
 }
 
+// ArtifactCaptureRequest captures the POST /v0/artifacts capture payload.
+type ArtifactCaptureRequest struct {
+	Author     string            `json:"author"`
+	SourceType string            `json:"source_type,omitempty"`
+	Title      string            `json:"title,omitempty"`
+	Prompt     string            `json:"prompt"`
+	Response   string            `json:"response"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+	Project    string            `json:"project,omitempty"`
+	PrevHash   string            `json:"prev_hash,omitempty"`
+}
+
+// ArtifactCaptureResponse is the deterministic capture artifact response.
+type ArtifactCaptureResponse struct {
+	ID         string            `json:"id"`
+	CreatedAt  string            `json:"created_at"`
+	Author     string            `json:"author"`
+	SourceType string            `json:"source_type"`
+	Title      string            `json:"title,omitempty"`
+	Prompt     string            `json:"prompt"`
+	Response   string            `json:"response"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+	PrevHash   string            `json:"prev_hash,omitempty"`
+	Hash       string            `json:"hash"`
+}
+
+// VerifyResponse captures deterministic verification read output.
+type VerifyResponse struct {
+	ID           string  `json:"id"`
+	Valid        bool    `json:"valid"`
+	StoredHash   string  `json:"stored_hash"`
+	ComputedHash string  `json:"computed_hash"`
+	PrevHash     string  `json:"prev_hash"`
+	Error        *string `json:"error,omitempty"`
+}
+
+// ChainResponse captures deterministic chain traversal output.
+type ChainResponse struct {
+	HeadID       string                    `json:"head_id"`
+	Length       int                       `json:"length"`
+	Intents      []ArtifactCaptureResponse `json:"intents"`
+	MissingLinks []string                  `json:"missing_links,omitempty"`
+}
+
 // Project represents the current operational API project payload.
 type Project struct {
 	Name        string `json:"name"`

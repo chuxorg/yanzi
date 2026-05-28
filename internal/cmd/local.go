@@ -2,15 +2,9 @@ package cmd
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
-	"encoding/hex"
-	"errors"
-	"fmt"
-	"time"
 
 	"github.com/chuxorg/yanzi/internal/config"
-	"github.com/chuxorg/yanzi/internal/core/hash"
 	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
@@ -29,151 +23,20 @@ func openLocalProvider(cfg config.Config) (storage.Provider, error) {
 	return registry.Open(context.Background(), cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 }
 
-func buildLocalIntent(req createIntentInput) (model.IntentRecord, error) {
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	id, err := newIntentID()
-	if err != nil {
-		return model.IntentRecord{}, err
-	}
-
-	record := model.IntentRecord{
-		ID:         id,
-		CreatedAt:  now,
-		Author:     req.Author,
-		SourceType: req.SourceType,
-		Title:      req.Title,
-		Prompt:     req.Prompt,
-		Response:   req.Response,
-		PrevHash:   req.PrevHash,
-		Meta:       req.Meta,
-	}
-	sum, err := hash.HashIntent(record)
-	if err != nil {
-		return model.IntentRecord{}, err
-	}
-	record.Hash = sum
-	return record, nil
-}
-
-func newIntentID() (string, error) {
-	var buf [16]byte
-	if _, err := rand.Read(buf[:]); err != nil {
-		return "", fmt.Errorf("generate id: %w", err)
-	}
-	return hex.EncodeToString(buf[:]), nil
-}
-
-func createLocalIntent(ctx context.Context, db *sql.DB, record model.IntentRecord) error {
-	var title any
-	if record.Title != "" {
-		title = record.Title
-	}
-	var meta any
-	if len(record.Meta) > 0 {
-		meta = string(record.Meta)
-	}
-	var prevHash any
-	if record.PrevHash != "" {
-		prevHash = record.PrevHash
-	}
-
-	_, err := db.ExecContext(
-		ctx,
-		`INSERT INTO intents (id, created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		record.ID,
-		record.CreatedAt,
-		record.Author,
-		record.SourceType,
-		title,
-		record.Prompt,
-		record.Response,
-		meta,
-		prevHash,
-		record.Hash,
-		"intent",
-		"prompt",
-		record.Prompt,
-		meta,
-	)
-	return err
-}
-
 func verifyLocalIntent(ctx context.Context, provider storage.Provider, id string) (verifyResult, error) {
-	record, err := provider.GetVerificationIntent(ctx, id)
+	result, err := yanzilibrary.VerifyIntent(ctx, provider, id)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
-			return verifyResult{}, fmt.Errorf("intent not found: %s", id)
-		}
 		return verifyResult{}, err
 	}
-
-	computed, err := hash.HashIntent(modelIntentFromStorage(record))
-	result := verifyResult{
-		ID:           record.ID,
-		StoredHash:   record.Hash,
-		ComputedHash: computed,
-		PrevHash:     record.PrevHash,
-		Valid:        err == nil && computed == record.Hash,
-	}
-	if err != nil {
-		msg := err.Error()
-		result.Error = &msg
-	}
-	return result, nil
+	return verifyResult(result), nil
 }
 
 func chainLocalIntent(ctx context.Context, provider storage.Provider, id string) (chainResult, error) {
-	head, err := provider.GetVerificationIntent(ctx, id)
+	result, err := yanzilibrary.ChainIntent(ctx, provider, id)
 	if err != nil {
-		if errors.Is(err, storage.ErrNotFound) {
-			return chainResult{}, fmt.Errorf("intent not found: %s", id)
-		}
 		return chainResult{}, err
 	}
-
-	headIntent := modelIntentFromStorage(head)
-	intents := []model.IntentRecord{headIntent}
-	current := head
-	var missing []string
-	for current.PrevHash != "" {
-		prev, err := provider.GetVerificationIntentByHash(ctx, current.PrevHash)
-		if err != nil {
-			if errors.Is(err, storage.ErrNotFound) {
-				missing = append(missing, current.PrevHash)
-				break
-			}
-			return chainResult{}, err
-		}
-		intents = append(intents, modelIntentFromStorage(prev))
-		current = prev
-	}
-
-	for i, j := 0, len(intents)-1; i < j; i, j = i+1, j-1 {
-		intents[i], intents[j] = intents[j], intents[i]
-	}
-
-	return chainResult{
-		HeadID:       head.ID,
-		Length:       len(intents),
-		Intents:      intents,
-		MissingLinks: missing,
-	}, nil
-}
-
-func modelIntentFromStorage(record storage.IntentRecord) model.IntentRecord {
-	return model.IntentRecord{
-		ID:         record.ID,
-		CreatedAt:  record.CreatedAt,
-		Author:     record.Author,
-		SourceType: record.SourceType,
-		Title:      record.Title,
-		Prompt:     record.Prompt,
-		Response:   record.Response,
-		Meta:       record.Meta,
-		PrevHash:   record.PrevHash,
-		Hash:       record.Hash,
-	}
+	return chainResult(result), nil
 }
 
 func listLocalIntents(ctx context.Context, db *sql.DB, author, source string, limit int, metaFilters map[string]string, includeDeleted bool) ([]model.IntentRecord, error) {

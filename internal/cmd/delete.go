@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
 // RunDelete tombstones an intent or artifact by id.
@@ -38,7 +39,8 @@ func RunDelete(args []string) error {
 	}
 	defer db.Close()
 
-	updatedIDs, err := performDelete(context.Background(), db, fs.Arg(0), *cascade, *force)
+	writeStore := yanzilibrary.NewArtifactWriteStore(db)
+	updatedIDs, err := writeStore.Tombstone(context.Background(), fs.Arg(0), *cascade, *force)
 	if err != nil {
 		return err
 	}
@@ -88,7 +90,8 @@ func RunRestore(args []string) error {
 	}
 	defer db.Close()
 
-	if err := performRestore(context.Background(), db, fs.Arg(0)); err != nil {
+	writeStore := yanzilibrary.NewArtifactWriteStore(db)
+	if err := writeStore.Restore(context.Background(), fs.Arg(0)); err != nil {
 		return err
 	}
 

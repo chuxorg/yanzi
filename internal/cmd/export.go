@@ -175,23 +175,19 @@ func RunExport(args []string, cliVersion string) error {
 	}
 
 	ctx := context.Background()
-	items, captureCount, err := loadExportItems(ctx, provider, project, map[string]string(metaFilters), *includeDeleted)
-	if err != nil {
-		return err
-	}
-
 	path := filepath.Join(".", "YANZI_LOG.md")
-	content := []byte(renderMarkdownLog(project, cliVersion, now, items, captureCount))
+	contentType := yanzilibrary.ExportLogFormatMarkdown
 	if formatValue == "json" {
 		path = filepath.Join(".", "YANZI_LOG.json")
-		content, err = renderJSONLog(project, cliVersion, now, items)
-		if err != nil {
-			return err
-		}
+		contentType = yanzilibrary.ExportLogFormatJSON
 	}
 	if formatValue == "html" {
 		path = filepath.Join(".", "YANZI_LOG.html")
-		content = []byte(renderHTMLLog(project, cliVersion, now, items))
+		contentType = yanzilibrary.ExportLogFormatHTML
+	}
+	content, _, err := yanzilibrary.RenderOperationalExportLog(ctx, provider, project, cliVersion, now, contentType, map[string]string(metaFilters), *includeDeleted)
+	if err != nil {
+		return err
 	}
 	if err := os.WriteFile(path, content, 0o644); err != nil {
 		return fmt.Errorf("write export file: %w", err)

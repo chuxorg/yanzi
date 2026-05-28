@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
@@ -27,6 +28,7 @@ type Dependencies struct {
 	LoadConfig    ConfigLoadFunc
 	OpenProvider  ProviderOpenFunc
 	RuntimeStatus RuntimeStatusFunc
+	Now           func() time.Time
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -87,6 +89,9 @@ func (d Dependencies) withDefaults() Dependencies {
 		d.OpenProvider = func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
 			return registry.Open(ctx, cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 		}
+	}
+	if d.Now == nil {
+		d.Now = time.Now
 	}
 	return d
 }
