@@ -223,3 +223,8 @@ func decodeArtifactReadMetadata(raw string) (map[string]string, error) {
 	}
 	return decoded, nil
 }
+
+// DecodeArtifactReadMetadata decodes the current artifact read metadata payload.
+func DecodeArtifactReadMetadata(raw string) (map[string]string, error) {
+	return decodeArtifactReadMetadata(raw)
+}
