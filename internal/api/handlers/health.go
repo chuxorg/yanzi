@@ -39,17 +39,7 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 			return
 		}
 
-		resp := models.HealthResponse{
-			Version: deps.Version,
-			Mode:    string(cfg.Mode),
-			Provider: models.ProviderHealth{
-				Name:   string(storage.ProviderSQLite),
-				Status: string(storage.HealthUnavailable),
-			},
-		}
-		if deps.RuntimeStatus != nil {
-			resp.Runtime = deps.RuntimeStatus()
-		}
+		resp := newHealthResponse(deps.Version, cfg.Mode, deps.RuntimeStatus)
 
 		providerCfg := cfg
 		providerCfg.Mode = config.ModeLocal
@@ -72,6 +62,21 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 
 		responses.WriteJSON(w, http.StatusOK, resp)
 	})
+}
+
+func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeStatusFunc) models.HealthResponse {
+	resp := models.HealthResponse{
+		Version: version,
+		Mode:    string(mode),
+		Provider: models.ProviderHealth{
+			Name:   string(storage.ProviderSQLite),
+			Status: string(storage.HealthUnavailable),
+		},
+	}
+	if runtimeStatus != nil {
+		resp.Runtime = runtimeStatus()
+	}
+	return resp
 }
 
 func (d Dependencies) withDefaults() Dependencies {
