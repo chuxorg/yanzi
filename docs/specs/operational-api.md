@@ -36,6 +36,7 @@ This specification does not define:
 The API foundation uses the existing `/v0` prefix and introduces the following route groups:
 
 - `/v0/health`
+- `/v0/rehydrate`
 - `/v0/artifacts`
 - `/v0/projects`
 - `/v0/checkpoints`
@@ -85,7 +86,7 @@ CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `int
 
 ## Implementation Status
 
-Current status: API foundation only.
+Current status: API foundation plus deterministic rehydration read support.
 
 Implemented in CAP-002 Phase 1:
 
@@ -96,6 +97,13 @@ Implemented in CAP-002 Phase 1:
 - health handler wired through existing config and storage provider seams
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
+
+Implemented in CAP-002 Phase 9:
+
+- deterministic `GET /v0/rehydrate` endpoint
+- rehydration handler wiring through the rehydration service boundary
+- deterministic API response shaping for checkpoint and fallback reconstruction
+- API tests for deterministic reconstruction, missing active-project handling, missing-project handling, and fallback behavior
 
 Current runtime status:
 
@@ -115,7 +123,6 @@ Deferred endpoint work:
 - full artifact endpoint implementation
 - project and checkpoint endpoint implementation
 - capture endpoint migration
-- rehydration endpoint work
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
@@ -128,9 +135,9 @@ Current artifact endpoint status:
 
 Current rehydration status:
 
-- no public rehydration endpoint is exposed yet
-- CLI `rehydrate` now routes through the internal rehydration service boundary
-- future rehydration endpoint work must call `RehydrationService` rather than reimplementing checkpoint or fallback composition
+- `GET /v0/rehydrate` is implemented
+- CLI `rehydrate` and the API endpoint both route through the internal rehydration service boundary
+- the endpoint preserves deterministic checkpoint anchoring, fallback behavior, and serialization
 
 Current internal read status:
 
@@ -154,6 +161,5 @@ Future artifact endpoint work:
 
 Future rehydration endpoint work:
 
-- implement any public rehydration endpoint only through the rehydration service boundary
-- preserve deterministic checkpoint and fallback behavior
+- preserve deterministic checkpoint and fallback behavior for any future expansion
 - keep runtime, auth, federation, MCP, and Postgres work deferred
