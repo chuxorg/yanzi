@@ -10,6 +10,7 @@ import (
 const (
 	basePath        = "/v0"
 	healthPath      = basePath + "/health"
+	rehydratePath   = basePath + "/rehydrate"
 	artifactsPath   = basePath + "/artifacts"
 	projectsPath    = basePath + "/projects"
 	checkpointsPath = basePath + "/checkpoints"
@@ -19,6 +20,7 @@ const (
 func NewHandler(deps handlers.Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerGet(mux, healthPath, handlers.NewHealthHandler(deps))
+	registerGet(mux, rehydratePath, handlers.NewRehydrateHandler(deps))
 	registerDeferredGroup(mux, artifactsPath, "artifacts")
 	registerDeferredGroup(mux, projectsPath, "projects")
 	registerDeferredGroup(mux, checkpointsPath, "checkpoints")
