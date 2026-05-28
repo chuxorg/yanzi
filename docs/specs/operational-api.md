@@ -40,9 +40,13 @@ The API foundation uses the existing `/v0` prefix and introduces the following r
 - `/v0/projects`
 - `/v0/checkpoints`
 
-Phase 1 only implements `GET /v0/health`.
+Implemented endpoints:
 
-The other route groups are explicitly registered as deferred placeholders so the future endpoint surface has a stable home without implying CRUD completeness.
+- `GET /v0/health`
+- `GET /v0/artifacts`
+- `GET /v0/artifacts/{id}`
+
+Deferred route groups remain registered so the future endpoint surface has a stable home without implying CRUD completeness.
 
 ## Model Boundaries
 
@@ -83,7 +87,7 @@ CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a de
 
 ## Implementation Status
 
-Current status: API foundation only.
+Current status: health plus read-only artifact endpoints.
 
 Implemented in CAP-002 Phase 1:
 
@@ -94,6 +98,13 @@ Implemented in CAP-002 Phase 1:
 - health handler wired through existing config and storage provider seams
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
+
+Implemented in CAP-002 Phase 4:
+
+- read-only artifact list endpoint at `GET /v0/artifacts`
+- read-only artifact detail endpoint at `GET /v0/artifacts/{id}`
+- artifact handler routing through the internal artifact read boundary introduced in CAP-002 Phase 3
+- deterministic JSON list/detail and error response coverage for artifact reads
 
 Current runtime status:
 
@@ -110,9 +121,9 @@ Current health/status limitation:
 
 Deferred endpoint work:
 
-- full artifact endpoint implementation
+- artifact mutation endpoints
+- capture endpoint implementation
 - project and checkpoint endpoint implementation
-- capture endpoint migration
 - rehydration endpoint work
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
@@ -121,13 +132,16 @@ Deferred endpoint work:
 
 Current artifact endpoint status:
 
-- `/v0/artifacts` remains a deferred placeholder
-- no public artifact list, show, or create endpoint is exposed yet
+- `GET /v0/artifacts` is implemented
+- `GET /v0/artifacts/{id}` is implemented
+- artifact API behavior is currently read-only
+- artifact mutation endpoints remain deferred
 
 Current internal read status:
 
 - CAP-002 Phase 3 introduces `internal/library/artifact_read_store.go` as the current local list/show read boundary
 - the CLI `list` and `show` commands delegate through that boundary
+- the artifact API read handlers also delegate through that boundary
 - the boundary preserves existing SQL-backed ordering, filtering, project scoping, and deleted-record handling
 
 Preserved current behavior and quirks:
@@ -141,5 +155,6 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- implement artifact read endpoints only through the read boundary
+- keep artifact read endpoints routed only through the read boundary
+- add mutation endpoints only after the remaining write and tombstone debt is explicitly addressed
 - keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
