@@ -1,28 +1,38 @@
-# Yanzi
+# Yanzi Technical Reference
 
-Yanzi is a CLI for recording intent, storing context, creating checkpoints, and rehydrating AI-assisted work.
+This site is the authoritative technical documentation for Yanzi.
 
-## Problem
-
-AI workflow state is fragile. Prompt history, decisions, rules, and handoff notes are easy to lose between sessions.
-
-## Solution
-
-Yanzi gives you a local workflow for:
-
-- `capture`: record prompt and response pairs
-- `checkpoint`: mark a stable project boundary
-- `rehydrate`: load the active project from the latest checkpoint
+The product narrative and onboarding layer live on [yanzi.sh](https://yanzi.sh/).
+The documentation ownership rules are defined in [documentation topology](specs/documentation-topology.md).
 
 ## Start Here
 
-- [Problem](problem.md)
 - [Install](install.md)
-- [How It Works](how-it-works.md)
-- [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
 - [API](api/index.md)
+- [Rehydrate](rehydrate.md)
+
+## Operational Specs
+
+- [How It Works](how-it-works.md)
+- [Use Yanzi](use-yanzi.md)
+- [Architecture](architecture.md)
+- [Workflow](workflow.md)
+- [Domain Model](domain-model.md)
+
+## Reference
+
+- [Problem](problem.md)
+- [UI](ui.md)
+- [Rules](rules.md)
+- [Guardrails](guardrails.md)
+- [Release Lineage Governance](release-lineage-governance.md)
+
+## Release
+
+- [Changelog](changelog.md)
+- [Release Protocol](dev/RELEASE_PROTOCOL.md)
 
 ## Use Cases
 
@@ -31,6 +41,8 @@ Yanzi gives you a local workflow for:
 - [Seeding Context](use-cases/seeding.md)
 - [Targeted Retrieval](use-cases/retrieval.md)
 
-Full technical docs are also published on GitHub Pages:
+## GitHub Pages
 
-- https://chuxorg.github.io/yanzi/
+The same technical reference is published on GitHub Pages:
+
+- <https://chuxorg.github.io/yanzi/>

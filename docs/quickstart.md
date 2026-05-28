@@ -11,7 +11,7 @@ brew install chuxorg/yanzi/yanzi
 macOS or Linux install script:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | bash
 ```
 
 Windows:
