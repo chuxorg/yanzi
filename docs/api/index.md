@@ -1,5 +1,8 @@
 # API
 
+This page is part of the authoritative technical reference.
+For the narrative and conceptual framing, see [yanzi.sh](https://yanzi.sh/).
+
 ## Problem
 
 Yanzi can be called from terminals, scripts, or other tools. The supported entrypoints need to be explicit so callers do not depend on undocumented behavior.

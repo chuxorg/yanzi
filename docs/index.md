@@ -1,28 +1,40 @@
-# Yanzi
+# Yanzi Technical Reference
 
-Yanzi is a CLI for recording intent, storing context, creating checkpoints, and rehydrating AI-assisted work.
+This site is the authoritative technical reference for Yanzi.
 
-## Problem
-
-AI workflow state is fragile. Prompt history, decisions, rules, and handoff notes are easy to lose between sessions.
-
-## Solution
-
-Yanzi gives you a local workflow for:
-
-- `capture`: record prompt and response pairs
-- `checkpoint`: mark a stable project boundary
-- `rehydrate`: load the active project from the latest checkpoint
+Product narrative, philosophy, and case studies live on [yanzi.sh](https://yanzi.sh/).
 
 ## Start Here
 
-- [Problem](problem.md)
 - [Install](install.md)
-- [How It Works](how-it-works.md)
-- [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
-- [API](api/index.md)
+- [API Reference](api/index.md)
+- [Rehydrate](rehydrate.md)
+- [Documentation Topology](specs/documentation-topology.md)
+
+## Operational Specs
+
+- [Architecture](architecture.md)
+- [Release Lineage Governance](release-lineage-governance.md)
+- [Agent Bootstrap](agent-bootstrap.md)
+- [Release Protocol](dev/RELEASE_PROTOCOL.md)
+- [Code Documentation](dev/CODE_DOCUMENTATION.md)
+- [Branch Protection](dev/BRANCH_PROTECTION.md)
+
+## Reference
+
+- [Problem](problem.md)
+- [How It Works](how-it-works.md)
+- [Use Yanzi](use-yanzi.md)
+- [UI](ui.md)
+- [AI Seed](ai-seed.md)
+
+## Release
+
+- [CAP-002 Readiness](releases/cap-002-readiness.md)
+- [CAP-002 Runtime Foundation](releases/cap-002-runtime-foundation.md)
+- [CAP-002 Release Notes](releases/CAP-002-release-notes.md)
 - [Release Steward Role](roles/release-steward.md)
 
 ## Use Cases
@@ -32,6 +44,7 @@ Yanzi gives you a local workflow for:
 - [Seeding Context](use-cases/seeding.md)
 - [Targeted Retrieval](use-cases/retrieval.md)
 
-Full technical docs are also published on GitHub Pages:
+## GitHub Pages
 
-- https://chuxorg.github.io/yanzi/
+The latest technical reference is published at [https://chuxorg.github.io/yanzi/](https://chuxorg.github.io/yanzi/).
+Use the website when you need the narrative layer; use this site when you need exact behavior, flags, schemas, and operational rules.

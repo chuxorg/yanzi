@@ -4,6 +4,8 @@
 
 Yanzi must run locally across different environments with minimal setup.
 
+For product narrative and onboarding context, see [yanzi.sh](https://yanzi.sh/).
+
 Release artifacts are published at:
 
 - https://github.com/chuxorg/yanzi/releases
@@ -21,7 +23,7 @@ brew install chuxorg/yanzi/yanzi
 Install the latest release directly from GitHub:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | bash
 ```
 
 The script detects OS and architecture, downloads the matching release asset from `https://github.com/chuxorg/yanzi/releases/latest`, and installs `yanzi` into `/usr/local/bin` when writable or `~/.local/bin` otherwise.

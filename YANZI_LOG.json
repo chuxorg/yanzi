@@ -1,17 +1,26 @@
 {
   "schema_version": 1,
   "project": "alpha",
-  "exported_at": "2026-04-25T15:09:44Z",
+  "exported_at": "2026-05-28T02:25:15Z",
   "version": "dev",
   "events": [
     {
+      "type": "checkpoint",
+      "id": "4c31743ddaf182c41e1fadf71c978a4e6a75955f1cc6365d8cf956f3ea422d77",
+      "summary": "release readiness smoke checkpoint",
+      "timestamp": "2026-05-28T02:25:15.289123Z"
+    },
+    {
       "type": "capture",
-      "id": "966709abfb7b19dd333efceae18a71b1",
-      "role": "Ada",
-      "timestamp": "2026-04-25T15:09:44.710992Z",
-      "hash": "a2b30369b5033df9c4628e0deaa78434edeeb2206c1aa3d2ed458249b27c60ec",
-      "prompt": "Hello",
-      "response": "World"
+      "id": "22abd5d81325e5a19dc18c3c7214fc61",
+      "role": "tester",
+      "timestamp": "2026-05-28T02:25:15.300927Z",
+      "hash": "05bff5feafa6ac3338be98a5e2fc5bbc4d99c2560f46f3f801cf11556441dcaa",
+      "prompt": "project-checkpoint smoke prompt",
+      "response": "project-checkpoint smoke response",
+      "metadata": {
+        "team": "qa"
+      }
     }
   ]
 }
