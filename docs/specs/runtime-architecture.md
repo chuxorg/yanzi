@@ -67,7 +67,7 @@ No session state, orchestration state, or workflow execution state is implied by
 
 ## CAP-002 Completion Assessment
 
-Yanzi now has a stabilized runtime foundation for the CAP-002 arc.
+Yanzi now has a stabilized and release-ready runtime foundation for the CAP-002 arc.
 
 Operationally available:
 
