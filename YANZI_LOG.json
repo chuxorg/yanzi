@@ -1,26 +1,17 @@
 {
   "schema_version": 1,
   "project": "alpha",
-  "exported_at": "2026-05-28T02:10:33Z",
+  "exported_at": "2026-04-25T15:09:44Z",
   "version": "dev",
   "events": [
     {
       "type": "capture",
-      "id": "f4d29eae4aee6d0187e14a0cebe07c44",
+      "id": "966709abfb7b19dd333efceae18a71b1",
       "role": "Ada",
-      "timestamp": "2026-05-28T02:10:33.898245Z",
-      "hash": "7f1dca32abc9e5c4a4a9a5f9d02e556a2423d35734fc54410bbe640dc52bc0df",
-      "prompt": "What changed?",
-      "response": "Validated runtime and API.",
-      "metadata": {
-        "area": "qa"
-      }
-    },
-    {
-      "type": "checkpoint",
-      "id": "500f613f1102eae3e80be7ab8da27ba9ca9316cc8f9449d377ff4811de6b01fb",
-      "summary": "release readiness checkpoint",
-      "timestamp": "2026-05-28T02:10:33.935524Z"
+      "timestamp": "2026-04-25T15:09:44.710992Z",
+      "hash": "a2b30369b5033df9c4628e0deaa78434edeeb2206c1aa3d2ed458249b27c60ec",
+      "prompt": "Hello",
+      "response": "World"
     }
   ]
 }

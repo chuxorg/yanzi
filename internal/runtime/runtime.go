@@ -63,15 +63,7 @@ func New(opts Options) *Runtime {
 	}
 	deps := opts.Dependencies
 	deps.Version = opts.Version
-	deps.RuntimeStatus = func() *models.RuntimeHealth {
-		if runtime.startedAt.IsZero() {
-			return nil
-		}
-		return &models.RuntimeHealth{
-			Mode:      runtime.runtimeMode,
-			StartedAt: runtime.startedAt.Format(time.RFC3339Nano),
-		}
-	}
+	deps.RuntimeStatus = runtime.runtimeHealth
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,
@@ -135,7 +127,11 @@ func (i *Instance) Shutdown(ctx context.Context) error {
 	}
 	shutdownCtx, cancel := context.WithTimeout(ctx, i.runtime.shutdownTimeout)
 	defer cancel()
-	return i.runtime.server.Shutdown(shutdownCtx)
+	err := i.runtime.server.Shutdown(shutdownCtx)
+	if err == nil {
+		i.runtime.startedAt = time.Time{}
+	}
+	return err
 }
 
 // Wait returns the background server error or nil after shutdown.
@@ -144,4 +140,14 @@ func (i *Instance) Wait() error {
 		return nil
 	}
 	return <-i.errCh
+}
+
+func (r *Runtime) runtimeHealth() *models.RuntimeHealth {
+	if r == nil || r.startedAt.IsZero() {
+		return nil
+	}
+	return &models.RuntimeHealth{
+		Mode:      r.runtimeMode,
+		StartedAt: r.startedAt.Format(time.RFC3339Nano),
+	}
 }

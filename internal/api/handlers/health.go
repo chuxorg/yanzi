@@ -33,7 +33,7 @@ type ArtifactReadStore interface {
 // ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
 type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
 
-// RuntimeStatusFunc reports the runtime bootstrap state for health responses.
+// RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
 type RuntimeStatusFunc func() *models.RuntimeHealth
 
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
@@ -57,17 +57,7 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 			return
 		}
 
-		resp := models.HealthResponse{
-			Version: deps.Version,
-			Mode:    string(cfg.Mode),
-			Provider: models.ProviderHealth{
-				Name:   string(storage.ProviderSQLite),
-				Status: string(storage.HealthUnavailable),
-			},
-		}
-		if deps.RuntimeStatus != nil {
-			resp.Runtime = deps.RuntimeStatus()
-		}
+		resp := newHealthResponse(deps.Version, cfg.Mode, deps.RuntimeStatus)
 
 		providerCfg := cfg
 		providerCfg.Mode = config.ModeLocal
@@ -90,6 +80,21 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 
 		responses.WriteJSON(w, http.StatusOK, resp)
 	})
+}
+
+func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeStatusFunc) models.HealthResponse {
+	resp := models.HealthResponse{
+		Version: version,
+		Mode:    string(mode),
+		Provider: models.ProviderHealth{
+			Name:   string(storage.ProviderSQLite),
+			Status: string(storage.HealthUnavailable),
+		},
+	}
+	if runtimeStatus != nil {
+		resp.Runtime = runtimeStatus()
+	}
+	return resp
 }
 
 func (d Dependencies) withDefaults() Dependencies {

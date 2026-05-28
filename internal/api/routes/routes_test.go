@@ -14,7 +14,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/storage"
 )
 
-func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
+func TestNewHandlerRegistersOperationalRoutes(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
 	wd, err := os.Getwd()
@@ -49,6 +49,34 @@ func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
 		t.Fatalf("unexpected health response: code=%d body=%q", healthRec.Code, healthRec.Body.String())
 	}
 
+	rehydrateReq := httptest.NewRequest(http.MethodGet, "/v0/rehydrate", nil)
+	rehydrateRec := httptest.NewRecorder()
+	handler.ServeHTTP(rehydrateRec, rehydrateReq)
+	if rehydrateRec.Code != http.StatusBadRequest || !strings.Contains(rehydrateRec.Body.String(), "\"active_project_not_set\"") {
+		t.Fatalf("unexpected rehydrate response: code=%d body=%q", rehydrateRec.Code, rehydrateRec.Body.String())
+	}
+
+	artifactReq := httptest.NewRequest(http.MethodGet, "/v0/artifacts", nil)
+	artifactRec := httptest.NewRecorder()
+	handler.ServeHTTP(artifactRec, artifactReq)
+	if artifactRec.Code == http.StatusNotFound {
+		t.Fatalf("expected artifact route to be registered, got 404")
+	}
+
+	verifyReq := httptest.NewRequest(http.MethodGet, "/v0/verify/example", nil)
+	verifyRec := httptest.NewRecorder()
+	handler.ServeHTTP(verifyRec, verifyReq)
+	if verifyRec.Code == http.StatusNotFound {
+		t.Fatalf("expected verify route to be registered, got 404")
+	}
+
+	exportReq := httptest.NewRequest(http.MethodGet, "/v0/export/json?project=alpha", nil)
+	exportRec := httptest.NewRecorder()
+	handler.ServeHTTP(exportRec, exportReq)
+	if exportRec.Code == http.StatusNotFound {
+		t.Fatalf("expected export route to be registered, got 404")
+	}
+
 	deferredReq := httptest.NewRequest(http.MethodGet, "/v0/projects", nil)
 	deferredRec := httptest.NewRecorder()
 	handler.ServeHTTP(deferredRec, deferredReq)
@@ -64,27 +92,6 @@ func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
 	}
 	if got := methodRec.Header().Get("Allow"); got != http.MethodGet {
 		t.Fatalf("unexpected allow header: %q", got)
-	}
-
-	rehydrateReq := httptest.NewRequest(http.MethodGet, "/v0/rehydrate", nil)
-	rehydrateRec := httptest.NewRecorder()
-	handler.ServeHTTP(rehydrateRec, rehydrateReq)
-	if rehydrateRec.Code != http.StatusBadRequest || !strings.Contains(rehydrateRec.Body.String(), "\"active_project_not_set\"") {
-		t.Fatalf("unexpected rehydrate response: code=%d body=%q", rehydrateRec.Code, rehydrateRec.Body.String())
-	}
-
-	verifyReq := httptest.NewRequest(http.MethodGet, "/v0/verify/example", nil)
-	verifyRec := httptest.NewRecorder()
-	handler.ServeHTTP(verifyRec, verifyReq)
-	if verifyRec.Code == http.StatusNotFound {
-		t.Fatalf("expected verify route to be registered, got 404")
-	}
-
-	exportReq := httptest.NewRequest(http.MethodGet, "/v0/export/json?project=alpha", nil)
-	exportRec := httptest.NewRecorder()
-	handler.ServeHTTP(exportRec, exportReq)
-	if exportRec.Code == http.StatusNotFound {
-		t.Fatalf("expected export route to be registered, got 404")
 	}
 }
 

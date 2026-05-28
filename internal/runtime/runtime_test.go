@@ -93,6 +93,73 @@ func TestRuntimeStartServeAndShutdown(t *testing.T) {
 	}
 }
 
+func TestRuntimeRepeatedStartupShutdownCycles(t *testing.T) {
+	workdir := t.TempDir()
+	withRuntimeWorkdir(t, workdir)
+	t.Setenv("HOME", workdir)
+	t.Setenv(config.LocalDBPathEnvVar, filepath.Join(workdir, "yanzi.db"))
+
+	db := openRuntimeDB(t, workdir)
+	defer db.Close()
+
+	seedRuntimeProject(t, db, "alpha")
+	seedRuntimeCheckpoint(t, db, "alpha", "2026-01-01T00:00:10Z", "runtime checkpoint")
+	seedRuntimeIntent(t, db, runtimeSeedIntent{
+		ID:        "intent-1",
+		CreatedAt: "2026-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "Prompt body",
+		Response:  "Response body",
+		Meta:      map[string]string{"project": "alpha"},
+	})
+	writeRuntimeProjectBinding(t, workdir, "alpha")
+
+	for i := 0; i < 2; i++ {
+		rt := New(Options{
+			Addr:    "127.0.0.1:0",
+			Version: "v0.0.0-test",
+			Dependencies: handlers.Dependencies{
+				LoadConfig: func() (config.Config, error) {
+					return config.Config{Mode: config.ModeLocal}, nil
+				},
+				OpenProvider: func(context.Context, config.Config) (storage.Provider, error) {
+					return &runtimeStubProvider{
+						health: storage.Health{Provider: storage.ProviderSQLite, Status: storage.HealthReady},
+						db:     db,
+					}, nil
+				},
+			},
+		})
+
+		inst, err := rt.Start()
+		if err != nil {
+			t.Fatalf("Start cycle %d: %v", i, err)
+		}
+
+		health := waitForRuntimeJSON(t, "http://"+inst.Addr()+"/v0/health")
+		var healthResp models.HealthResponse
+		if err := json.Unmarshal(health, &healthResp); err != nil {
+			t.Fatalf("decode health cycle %d: %v", i, err)
+		}
+		if healthResp.Mode != string(config.ModeLocal) {
+			t.Fatalf("unexpected config mode cycle %d: %+v", i, healthResp)
+		}
+		if healthResp.Runtime == nil || healthResp.Runtime.Mode != "shared" || healthResp.Runtime.StartedAt == "" {
+			t.Fatalf("unexpected runtime visibility cycle %d: %+v", i, healthResp.Runtime)
+		}
+		if err := inst.Shutdown(context.Background()); err != nil {
+			t.Fatalf("Shutdown cycle %d: %v", i, err)
+		}
+		if err := inst.Wait(); err != nil {
+			t.Fatalf("Wait cycle %d: %v", i, err)
+		}
+		if got := rt.runtimeHealth(); got != nil {
+			t.Fatalf("expected runtime snapshot cleared after shutdown cycle %d, got %+v", i, got)
+		}
+	}
+}
+
 func TestRuntimeStartFailsWhenPortUnavailable(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
