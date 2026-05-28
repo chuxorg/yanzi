@@ -34,17 +34,22 @@ This specification does not define:
 
 ## API Shape
 
-The API foundation uses the existing `/v0` prefix and introduces the following route groups:
+The API foundation uses the existing `/v0` prefix and currently exposes the following deterministic read and write surfaces:
 
-- `/v0/health`
-- `/v0/rehydrate`
-- `/v0/artifacts`
+- `GET /v0/health`
+- `POST /v0/artifacts`
+- `GET /v0/artifacts/{id}`
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
+- `GET /v0/rehydrate`
+
+The following route groups remain as deferred placeholders so the future endpoint surface has a stable home without implying CRUD completeness:
+
 - `/v0/projects`
 - `/v0/checkpoints`
-
-Phase 1 only implements `GET /v0/health`.
-
-The other route groups are explicitly registered as deferred placeholders so the future endpoint surface has a stable home without implying CRUD completeness.
 
 ## Model Boundaries
 
@@ -87,7 +92,7 @@ CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `int
 
 ## Implementation Status
 
-Current status: API foundation plus deterministic rehydration read support.
+Current status: API and runtime stabilization complete for CAP-002.
 
 Implemented in CAP-002 Phase 1:
 
@@ -117,30 +122,29 @@ Current runtime status:
 
 - internal-only
 - local-first friendly
-- experimental
-- optional foreground shared runtime available via `yanzi serve`
+- stabilized foreground shared runtime available via `yanzi serve`
 - not daemonized
 - not exposed as a full supported runtime surface
 
 Current health/status limitation:
 
-- the Phase 1 health response intentionally exposes provider name, provider status, and provider error only
-- richer provider health fields remain deferred until the CAP-001 provider hardening work is present on the active base branch
+- the health response reports the active configuration mode and provider readiness
+- when the shared runtime is active, a nested runtime block reports runtime mode and startup timestamp
+- the top-level mode remains the configuration mode, preserving the distinction between local CLI operation and shared runtime serving
 
 Deferred endpoint work:
 
-- full artifact endpoint implementation
 - project and checkpoint endpoint implementation
-- capture endpoint migration
-- tombstone endpoint work
+- tombstone mutation APIs
 - auth, orchestration, and non-SQLite provider concerns
 
 ## Artifact Read Boundary
 
 Current artifact endpoint status:
 
-- `/v0/artifacts` remains a deferred placeholder
-- no public artifact list, show, or create endpoint is exposed yet
+- `POST /v0/artifacts` is implemented
+- `GET /v0/artifacts/{id}` is implemented
+- public artifact list, update, and delete endpoints remain deferred
 
 Current rehydration status:
 
@@ -171,8 +175,8 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- implement artifact read endpoints only through the read boundary
-- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+- keep artifact list and mutation work deferred to later CAP-002 phases
+- keep tombstone mutation work deferred to later CAP-002 phases
 
 Future rehydration endpoint work:
 
@@ -184,3 +188,47 @@ Future runtime work:
 - keep runtime bootstrap lightweight and foreground only
 - avoid background workers, orchestration, or distributed coordination
 - preserve CLI primacy and local-first behavior
+
+## CAP-002 Completion Assessment
+
+What is operational:
+
+- artifact capture through the write boundary
+- artifact read access through the current read boundary
+- verification and chain reads
+- deterministic export reads
+- deterministic rehydration reads
+- optional foreground runtime serving through `yanzi serve`
+- health visibility for provider and runtime state
+
+What remains intentionally deferred:
+
+- public project and checkpoint mutation endpoints
+- public tombstone and delete endpoints
+- auth/RBAC
+- federation
+- MCP
+- Postgres
+- orchestration semantics
+- distributed coordination
+- connector runtime or plugin hosting
+
+Enterprise readiness notes:
+
+- the API surface is deterministic and local-first
+- shared runtime access is optional and foreground only
+- the runtime does not introduce orchestration state or workflow continuation semantics
+- response envelopes remain stable and machine-readable
+
+Shared runtime readiness notes:
+
+- `yanzi serve` is the explicit bootstrap entry point
+- startup and shutdown are deterministic and covered by regression tests
+- health output exposes runtime mode and startup timestamp when the runtime is active
+
+Local-first guarantees:
+
+- CLI workflows remain canonical
+- the shared runtime is optional
+- local SQLite-backed behavior remains the source of truth for current semantics
+- no endpoint requires daemonization or distributed coordination

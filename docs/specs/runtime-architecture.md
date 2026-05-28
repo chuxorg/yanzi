@@ -65,6 +65,36 @@ Runtime visibility remains informational:
 
 No session state, orchestration state, or workflow execution state is implied by the health response.
 
+## CAP-002 Completion Assessment
+
+Yanzi now has a stabilized runtime foundation for the CAP-002 arc.
+
+Operationally available:
+
+- CLI mode remains the canonical workflow
+- `yanzi serve` provides an optional foreground shared runtime
+- operational API routes are served through the runtime bootstrap
+- runtime startup and shutdown behavior is deterministic and regression-tested
+
+Intentionally deferred:
+
+- auth and RBAC
+- federation
+- MCP
+- Postgres
+- orchestration semantics
+- worker or queue systems
+- distributed coordination
+- plugin hosting
+- enterprise control-plane behavior
+
+Local-first guarantees:
+
+- the runtime is optional
+- the CLI does not depend on the runtime process
+- the shared runtime does not introduce autonomous workflow state
+- current provider-backed semantics remain the source of truth
+
 ## Deferred Work
 
 The following remain intentionally deferred:
