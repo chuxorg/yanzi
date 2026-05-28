@@ -15,6 +15,17 @@ run:
 test:
 	go test ./...
 
+# Generated API doc targets (gomarkdoc):
+#   docs             — regenerate docs/API.md (combined reference)
+#   docs-check       — verify docs/API.md is up to date (CI-safe, no write)
+#   docs-generate-api — regenerate docs/API.md + docs/api/cmd.md + docs/api/internal.md
+#
+# Hand-maintained files that must NOT be regenerated:
+#   docs/api/index.md — REST API reference for /v0 HTTP endpoints (CAP-002)
+#   docs/cli.md       — CLI reference (22-command surface)
+#
+# Regeneration cadence: run `make docs-generate-api` before each release
+# or whenever cmd/ or internal/ package exports change (new commands, new types).
 docs:
 	$(DOCGEN) -o docs/API.md ./cmd/yanzi ./internal/...
 
