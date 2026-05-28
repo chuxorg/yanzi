@@ -16,7 +16,6 @@ Product narrative, philosophy, and case studies live on [yanzi.sh](https://yanzi
 ## Operational Specs
 
 - [Architecture](architecture.md)
-- [Release Lineage Governance](release-lineage-governance.md)
 - [Agent Bootstrap](agent-bootstrap.md)
 - [Release Protocol](dev/RELEASE_PROTOCOL.md)
 - [Code Documentation](dev/CODE_DOCUMENTATION.md)
@@ -32,9 +31,6 @@ Product narrative, philosophy, and case studies live on [yanzi.sh](https://yanzi
 
 ## Release
 
-- [CAP-002 Readiness](releases/cap-002-readiness.md)
-- [CAP-002 Runtime Foundation](releases/cap-002-runtime-foundation.md)
-- [CAP-002 Release Notes](releases/CAP-002-release-notes.md)
 - [Release Steward Role](roles/release-steward.md)
 
 ## Use Cases

@@ -50,7 +50,6 @@ nav:
   - Specifications:
       - Documentation Topology: specs/documentation-topology.md
       - Architecture: architecture.md
-      - Release Lineage Governance: release-lineage-governance.md
       - Agent Bootstrap: agent-bootstrap.md
   - Operational Docs:
       - Release Protocol: dev/RELEASE_PROTOCOL.md
