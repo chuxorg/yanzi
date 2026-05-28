@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
@@ -39,6 +40,7 @@ type Dependencies struct {
 	OpenProvider          ProviderOpenFunc
 	LoadActiveProject     ActiveProjectLoadFunc
 	OpenArtifactReadStore ArtifactReadOpenFunc
+	Now                   func() time.Time
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -107,6 +109,9 @@ func (d Dependencies) withDefaults() Dependencies {
 			}
 			return yanzilibrary.NewArtifactReadStore(db), db, nil
 		}
+	}
+	if d.Now == nil {
+		d.Now = time.Now
 	}
 	return d
 }

@@ -62,6 +62,24 @@ type ArtifactCaptureResponse struct {
 	Hash       string            `json:"hash"`
 }
 
+// VerifyResponse captures deterministic verification read output.
+type VerifyResponse struct {
+	ID           string  `json:"id"`
+	Valid        bool    `json:"valid"`
+	StoredHash   string  `json:"stored_hash"`
+	ComputedHash string  `json:"computed_hash"`
+	PrevHash     string  `json:"prev_hash"`
+	Error        *string `json:"error,omitempty"`
+}
+
+// ChainResponse captures deterministic chain traversal output.
+type ChainResponse struct {
+	HeadID       string                    `json:"head_id"`
+	Length       int                       `json:"length"`
+	Intents      []ArtifactCaptureResponse `json:"intents"`
+	MissingLinks []string                  `json:"missing_links,omitempty"`
+}
+
 // Project represents the current operational API project payload.
 type Project struct {
 	Name        string `json:"name"`

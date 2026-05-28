@@ -175,7 +175,7 @@ func createArtifactCapture(w http.ResponseWriter, r *http.Request, deps Dependen
 		sourceType = "cli"
 	}
 
-	record, err := writeArtifactCapture(r.Context(), deps, cfg, yanzilibrary.CaptureWriteInput{
+	record, err := writeArtifactCapture(r.Context(), deps, yanzilibrary.CaptureWriteInput{
 		Author:     req.Author,
 		SourceType: sourceType,
 		Title:      req.Title,
@@ -198,8 +198,8 @@ func createArtifactCapture(w http.ResponseWriter, r *http.Request, deps Dependen
 	responses.WriteJSON(w, http.StatusCreated, response)
 }
 
-func writeArtifactCapture(ctx context.Context, deps Dependencies, cfg config.Config, input yanzilibrary.CaptureWriteInput) (model.IntentRecord, error) {
-	provider, err := openArtifactProvider(ctx, deps, cfg)
+func writeArtifactCapture(ctx context.Context, deps Dependencies, input yanzilibrary.CaptureWriteInput) (model.IntentRecord, error) {
+	provider, err := openArtifactProvider(ctx, deps)
 	if err != nil {
 		return model.IntentRecord{}, err
 	}
@@ -210,7 +210,11 @@ func writeArtifactCapture(ctx context.Context, deps Dependencies, cfg config.Con
 	return store.CreateCapture(ctx, input)
 }
 
-func openArtifactProvider(ctx context.Context, deps Dependencies, cfg config.Config) (storage.Provider, error) {
+func openArtifactProvider(ctx context.Context, deps Dependencies) (storage.Provider, error) {
+	cfg, err := deps.LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("load config: %w", err)
+	}
 	providerCfg := cfg
 	providerCfg.Mode = config.ModeLocal
 	provider, err := deps.OpenProvider(ctx, providerCfg)

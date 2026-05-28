@@ -4,7 +4,7 @@
 
 The operational API defines the internal HTTP seam for Yanzi operational workflows while preserving the current local-first architecture and CLI primacy.
 
-The CLI remains the canonical interface. The operational API exists so endpoint work can reuse existing library and provider behavior instead of introducing parallel semantics.
+The CLI remains the canonical interface. The operational API exists so future endpoint work can reuse existing library and provider behavior instead of introducing parallel semantics.
 
 ## Scope
 
@@ -39,24 +39,10 @@ The API foundation uses the existing `/v0` prefix and introduces the following r
 - `/v0/artifacts`
 - `/v0/projects`
 - `/v0/checkpoints`
-- `/v0/verify`
-- `/v0/export`
-- `/v0/rehydrate`
 
-Implemented endpoints:
+Phase 1 only implements `GET /v0/health`.
 
-- `GET /v0/health`
-- `GET /v0/artifacts`
-- `GET /v0/artifacts/{id}`
-- `POST /v0/artifacts`
-- `GET /v0/verify/{id}`
-- `GET /v0/chain/{id}`
-- `GET /v0/export/markdown`
-- `GET /v0/export/json`
-- `GET /v0/export/html`
-- `GET /v0/rehydrate`
-
-Deferred route groups remain registered so the future endpoint surface has a stable home without implying CRUD completeness.
+The other route groups are explicitly registered as deferred placeholders so the future endpoint surface has a stable home without implying CRUD completeness.
 
 ## Model Boundaries
 
@@ -66,8 +52,6 @@ Canonical models align with current Yanzi semantics for:
 - projects
 - checkpoints
 - health and status
-- verification and export payloads
-- rehydration payloads
 
 Models intentionally avoid future-provider fields and deployment-oriented metadata.
 
@@ -87,23 +71,25 @@ Handlers must not:
 
 ## CAP-001 Carry-Forward Debt
 
-CAP-002 began after the storage abstraction seam was sufficiently complete, but the following paths intentionally remained outside provider migration at that point:
+CAP-002 begins after the storage abstraction seam is sufficiently complete, but the following paths intentionally remain outside provider migration at this point:
 
 - capture writes
 - rehydration reads
 - tombstone mutation paths
 
-CAP-002 Phase 3 narrowed the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
+Phase 1 must not migrate those paths. Future artifact endpoint phases will address them directly.
 
-CAP-002 Phase 5 narrowed the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
+CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
-CAP-002 Phase 7 added verification and export read endpoints that delegate through existing library and provider behavior. These remain read-only and deterministic.
+CAP-002 Phase 5 narrows the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
 
-CAP-002 Phase 8 introduced the rehydration service boundary. Phase 9 exposed that boundary through `GET /v0/rehydrate`.
+CAP-002 Phase 6 exposes the first artifact write endpoint, `POST /v0/artifacts`, for capture creation only. The handler delegates to `ArtifactWriteStore.CreateCapture`, and read-after-write uses `GET /v0/artifacts/{id}` through the read boundary. Mutation, tombstone, export, verification, and rehydration endpoints remain deferred.
+
+CAP-002 Phase 7 exposes verification and export read endpoints. Verification and chain handlers delegate through provider-backed verification helpers. Export handlers delegate through provider-backed export reads and shared deterministic renderers. No direct SQL access is introduced in handlers, and mutation, tombstone, and rehydration work remain deferred.
 
 ## Implementation Status
 
-Current status: operational API plus lightweight shared runtime foundation.
+Current status: artifact capture, verification, chain, and export read endpoints available; broader operational API remains deferred.
 
 Implemented in CAP-002 Phase 1:
 
@@ -115,95 +101,40 @@ Implemented in CAP-002 Phase 1:
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
 
-Implemented in CAP-002 Phase 3:
-
-- dedicated artifact read boundary for list/show behavior
-- CLI `list` and `show` delegation through that boundary
-
-Implemented in CAP-002 Phase 4:
-
-- read-only artifact list endpoint at `GET /v0/artifacts`
-- read-only artifact detail endpoint at `GET /v0/artifacts/{id}`
-- artifact handler routing through the internal artifact read boundary
-- deterministic JSON list/detail and error response coverage for artifact reads
-
-Implemented in CAP-002 Phase 5:
-
-- dedicated artifact write boundary for capture, artifact creation, tombstone, and restore behavior
-- provider-compatible artifact creation writes routed through that boundary
-- local `capture`, `delete`, and `restore` delegation through the boundary
-
-Implemented in CAP-002 Phase 6:
-
-- `POST /v0/artifacts` capture endpoint
-- read-after-write behavior through `GET /v0/artifacts/{id}`
-- deterministic artifact capture response shape
-
-Implemented in CAP-002 Phase 7:
-
-- `GET /v0/verify/{id}`
-- `GET /v0/chain/{id}`
-- `GET /v0/export/markdown`
-- `GET /v0/export/json`
-- `GET /v0/export/html`
-- provider-compatible verification and export delegation
-
-Implemented in CAP-002 Phase 8:
-
-- internal rehydration service boundary
-- CLI `rehydrate` delegation through that boundary
-
-Implemented in CAP-002 Phase 9:
-
-- `GET /v0/rehydrate`
-- deterministic reconstruction through the rehydration boundary
-
-Implemented in CAP-002 Phase 10:
-
-- explicit foreground runtime bootstrap
-- optional `yanzi serve` execution mode
-- runtime health visibility
-
-Implemented in CAP-002 Phase 11:
-
-- stabilized API/runtime response behavior
-- repeated startup/shutdown coverage
-- release-readiness review and documentation consolidation
-
 Current runtime status:
 
-- optional
-- local-first friendly
-- foreground execution by default
+- internal-only
+- local-only friendly
+- experimental
 - not daemonized
-- not exposed as a full supported distributed runtime surface
+- not exposed as a full supported runtime surface
 
-Current health/status behavior:
+Current health/status limitation:
 
-- exposes version, mode, provider status, and runtime status
-- remains deterministic and operational
+- the Phase 1 health response intentionally exposes provider name, provider status, and provider error only
+- richer provider health fields remain deferred until the CAP-001 provider hardening work is present on the active base branch
 
 Deferred endpoint work:
 
-- project and checkpoint endpoint implementation
+- artifact list endpoint implementation
 - artifact update/delete/tombstone endpoint implementation
-- public mutation endpoints beyond capture creation
+- project and checkpoint endpoint implementation
+- rehydration endpoint work
+- tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
 ## Artifact Read Boundary
 
 Current artifact endpoint status:
 
-- `GET /v0/artifacts` is implemented
-- `GET /v0/artifacts/{id}` is implemented
-- artifact API behavior is currently read-only for reads and capture-only for writes
-- artifact mutation endpoints remain deferred
+- `GET /v0/artifacts/{id}` is available for capture read-after-write
+- `GET /v0/artifacts` remains deferred
+- no artifact list endpoint is exposed yet
 
 Current internal read status:
 
 - CAP-002 Phase 3 introduces `internal/library/artifact_read_store.go` as the current local list/show read boundary
 - the CLI `list` and `show` commands delegate through that boundary
-- the artifact API read handlers also delegate through that boundary
 - the boundary preserves existing SQL-backed ordering, filtering, project scoping, and deleted-record handling
 
 Preserved current behavior and quirks:
@@ -217,9 +148,9 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- keep artifact read endpoints routed only through the read boundary
-- keep capture writes routed only through the write boundary
-- keep mutation endpoints deferred until the remaining write and tombstone debt is explicitly addressed
+- implement artifact list endpoints only through the read boundary
+- implement future write endpoints only through the write boundary
+- keep public mutation endpoints, rehydration reads, and public tombstone APIs deferred to later CAP-002 phases
 
 ## Artifact Write Boundary
 
@@ -235,6 +166,7 @@ Current internal write status:
 - library artifact creation delegates through that boundary
 - local `yanzi delete` and `yanzi restore` delegate through that boundary
 - artifact creation inside the boundary uses provider-compatible SQLite artifact writes
+- `POST /v0/artifacts` delegates to `ArtifactWriteStore.CreateCapture`
 
 Preserved current behavior and quirks:
 
@@ -245,57 +177,104 @@ Preserved current behavior and quirks:
 - tombstone still writes deletion metadata to `metadata` for normal captures and to `meta` for `source_type = artifact` rows
 - restore still removes deletion metadata from the same column selected by tombstone behavior
 
+## Artifact Capture Endpoint
+
+Implemented in CAP-002 Phase 6:
+
+- `POST /v0/artifacts`
+- `GET /v0/artifacts/{id}`
+
+`POST /v0/artifacts` request fields:
+
+- `author` required
+- `source_type` optional, default `cli`
+- `title` optional
+- `prompt` required
+- `response` required
+- `metadata` optional string map
+- `project` optional project association stored in capture metadata before hashing
+- `prev_hash` optional lineage link
+
+`POST /v0/artifacts` response fields:
+
+- `id`
+- `created_at`
+- `author`
+- `source_type`
+- `title` when supplied
+- `prompt`
+- `response`
+- `metadata` when present
+- `prev_hash` when supplied
+- `hash`
+
+Endpoint behavior:
+
+- writes are routed through `ArtifactWriteStore.CreateCapture`
+- read-after-write is routed through `ArtifactReadStore.GetIntentRecord`
+- malformed payloads use deterministic API error envelopes
+- collection `GET /v0/artifacts` remains deferred
+- `PUT`, `PATCH`, `DELETE`, and tombstone APIs remain unavailable
+- no daemonization, auth/RBAC, orchestration, federation, MCP, Postgres, export, verification, or rehydration behavior is introduced
+
 Remaining write-side debt:
 
 - capture writes do not yet have a provider contract method
 - tombstone and restore mutations do not yet have provider contract methods
 - direct SQLite writes remain inside `ArtifactWriteStore` for those deferred operations
+- artifact update/delete/tombstone APIs remain deferred
 - future APIs must delegate through `ArtifactWriteStore` or a provider-backed successor rather than reaching into SQLDB directly
 
-## Verification and Export Read Paths
+## Verification Endpoints
 
-Current verification and export status:
+Implemented in CAP-002 Phase 7:
 
-- verification endpoints are implemented and deterministic
-- export endpoints are implemented and deterministic
-- CLI and API semantics remain aligned
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
 
-Preserved current behavior:
+Compatibility aliases:
 
-- verification keeps the current hash/chain semantics
-- export keeps current ordering, metadata visibility, and checkpoint/project scoping behavior
-- export serialization remains deterministic for markdown, JSON, and HTML outputs
+- `GET /v0/intents/{id}/verify`
+- `GET /v0/intents/{id}/chain`
 
-## Rehydration Read Path
+Endpoint behavior:
 
-Current rehydration status:
+- verification delegates through shared library helpers backed by `provider.GetVerificationIntent`
+- chain traversal delegates through shared library helpers backed by `provider.GetVerificationIntentByHash`
+- verify preserves the current stored-hash vs computed-hash behavior and invalid-hash error semantics
+- chain preserves the current oldest-to-newest ordering and missing-link reporting behavior
+- handlers do not reach into SQL directly
 
-- the rehydration service boundary is implemented
-- `GET /v0/rehydrate` exposes deterministic reconstruction through that boundary
-- checkpoint anchoring, post-checkpoint composition, and ordering semantics are preserved
+## Export Endpoints
 
-Remaining rehydration debt:
+Implemented in CAP-002 Phase 7:
 
-- runtime/session/orchestration semantics are intentionally deferred
-- no mutable continuation or execution control is exposed through rehydration
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
 
-## Runtime Foundation
+Supported query behavior:
 
-Current runtime status:
+- `project` required
+- `include_deleted` optional boolean
+- `profile` optional
+- `meta_<key>=<value>` optional exact-match metadata filters
 
-- explicit foreground server bootstrap is implemented
-- `yanzi serve` is optional and local-first compatible
-- API serving lifecycle is deterministic
-- startup and shutdown behavior is covered by regression tests
+Deferred or unsupported query behavior:
 
-Deferred runtime work:
+- checkpoint filters remain unsupported because current CLI export semantics do not provide them
 
-- auth/RBAC
-- federation
-- MCP
-- Postgres
-- orchestration behavior
-- background workers
-- distributed coordination
-- plugin hosting
+Endpoint behavior:
 
+- export reads delegate through `provider.ListExportItems`
+- export serialization delegates through shared deterministic library renderers reused by the CLI
+- export ordering, checkpoint interleaving, metadata visibility, meta-event handling, and project scoping preserve the current CLI behavior
+- filtered exports continue to omit checkpoints and meta events when current CLI behavior omits them
+- handlers do not perform direct SQL access
+
+Remaining read/runtime debt:
+
+- artifact list endpoints remain deferred
+- project and checkpoint management endpoints remain deferred
+- rehydration endpoints remain deferred
+- runtime daemonization, auth/RBAC, federation, MCP, Postgres, and orchestration behavior remain deferred

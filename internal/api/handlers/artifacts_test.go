@@ -384,19 +384,6 @@ func TestArtifactCaptureResponseShapeIsStable(t *testing.T) {
 	}
 }
 
-func artifactDBPath(home string) string {
-	return filepath.Join(home, ".yanzi", "yanzi.db")
-}
-
-func mustMarshalMetadata(t *testing.T, metadata map[string]string) json.RawMessage {
-	t.Helper()
-	raw, err := json.Marshal(metadata)
-	if err != nil {
-		t.Fatalf("marshal metadata: %v", err)
-	}
-	return raw
-}
-
 func writeAPIHandlerTestConfig(t *testing.T, home string) {
 	t.Helper()
 
@@ -460,4 +447,17 @@ func parseCapturedID(t *testing.T, output string) string {
 	}
 	t.Fatalf("capture output missing id: %q", output)
 	return ""
+}
+
+func artifactDBPath(home string) string {
+	return filepath.Join(home, ".yanzi", "yanzi.db")
+}
+
+func mustMarshalMetadata(t *testing.T, metadata map[string]string) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(metadata)
+	if err != nil {
+		t.Fatalf("marshal metadata: %v", err)
+	}
+	return raw
 }
