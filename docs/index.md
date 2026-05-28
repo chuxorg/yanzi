@@ -21,6 +21,7 @@ Yanzi gives you a local workflow for:
 - [How It Works](how-it-works.md)
 - [Runtime Architecture](specs/runtime-architecture.md)
 - [CAP-002 Readiness](releases/cap-002-readiness.md)
+- [CAP-002 Release Notes](releases/CAP-002-release-notes.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)

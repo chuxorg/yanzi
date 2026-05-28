@@ -356,6 +356,8 @@ Endpoint behavior:
 
 ## CAP-002 Completion Assessment
 
+CAP-002 is now release-ready as the stabilized local-first operational foundation for Yanzi.
+
 What is operational:
 
 - artifact capture through the write boundary
