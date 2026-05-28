@@ -20,6 +20,12 @@ macOS or Linux install script:
 curl -sSL https://raw.githubusercontent.com/chuxorg/yanzi/master/install.sh | bash
 ```
 
+Windows:
+
+1. Download `yanzi-windows-amd64.zip` from the [latest release](https://github.com/chuxorg/yanzi/releases/latest).
+2. Extract `yanzi.exe`.
+3. Add the extract directory to `PATH`.
+
 ## Quickstart
 
 ```bash

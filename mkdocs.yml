@@ -50,6 +50,7 @@ nav:
   - Specifications:
       - Documentation Topology: specs/documentation-topology.md
       - Architecture: architecture.md
+      - Release Lineage Governance: release-lineage-governance.md
       - Agent Bootstrap: agent-bootstrap.md
   - Operational Docs:
       - Release Protocol: dev/RELEASE_PROTOCOL.md
@@ -62,6 +63,8 @@ nav:
           - Retrieval: use-cases/retrieval.md
   - Roles:
       - Release Steward: roles/release-steward.md
+  - Roadmap:
+      - CAP-100 Phase 1: roadmap/phases/CAP-100-phase-1-doc-topology-alignment.md
   - Generated API:
       - Overview: api/index.md
       - CLI Package: api/cmd.md
