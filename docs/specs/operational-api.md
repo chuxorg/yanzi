@@ -4,7 +4,7 @@
 
 The operational API defines the internal HTTP seam for Yanzi operational workflows while preserving the current local-first architecture and CLI primacy.
 
-The CLI remains the canonical interface. The operational API exists so future endpoint work can reuse existing library and provider behavior instead of introducing parallel semantics.
+The CLI remains the canonical interface. The operational API exists so endpoint work can reuse existing library and provider behavior instead of introducing parallel semantics.
 
 ## Scope
 
@@ -39,12 +39,22 @@ The API foundation uses the existing `/v0` prefix and introduces the following r
 - `/v0/artifacts`
 - `/v0/projects`
 - `/v0/checkpoints`
+- `/v0/verify`
+- `/v0/export`
+- `/v0/rehydrate`
 
 Implemented endpoints:
 
 - `GET /v0/health`
 - `GET /v0/artifacts`
 - `GET /v0/artifacts/{id}`
+- `POST /v0/artifacts`
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
+- `GET /v0/rehydrate`
 
 Deferred route groups remain registered so the future endpoint surface has a stable home without implying CRUD completeness.
 
@@ -56,6 +66,8 @@ Canonical models align with current Yanzi semantics for:
 - projects
 - checkpoints
 - health and status
+- verification and export payloads
+- rehydration payloads
 
 Models intentionally avoid future-provider fields and deployment-oriented metadata.
 
@@ -75,21 +87,23 @@ Handlers must not:
 
 ## CAP-001 Carry-Forward Debt
 
-CAP-002 begins after the storage abstraction seam is sufficiently complete, but the following paths intentionally remain outside provider migration at this point:
+CAP-002 began after the storage abstraction seam was sufficiently complete, but the following paths intentionally remained outside provider migration at that point:
 
 - capture writes
 - rehydration reads
 - tombstone mutation paths
 
-Phase 1 must not migrate those paths. Future artifact endpoint phases will address them directly.
+CAP-002 Phase 3 narrowed the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
-CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
+CAP-002 Phase 5 narrowed the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
 
-CAP-002 Phase 5 narrows the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
+CAP-002 Phase 7 added verification and export read endpoints that delegate through existing library and provider behavior. These remain read-only and deterministic.
+
+CAP-002 Phase 8 introduced the rehydration service boundary. Phase 9 exposed that boundary through `GET /v0/rehydrate`.
 
 ## Implementation Status
 
-Current status: health plus read-only artifact endpoints.
+Current status: operational API plus lightweight shared runtime foundation.
 
 Implemented in CAP-002 Phase 1:
 
@@ -101,33 +115,79 @@ Implemented in CAP-002 Phase 1:
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
 
+Implemented in CAP-002 Phase 3:
+
+- dedicated artifact read boundary for list/show behavior
+- CLI `list` and `show` delegation through that boundary
+
 Implemented in CAP-002 Phase 4:
 
 - read-only artifact list endpoint at `GET /v0/artifacts`
 - read-only artifact detail endpoint at `GET /v0/artifacts/{id}`
-- artifact handler routing through the internal artifact read boundary introduced in CAP-002 Phase 3
+- artifact handler routing through the internal artifact read boundary
 - deterministic JSON list/detail and error response coverage for artifact reads
+
+Implemented in CAP-002 Phase 5:
+
+- dedicated artifact write boundary for capture, artifact creation, tombstone, and restore behavior
+- provider-compatible artifact creation writes routed through that boundary
+- local `capture`, `delete`, and `restore` delegation through the boundary
+
+Implemented in CAP-002 Phase 6:
+
+- `POST /v0/artifacts` capture endpoint
+- read-after-write behavior through `GET /v0/artifacts/{id}`
+- deterministic artifact capture response shape
+
+Implemented in CAP-002 Phase 7:
+
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
+- provider-compatible verification and export delegation
+
+Implemented in CAP-002 Phase 8:
+
+- internal rehydration service boundary
+- CLI `rehydrate` delegation through that boundary
+
+Implemented in CAP-002 Phase 9:
+
+- `GET /v0/rehydrate`
+- deterministic reconstruction through the rehydration boundary
+
+Implemented in CAP-002 Phase 10:
+
+- explicit foreground runtime bootstrap
+- optional `yanzi serve` execution mode
+- runtime health visibility
+
+Implemented in CAP-002 Phase 11:
+
+- stabilized API/runtime response behavior
+- repeated startup/shutdown coverage
+- release-readiness review and documentation consolidation
 
 Current runtime status:
 
-- internal-only
-- local-only friendly
-- experimental
+- optional
+- local-first friendly
+- foreground execution by default
 - not daemonized
-- not exposed as a full supported runtime surface
+- not exposed as a full supported distributed runtime surface
 
-Current health/status limitation:
+Current health/status behavior:
 
-- the Phase 1 health response intentionally exposes provider name, provider status, and provider error only
-- richer provider health fields remain deferred until the CAP-001 provider hardening work is present on the active base branch
+- exposes version, mode, provider status, and runtime status
+- remains deterministic and operational
 
 Deferred endpoint work:
 
-- artifact mutation endpoints
-- capture endpoint implementation
 - project and checkpoint endpoint implementation
-- rehydration endpoint work
-- tombstone endpoint work
+- artifact update/delete/tombstone endpoint implementation
+- public mutation endpoints beyond capture creation
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
 ## Artifact Read Boundary
@@ -136,7 +196,7 @@ Current artifact endpoint status:
 
 - `GET /v0/artifacts` is implemented
 - `GET /v0/artifacts/{id}` is implemented
-- artifact API behavior is currently read-only
+- artifact API behavior is currently read-only for reads and capture-only for writes
 - artifact mutation endpoints remain deferred
 
 Current internal read status:
@@ -157,16 +217,16 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
--- keep artifact read endpoints routed only through the read boundary
--- add mutation endpoints only after the remaining write and tombstone debt is explicitly addressed
--- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+- keep artifact read endpoints routed only through the read boundary
+- keep capture writes routed only through the write boundary
+- keep mutation endpoints deferred until the remaining write and tombstone debt is explicitly addressed
 
 ## Artifact Write Boundary
 
 Current artifact mutation endpoint status:
 
--- `/v0/artifacts` remains read-only for list/detail in the current phase
--- no public artifact create, update, patch, delete, capture, or tombstone endpoint is exposed yet
+- `POST /v0/artifacts` creates capture records through the write boundary
+- no artifact update, patch, delete, or tombstone endpoint is exposed yet
 
 Current internal write status:
 
@@ -190,5 +250,52 @@ Remaining write-side debt:
 - capture writes do not yet have a provider contract method
 - tombstone and restore mutations do not yet have provider contract methods
 - direct SQLite writes remain inside `ArtifactWriteStore` for those deferred operations
-- public capture, artifact mutation, and tombstone APIs remain deferred
 - future APIs must delegate through `ArtifactWriteStore` or a provider-backed successor rather than reaching into SQLDB directly
+
+## Verification and Export Read Paths
+
+Current verification and export status:
+
+- verification endpoints are implemented and deterministic
+- export endpoints are implemented and deterministic
+- CLI and API semantics remain aligned
+
+Preserved current behavior:
+
+- verification keeps the current hash/chain semantics
+- export keeps current ordering, metadata visibility, and checkpoint/project scoping behavior
+- export serialization remains deterministic for markdown, JSON, and HTML outputs
+
+## Rehydration Read Path
+
+Current rehydration status:
+
+- the rehydration service boundary is implemented
+- `GET /v0/rehydrate` exposes deterministic reconstruction through that boundary
+- checkpoint anchoring, post-checkpoint composition, and ordering semantics are preserved
+
+Remaining rehydration debt:
+
+- runtime/session/orchestration semantics are intentionally deferred
+- no mutable continuation or execution control is exposed through rehydration
+
+## Runtime Foundation
+
+Current runtime status:
+
+- explicit foreground server bootstrap is implemented
+- `yanzi serve` is optional and local-first compatible
+- API serving lifecycle is deterministic
+- startup and shutdown behavior is covered by regression tests
+
+Deferred runtime work:
+
+- auth/RBAC
+- federation
+- MCP
+- Postgres
+- orchestration behavior
+- background workers
+- distributed coordination
+- plugin hosting
+

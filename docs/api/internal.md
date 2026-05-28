@@ -898,7 +898,7 @@ type ArtifactWriteStore struct {
 ```
 
 <a name="NewArtifactWriteStore"></a>
-### func [NewArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L57>)
+### func [NewArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L58>)
 
 ```go
 func NewArtifactWriteStore(db *sql.DB) *ArtifactWriteStore
@@ -907,7 +907,7 @@ func NewArtifactWriteStore(db *sql.DB) *ArtifactWriteStore
 NewArtifactWriteStore creates a local artifact write boundary over db.
 
 <a name="ArtifactWriteStore.CreateArtifact"></a>
-### func \(\*ArtifactWriteStore\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L77>)
+### func \(\*ArtifactWriteStore\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L78>)
 
 ```go
 func (s *ArtifactWriteStore) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (Artifact, error)
@@ -916,7 +916,7 @@ func (s *ArtifactWriteStore) CreateArtifact(ctx context.Context, input storage.C
 CreateArtifact stores an artifact through the provider\-compatible SQLite path.
 
 <a name="ArtifactWriteStore.CreateCapture"></a>
-### func \(\*ArtifactWriteStore\) [CreateCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L62>)
+### func \(\*ArtifactWriteStore\) [CreateCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L63>)
 
 ```go
 func (s *ArtifactWriteStore) CreateCapture(ctx context.Context, input CaptureWriteInput) (model.IntentRecord, error)
@@ -925,7 +925,7 @@ func (s *ArtifactWriteStore) CreateCapture(ctx context.Context, input CaptureWri
 CreateCapture stores a local capture using current intent ledger semantics.
 
 <a name="ArtifactWriteStore.Restore"></a>
-### func \(\*ArtifactWriteStore\) [Restore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L141>)
+### func \(\*ArtifactWriteStore\) [Restore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L142>)
 
 ```go
 func (s *ArtifactWriteStore) Restore(ctx context.Context, id string) error
@@ -934,7 +934,7 @@ func (s *ArtifactWriteStore) Restore(ctx context.Context, id string) error
 Restore removes current tombstone metadata from an intent or artifact.
 
 <a name="ArtifactWriteStore.Tombstone"></a>
-### func \(\*ArtifactWriteStore\) [Tombstone](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L90>)
+### func \(\*ArtifactWriteStore\) [Tombstone](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L91>)
 
 ```go
 func (s *ArtifactWriteStore) Tombstone(ctx context.Context, id string, cascade, force bool) ([]string, error)
@@ -943,7 +943,7 @@ func (s *ArtifactWriteStore) Tombstone(ctx context.Context, id string, cascade, 
 Tombstone marks an intent or artifact deleted using current metadata column rules.
 
 <a name="CaptureWriteInput"></a>
-## type [CaptureWriteInput](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L32-L40>)
+## type [CaptureWriteInput](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L32-L41>)
 
 CaptureWriteInput captures the current local prompt/response write shape.
 
@@ -955,6 +955,7 @@ type CaptureWriteInput struct {
     Prompt     string
     Response   string
     Meta       json.RawMessage
+    Project    string
     PrevHash   string
 }
 ```
@@ -1672,13 +1673,13 @@ import "github.com/chuxorg/yanzi/internal/api/handlers"
 
 
 <a name="NewArtifactHandler"></a>
-## func [NewArtifactHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/artifacts.go#L18>)
+## func [NewArtifactHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/artifacts.go#L24>)
 
 ```go
 func NewArtifactHandler(deps Dependencies) http.Handler
 ```
 
-NewArtifactHandler returns the read\-only CAP\-002 artifact handler.
+NewArtifactHandler returns the current artifact capture/read API handler.
 
 <a name="NewDeferredRouteHandler"></a>
 ## func [NewDeferredRouteHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/placeholders.go#L12>)
@@ -1790,6 +1791,8 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 ## Index
 
 - [type Artifact](<#Artifact>)
+- [type ArtifactCaptureRequest](<#ArtifactCaptureRequest>)
+- [type ArtifactCaptureResponse](<#ArtifactCaptureResponse>)
 - [type ArtifactListResponse](<#ArtifactListResponse>)
 - [type ArtifactResponse](<#ArtifactResponse>)
 - [type ArtifactSummary](<#ArtifactSummary>)
@@ -1822,6 +1825,44 @@ type Artifact struct {
     Metadata  map[string]string `json:"metadata,omitempty"`
     PrevHash  string            `json:"prev_hash,omitempty"`
     Hash      string            `json:"hash"`
+}
+```
+
+<a name="ArtifactCaptureRequest"></a>
+## type [ArtifactCaptureRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L49>)
+
+ArtifactCaptureRequest captures the POST /v0/artifacts capture payload.
+
+```go
+type ArtifactCaptureRequest struct {
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type,omitempty"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    Project    string            `json:"project,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="ArtifactCaptureResponse"></a>
+## type [ArtifactCaptureResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L52-L63>)
+
+ArtifactCaptureResponse is the deterministic capture artifact response.
+
+```go
+type ArtifactCaptureResponse struct {
+    ID         string            `json:"id"`
+    CreatedAt  string            `json:"created_at"`
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+    Hash       string            `json:"hash"`
 }
 ```
 
@@ -1865,7 +1906,7 @@ type ArtifactSummary struct {
 ```
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L58-L65>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L84-L91>)
 
 Checkpoint represents the current operational API checkpoint payload.
 
@@ -1881,7 +1922,7 @@ type Checkpoint struct {
 ```
 
 <a name="CheckpointCreateRequest"></a>
-## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L68-L72>)
+## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L94-L98>)
 
 CheckpointCreateRequest captures the current checkpoint creation shape.
 
@@ -1894,7 +1935,7 @@ type CheckpointCreateRequest struct {
 ```
 
 <a name="CheckpointListResponse"></a>
-## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L75-L77>)
+## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L101-L103>)
 
 CheckpointListResponse is the collection response for checkpoint queries.
 
@@ -1905,7 +1946,7 @@ type CheckpointListResponse struct {
 ```
 
 <a name="HealthResponse"></a>
-## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L87-L91>)
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L113-L117>)
 
 HealthResponse is the minimal operational health/status response.
 
@@ -1918,7 +1959,7 @@ type HealthResponse struct {
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L44>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L66-L70>)
 
 Project represents the current operational API project payload.
 
@@ -1931,7 +1972,7 @@ type Project struct {
 ```
 
 <a name="ProjectCreateRequest"></a>
-## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L47-L50>)
+## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L73-L76>)
 
 ProjectCreateRequest captures the current project creation shape.
 
@@ -1943,7 +1984,7 @@ type ProjectCreateRequest struct {
 ```
 
 <a name="ProjectListResponse"></a>
-## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L53-L55>)
+## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L79-L81>)
 
 ProjectListResponse is the collection response for project queries.
 
@@ -1954,7 +1995,7 @@ type ProjectListResponse struct {
 ```
 
 <a name="ProviderHealth"></a>
-## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L80-L84>)
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L106-L110>)
 
 ProviderHealth represents the current provider health payload for API status reads.
 
@@ -1967,7 +2008,7 @@ type ProviderHealth struct {
 ```
 
 <a name="StatusResponse"></a>
-## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L94-L97>)
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L120-L123>)
 
 StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
 
