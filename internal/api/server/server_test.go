@@ -40,7 +40,7 @@ func TestNewLocalWiresRouteFoundation(t *testing.T) {
 	rec := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotImplemented || !strings.Contains(rec.Body.String(), "artifacts endpoints are deferred") {
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "artifact_not_found") {
 		t.Fatalf("unexpected routed response: code=%d body=%q", rec.Code, rec.Body.String())
 	}
 }

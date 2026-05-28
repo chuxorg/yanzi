@@ -50,14 +50,6 @@ func RehydrateProject(project string) (*RehydratePayload, error) {
 
 // RehydrateProjectWithFallback loads checkpoint-based rehydration data or a recent-capture fallback.
 func RehydrateProjectWithFallback(project string, fallbackLimit int) (*RehydratePayload, error) {
-	project = strings.TrimSpace(project)
-	if project == "" {
-		return nil, errors.New("project is required")
-	}
-	if fallbackLimit <= 0 {
-		fallbackLimit = DefaultRehydrateFallbackLimit
-	}
-
 	db, err := InitDB()
 	if err != nil {
 		return nil, err
@@ -66,44 +58,7 @@ func RehydrateProjectWithFallback(project string, fallbackLimit int) (*Rehydrate
 		_ = db.Close()
 	}()
 
-	ctx := context.Background()
-	exists, err := projectExists(ctx, db, project)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, ProjectNotFoundError{Name: project}
-	}
-
-	latest, err := latestCheckpointByProject(ctx, db, project)
-	if err != nil {
-		return nil, err
-	}
-	if latest == nil {
-		intents, err := recentProjectIntents(ctx, db, project, fallbackLimit)
-		if err != nil {
-			return nil, err
-		}
-		return &RehydratePayload{
-			Project:        project,
-			Intents:        intents,
-			Fallback:       true,
-			FallbackReason: ErrCheckpointNotFound.Error(),
-			FallbackLimit:  fallbackLimit,
-		}, nil
-	}
-
-	intents, err := intentsSinceCheckpoint(ctx, db, project, latest.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	return &RehydratePayload{
-		Project:          project,
-		LatestCheckpoint: latest,
-		Intents:          intents,
-		FallbackLimit:    fallbackLimit,
-	}, nil
+	return NewRehydrationService(db).RehydrateProjectWithFallback(context.Background(), project, fallbackLimit)
 }
 
 // latestCheckpointByProject returns the latest checkpoint for a project by created_at descending.

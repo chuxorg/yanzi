@@ -72,6 +72,9 @@ func TestUsagePrintsHelp(t *testing.T) {
 	if !strings.Contains(output, "message  Manage thin message wrappers.") {
 		t.Fatalf("expected message command description, got: %s", output)
 	}
+	if !strings.Contains(output, "serve    Start the shared operational runtime.") {
+		t.Fatalf("expected serve command description, got: %s", output)
+	}
 	if !strings.Contains(output, "--profile <name>") {
 		t.Fatalf("expected profile help text, got: %s", output)
 	}

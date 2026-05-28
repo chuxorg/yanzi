@@ -58,6 +58,49 @@ func TestHealthHandlerReportsProviderHealth(t *testing.T) {
 	}
 }
 
+func TestHealthHandlerIncludesRuntimeVisibility(t *testing.T) {
+	provider := &stubProvider{
+		health: storage.Health{
+			Provider: storage.ProviderSQLite,
+			Status:   storage.HealthReady,
+		},
+	}
+	handler := NewHealthHandler(Dependencies{
+		Version: "v0.0.0-test",
+		LoadConfig: func() (config.Config, error) {
+			return config.Config{Mode: config.ModeLocal}, nil
+		},
+		RuntimeStatus: func() *models.RuntimeHealth {
+			return &models.RuntimeHealth{
+				Mode:      "shared",
+				StartedAt: "2026-01-01T00:00:00Z",
+			}
+		},
+		OpenProvider: func(context.Context, config.Config) (storage.Provider, error) {
+			return provider, nil
+		},
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/v0/health", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var resp models.HealthResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode health response: %v", err)
+	}
+	if resp.Mode != string(config.ModeLocal) {
+		t.Fatalf("expected local mode, got %+v", resp)
+	}
+	if resp.Runtime == nil || resp.Runtime.Mode != "shared" || resp.Runtime.StartedAt != "2026-01-01T00:00:00Z" {
+		t.Fatalf("unexpected runtime visibility: %+v", resp.Runtime)
+	}
+}
+
 func TestHealthHandlerReturnsConfigLoadError(t *testing.T) {
 	handler := NewHealthHandler(Dependencies{
 		LoadConfig: func() (config.Config, error) {
@@ -85,13 +128,14 @@ func TestHealthHandlerReturnsConfigLoadError(t *testing.T) {
 type stubProvider struct {
 	health storage.Health
 	closed bool
+	db     *sql.DB
 }
 
 func (p *stubProvider) Name() storage.ProviderName { return p.health.Provider }
 func (p *stubProvider) Health(context.Context) storage.Health {
 	return p.health
 }
-func (p *stubProvider) SQLDB() *sql.DB { return nil }
+func (p *stubProvider) SQLDB() *sql.DB { return p.db }
 func (p *stubProvider) Close() error {
 	p.closed = true
 	return nil

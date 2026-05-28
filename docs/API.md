@@ -192,6 +192,7 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
 - [func RunRestore\(args \[\]string\) error](<#RunRestore>)
 - [func RunRules\(args \[\]string, cliVersion string\) error](<#RunRules>)
+- [func RunServe\(args \[\]string, version string\) error](<#RunServe>)
 - [func RunShow\(args \[\]string\) error](<#RunShow>)
 - [func RunTypes\(args \[\]string\) error](<#RunTypes>)
 - [func RunVerify\(args \[\]string\) error](<#RunVerify>)
@@ -207,7 +208,7 @@ func RunBootstrap(args []string) error
 
 
 <a name="RunCapture"></a>
-## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L38>)
+## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L39>)
 
 ```go
 func RunCapture(args []string) error
@@ -276,7 +277,7 @@ func RunContext(args []string) error
 
 
 <a name="RunDelete"></a>
-## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L15>)
+## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L16>)
 
 ```go
 func RunDelete(args []string) error
@@ -430,7 +431,7 @@ yanzi project use demo
 ```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L73>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L74>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -455,7 +456,7 @@ yanzi rehydrate --dry-run
 ```
 
 <a name="RunRestore"></a>
-## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L67>)
+## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L69>)
 
 ```go
 func RunRestore(args []string) error
@@ -471,6 +472,15 @@ func RunRules(args []string, cliVersion string) error
 ```
 
 
+
+<a name="RunServe"></a>
+## func [RunServe](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/serve.go#L18>)
+
+```go
+func RunServe(args []string, version string) error
+```
+
+RunServe starts the shared runtime server in the foreground.
 
 <a name="RunShow"></a>
 ## func [RunShow](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/show.go#L15>)
@@ -621,13 +631,17 @@ import "github.com/chuxorg/yanzi/internal/library"
 
 - [Constants](<#constants>)
 - [Variables](<#variables>)
+- [func DecodeArtifactReadMetadata\(raw string\) \(map\[string\]string, error\)](<#DecodeArtifactReadMetadata>)
 - [func HashCheckpoint\(checkpoint Checkpoint\) \(string, error\)](<#HashCheckpoint>)
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
 - [func InitDBAtPath\(path string\) \(\*sql.DB, error\)](<#InitDBAtPath>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
+- [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
 - [func ProjectExists\(name string\) \(bool, error\)](<#ProjectExists>)
+- [func RenderOperationalExportLog\(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map\[string\]string, includeDeleted bool\) \(\[\]byte, string, error\)](<#RenderOperationalExportLog>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
+- [func StatePath\(\) \(string, error\)](<#StatePath>)
 - [type Artifact](<#Artifact>)
   - [func CreateArtifact\(projectID, class, artifactType, title, content, metadata string\) \(Artifact, error\)](<#CreateArtifact>)
   - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
@@ -636,6 +650,20 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func ListArtifactsAllProjects\(class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifactsAllProjects>)
   - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
   - [func ListVisibleContextArtifactsAllProjects\(artifactType, scopeFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifactsAllProjects>)
+- [type ArtifactReadQuery](<#ArtifactReadQuery>)
+- [type ArtifactReadStore](<#ArtifactReadStore>)
+  - [func NewArtifactReadStore\(db \*sql.DB\) \*ArtifactReadStore](<#NewArtifactReadStore>)
+  - [func \(s \*ArtifactReadStore\) GetIntentRecord\(ctx context.Context, id string\) \(model.IntentRecord, error\)](<#ArtifactReadStore.GetIntentRecord>)
+  - [func \(s \*ArtifactReadStore\) ListIntentRecords\(ctx context.Context, query ArtifactReadQuery\) \(\[\]model.IntentRecord, error\)](<#ArtifactReadStore.ListIntentRecords>)
+- [type ArtifactWriteStore](<#ArtifactWriteStore>)
+  - [func NewArtifactWriteStore\(db \*sql.DB\) \*ArtifactWriteStore](<#NewArtifactWriteStore>)
+  - [func \(s \*ArtifactWriteStore\) CreateArtifact\(ctx context.Context, input storage.CreateArtifactInput\) \(Artifact, error\)](<#ArtifactWriteStore.CreateArtifact>)
+  - [func \(s \*ArtifactWriteStore\) CreateCapture\(ctx context.Context, input CaptureWriteInput\) \(model.IntentRecord, error\)](<#ArtifactWriteStore.CreateCapture>)
+  - [func \(s \*ArtifactWriteStore\) Restore\(ctx context.Context, id string\) error](<#ArtifactWriteStore.Restore>)
+  - [func \(s \*ArtifactWriteStore\) Tombstone\(ctx context.Context, id string, cascade, force bool\) \(\[\]string, error\)](<#ArtifactWriteStore.Tombstone>)
+- [type CaptureWriteInput](<#CaptureWriteInput>)
+- [type ChainResult](<#ChainResult>)
+  - [func ChainIntent\(ctx context.Context, provider storage.Provider, id string\) \(ChainResult, error\)](<#ChainIntent>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func CreateProjectCheckpoint\(project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateProjectCheckpoint>)
@@ -651,6 +679,7 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func \(s \*CheckpointStore\) ListCheckpoints\(ctx context.Context, project string\) \(\[\]Checkpoint, error\)](<#CheckpointStore.ListCheckpoints>)
 - [type CheckpointValidationError](<#CheckpointValidationError>)
   - [func \(e CheckpointValidationError\) Error\(\) string](<#CheckpointValidationError.Error>)
+- [type ExportLogFormat](<#ExportLogFormat>)
 - [type Intent](<#Intent>)
 - [type Project](<#Project>)
   - [func CreateProject\(name string, description string\) \(\*Project, error\)](<#CreateProject>)
@@ -660,6 +689,12 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
   - [func RehydrateProjectWithFallback\(project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrateProjectWithFallback>)
+- [type RehydrationService](<#RehydrationService>)
+  - [func NewRehydrationService\(db \*sql.DB\) \*RehydrationService](<#NewRehydrationService>)
+  - [func \(s \*RehydrationService\) RehydrateProject\(ctx context.Context, project string\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProject>)
+  - [func \(s \*RehydrationService\) RehydrateProjectWithFallback\(ctx context.Context, project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProjectWithFallback>)
+- [type VerifyResult](<#VerifyResult>)
+  - [func VerifyIntent\(ctx context.Context, provider storage.Provider, id string\) \(VerifyResult, error\)](<#VerifyIntent>)
 
 
 ## Constants
@@ -688,6 +723,15 @@ const DefaultRehydrateFallbackLimit = 10
 ```go
 var ErrCheckpointNotFound = errors.New("checkpoint not found")
 ```
+
+<a name="DecodeArtifactReadMetadata"></a>
+## func [DecodeArtifactReadMetadata](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L228>)
+
+```go
+func DecodeArtifactReadMetadata(raw string) (map[string]string, error)
+```
+
+DecodeArtifactReadMetadata decodes the current artifact read metadata payload.
 
 <a name="HashCheckpoint"></a>
 ## func [HashCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_hash.go#L14>)
@@ -725,6 +769,15 @@ func Initialize() (bool, error)
 
 Initialize ensures the default yanzi runtime directory, database, and schema exist. It returns true when this run performed first\-time schema initialization.
 
+<a name="LoadActiveProject"></a>
+## func [LoadActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L20>)
+
+```go
+func LoadActiveProject() (string, error)
+```
+
+LoadActiveProject resolves the current active project using the same local\-state lookup order as the CLI.
+
 <a name="MigrationsFS"></a>
 ## func [MigrationsFS](<https://github.com/chuxorg/yanzi/blob/master/internal/library/migrations_embed.go#L12>)
 
@@ -743,6 +796,15 @@ func ProjectExists(name string) (bool, error)
 
 ProjectExists reports whether a project exists in the current local provider.
 
+<a name="RenderOperationalExportLog"></a>
+## func [RenderOperationalExportLog](<https://github.com/chuxorg/yanzi/blob/master/internal/library/export_log.go#L53>)
+
+```go
+func RenderOperationalExportLog(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map[string]string, includeDeleted bool) ([]byte, string, error)
+```
+
+RenderOperationalExportLog preserves the current deterministic log export behavior.
+
 <a name="ResolvedDBPath"></a>
 ## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L68>)
 
@@ -751,6 +813,15 @@ func ResolvedDBPath() string
 ```
 
 ResolvedDBPath returns the most recently resolved database path.
+
+<a name="StatePath"></a>
+## func [StatePath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L55>)
+
+```go
+func StatePath() (string, error)
+```
+
+StatePath resolves the canonical state.json path used for active project persistence.
 
 <a name="Artifact"></a>
 ## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact.go#L40-L50>)
@@ -772,7 +843,7 @@ type Artifact struct {
 ```
 
 <a name="CreateArtifact"></a>
-### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L15>)
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L14>)
 
 ```go
 func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
@@ -790,7 +861,7 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
 
 <a name="GetVisibleContextArtifact"></a>
-### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L340>)
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L337>)
 
 ```go
 func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
@@ -799,7 +870,7 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="ListArtifacts"></a>
-### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L97>)
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L94>)
 
 ```go
 func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -808,7 +879,7 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 ListArtifacts lists artifacts for a project and class, optionally filtered by type.
 
 <a name="ListArtifactsAllProjects"></a>
-### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L126>)
+### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L123>)
 
 ```go
 func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -817,7 +888,7 @@ func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) (
 ListArtifactsAllProjects lists artifacts across every project for the requested class.
 
 <a name="ListVisibleContextArtifacts"></a>
-### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L270>)
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L267>)
 
 ```go
 func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
@@ -826,13 +897,163 @@ func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, proje
 ListVisibleContextArtifacts returns global context plus project context visible to the caller.
 
 <a name="ListVisibleContextArtifactsAllProjects"></a>
-### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L307>)
+### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L304>)
 
 ```go
 func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, includeDeleted bool) ([]Artifact, error)
 ```
 
 ListVisibleContextArtifactsAllProjects returns global and project\-scoped context across every project.
+
+<a name="ArtifactReadQuery"></a>
+## type [ArtifactReadQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L16-L22>)
+
+ArtifactReadQuery describes the current local list/show read behavior.
+
+```go
+type ArtifactReadQuery struct {
+    Author         string
+    Source         string
+    Limit          int
+    MetaFilters    map[string]string
+    IncludeDeleted bool
+}
+```
+
+<a name="ArtifactReadStore"></a>
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L25-L27>)
+
+ArtifactReadStore isolates the legacy SQL\-backed list/show read path.
+
+```go
+type ArtifactReadStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactReadStore"></a>
+### func [NewArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L30>)
+
+```go
+func NewArtifactReadStore(db *sql.DB) *ArtifactReadStore
+```
+
+NewArtifactReadStore constructs a read store using the provided database handle.
+
+<a name="ArtifactReadStore.GetIntentRecord"></a>
+### func \(\*ArtifactReadStore\) [GetIntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L81>)
+
+```go
+func (s *ArtifactReadStore) GetIntentRecord(ctx context.Context, id string) (model.IntentRecord, error)
+```
+
+GetIntentRecord returns the current local show record with existing not\-found behavior preserved.
+
+<a name="ArtifactReadStore.ListIntentRecords"></a>
+### func \(\*ArtifactReadStore\) [ListIntentRecords](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L35>)
+
+```go
+func (s *ArtifactReadStore) ListIntentRecords(ctx context.Context, query ArtifactReadQuery) ([]model.IntentRecord, error)
+```
+
+ListIntentRecords returns current list/show records with existing filter semantics preserved.
+
+<a name="ArtifactWriteStore"></a>
+## type [ArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L27-L29>)
+
+ArtifactWriteStore is the internal write boundary for current local artifact, capture, and tombstone writes.
+
+```go
+type ArtifactWriteStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactWriteStore"></a>
+### func [NewArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L58>)
+
+```go
+func NewArtifactWriteStore(db *sql.DB) *ArtifactWriteStore
+```
+
+NewArtifactWriteStore creates a local artifact write boundary over db.
+
+<a name="ArtifactWriteStore.CreateArtifact"></a>
+### func \(\*ArtifactWriteStore\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L78>)
+
+```go
+func (s *ArtifactWriteStore) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (Artifact, error)
+```
+
+CreateArtifact stores an artifact through the provider\-compatible SQLite path.
+
+<a name="ArtifactWriteStore.CreateCapture"></a>
+### func \(\*ArtifactWriteStore\) [CreateCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L63>)
+
+```go
+func (s *ArtifactWriteStore) CreateCapture(ctx context.Context, input CaptureWriteInput) (model.IntentRecord, error)
+```
+
+CreateCapture stores a local capture using current intent ledger semantics.
+
+<a name="ArtifactWriteStore.Restore"></a>
+### func \(\*ArtifactWriteStore\) [Restore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L142>)
+
+```go
+func (s *ArtifactWriteStore) Restore(ctx context.Context, id string) error
+```
+
+Restore removes current tombstone metadata from an intent or artifact.
+
+<a name="ArtifactWriteStore.Tombstone"></a>
+### func \(\*ArtifactWriteStore\) [Tombstone](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L91>)
+
+```go
+func (s *ArtifactWriteStore) Tombstone(ctx context.Context, id string, cascade, force bool) ([]string, error)
+```
+
+Tombstone marks an intent or artifact deleted using current metadata column rules.
+
+<a name="CaptureWriteInput"></a>
+## type [CaptureWriteInput](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L32-L41>)
+
+CaptureWriteInput captures the current local prompt/response write shape.
+
+```go
+type CaptureWriteInput struct {
+    Author     string
+    SourceType string
+    Title      string
+    Prompt     string
+    Response   string
+    Meta       json.RawMessage
+    Project    string
+    PrevHash   string
+}
+```
+
+<a name="ChainResult"></a>
+## type [ChainResult](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L24-L29>)
+
+ChainResult captures current deterministic chain traversal output.
+
+```go
+type ChainResult struct {
+    HeadID       string
+    Length       int
+    Intents      []model.IntentRecord
+    MissingLinks []string
+}
+```
+
+<a name="ChainIntent"></a>
+### func [ChainIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L57>)
+
+```go
+func ChainIntent(ctx context.Context, provider storage.Provider, id string) (ChainResult, error)
+```
+
+ChainIntent preserves current provider\-backed chain traversal semantics.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)
@@ -981,6 +1202,25 @@ func (e CheckpointValidationError) Error() string
 
 Error returns the validation error as "\<field\> \<message\>".
 
+<a name="ExportLogFormat"></a>
+## type [ExportLogFormat](<https://github.com/chuxorg/yanzi/blob/master/internal/library/export_log.go#L16>)
+
+ExportLogFormat is the current API/CLI log export format selector.
+
+```go
+type ExportLogFormat string
+```
+
+<a name="ExportLogFormatMarkdown"></a>
+
+```go
+const (
+    ExportLogFormatMarkdown ExportLogFormat = "markdown"
+    ExportLogFormatJSON     ExportLogFormat = "json"
+    ExportLogFormatHTML     ExportLogFormat = "html"
+)
+```
+
 <a name="Intent"></a>
 ## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L20-L31>)
 
@@ -1088,6 +1328,69 @@ func RehydrateProjectWithFallback(project string, fallbackLimit int) (*Rehydrate
 
 RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
 
+<a name="RehydrationService"></a>
+## type [RehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L11-L13>)
+
+RehydrationService isolates the current SQL\-backed rehydration flow.
+
+```go
+type RehydrationService struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewRehydrationService"></a>
+### func [NewRehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L16>)
+
+```go
+func NewRehydrationService(db *sql.DB) *RehydrationService
+```
+
+NewRehydrationService constructs a rehydration service around the provided database handle.
+
+<a name="RehydrationService.RehydrateProject"></a>
+### func \(\*RehydrationService\) [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L21>)
+
+```go
+func (s *RehydrationService) RehydrateProject(ctx context.Context, project string) (*RehydratePayload, error)
+```
+
+RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+<a name="RehydrationService.RehydrateProjectWithFallback"></a>
+### func \(\*RehydrationService\) [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L26>)
+
+```go
+func (s *RehydrationService) RehydrateProjectWithFallback(ctx context.Context, project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
+
+<a name="VerifyResult"></a>
+## type [VerifyResult](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L14-L21>)
+
+VerifyResult captures current deterministic verification output.
+
+```go
+type VerifyResult struct {
+    ID           string
+    Valid        bool
+    StoredHash   string
+    ComputedHash string
+    PrevHash     string
+    Error        *string
+}
+```
+
+<a name="VerifyIntent"></a>
+### func [VerifyIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L32>)
+
+```go
+func VerifyIntent(ctx context.Context, provider storage.Provider, id string) (VerifyResult, error)
+```
+
+VerifyIntent preserves current provider\-backed verification semantics.
+
 # projectstate
 
 ```go
@@ -1127,6 +1430,116 @@ func WriteProjectBinding(name string) error
 ```
 
 WriteProjectBinding persists the current working\-directory binding used by init and project workflows.
+
+# runtime
+
+```go
+import "github.com/chuxorg/yanzi/internal/runtime"
+```
+
+## Index
+
+- [type Instance](<#Instance>)
+  - [func \(i \*Instance\) Addr\(\) string](<#Instance.Addr>)
+  - [func \(i \*Instance\) Shutdown\(ctx context.Context\) error](<#Instance.Shutdown>)
+  - [func \(i \*Instance\) StartedAt\(\) time.Time](<#Instance.StartedAt>)
+  - [func \(i \*Instance\) Wait\(\) error](<#Instance.Wait>)
+- [type Options](<#Options>)
+- [type Runtime](<#Runtime>)
+  - [func New\(opts Options\) \*Runtime](<#New>)
+  - [func \(r \*Runtime\) Start\(\) \(\*Instance, error\)](<#Runtime.Start>)
+
+
+<a name="Instance"></a>
+## type [Instance](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L38-L43>)
+
+Instance represents a started runtime server.
+
+```go
+type Instance struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="Instance.Addr"></a>
+### func \(\*Instance\) [Addr](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L108>)
+
+```go
+func (i *Instance) Addr() string
+```
+
+Addr returns the bound listener address.
+
+<a name="Instance.Shutdown"></a>
+### func \(\*Instance\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L124>)
+
+```go
+func (i *Instance) Shutdown(ctx context.Context) error
+```
+
+Shutdown stops the runtime server with a bounded grace period.
+
+<a name="Instance.StartedAt"></a>
+### func \(\*Instance\) [StartedAt](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L116>)
+
+```go
+func (i *Instance) StartedAt() time.Time
+```
+
+StartedAt returns the runtime startup timestamp.
+
+<a name="Instance.Wait"></a>
+### func \(\*Instance\) [Wait](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L138>)
+
+```go
+func (i *Instance) Wait() error
+```
+
+Wait returns the background server error or nil after shutdown.
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L21-L27>)
+
+Options captures the minimal runtime bootstrap inputs.
+
+```go
+type Options struct {
+    Addr            string
+    Version         string
+    RuntimeMode     string
+    ShutdownTimeout time.Duration
+    Dependencies    handlers.Dependencies
+}
+```
+
+<a name="Runtime"></a>
+## type [Runtime](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L30-L35>)
+
+Runtime owns a lightweight shared operational API server.
+
+```go
+type Runtime struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L46>)
+
+```go
+func New(opts Options) *Runtime
+```
+
+New constructs a runtime bootstrap wrapper around the operational API server.
+
+<a name="Runtime.Start"></a>
+### func \(\*Runtime\) [Start](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L77>)
+
+```go
+func (r *Runtime) Start() (*Instance, error)
+```
+
+Start binds the runtime listener and begins serving requests in the background.
 
 # storage
 
@@ -1602,15 +2015,32 @@ import "github.com/chuxorg/yanzi/internal/api/handlers"
 
 ## Index
 
+- [func NewArtifactHandler\(deps Dependencies\) http.Handler](<#NewArtifactHandler>)
 - [func NewCheckpointsHandler\(deps Dependencies\) http.Handler](<#NewCheckpointsHandler>)
 - [func NewCurrentProjectHandler\(deps Dependencies\) http.Handler](<#NewCurrentProjectHandler>)
 - [func NewDeferredRouteHandler\(group string\) http.Handler](<#NewDeferredRouteHandler>)
+- [func NewExportHandler\(deps Dependencies\) http.Handler](<#NewExportHandler>)
 - [func NewHealthHandler\(deps Dependencies\) http.Handler](<#NewHealthHandler>)
 - [func NewProjectsHandler\(deps Dependencies\) http.Handler](<#NewProjectsHandler>)
+- [func NewRehydrateHandler\(deps Dependencies\) http.Handler](<#NewRehydrateHandler>)
+- [func NewVerifyHandler\(deps Dependencies\) http.Handler](<#NewVerifyHandler>)
+- [type ActiveProjectLoadFunc](<#ActiveProjectLoadFunc>)
+- [type ArtifactReadOpenFunc](<#ArtifactReadOpenFunc>)
+- [type ArtifactReadStore](<#ArtifactReadStore>)
 - [type ConfigLoadFunc](<#ConfigLoadFunc>)
 - [type Dependencies](<#Dependencies>)
 - [type ProviderOpenFunc](<#ProviderOpenFunc>)
+- [type RuntimeStatusFunc](<#RuntimeStatusFunc>)
 
+
+<a name="NewArtifactHandler"></a>
+## func [NewArtifactHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/artifacts.go#L24>)
+
+```go
+func NewArtifactHandler(deps Dependencies) http.Handler
+```
+
+NewArtifactHandler returns the current artifact capture/read API handler.
 
 <a name="NewCheckpointsHandler"></a>
 ## func [NewCheckpointsHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/checkpoint.go#L16>)
@@ -1639,8 +2069,17 @@ func NewDeferredRouteHandler(group string) http.Handler
 
 NewDeferredRouteHandler returns a deterministic placeholder for deferred route groups.
 
+<a name="NewExportHandler"></a>
+## func [NewExportHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/export.go#L15>)
+
+```go
+func NewExportHandler(deps Dependencies) http.Handler
+```
+
+NewExportHandler returns the deterministic export read API handler.
+
 <a name="NewHealthHandler"></a>
-## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L38>)
+## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L59>)
 
 ```go
 func NewHealthHandler(deps Dependencies) http.Handler
@@ -1657,8 +2096,56 @@ func NewProjectsHandler(deps Dependencies) http.Handler
 
 NewProjectsHandler returns the provider\-backed project collection handler.
 
+<a name="NewRehydrateHandler"></a>
+## func [NewRehydrateHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/rehydrate.go#L19>)
+
+```go
+func NewRehydrateHandler(deps Dependencies) http.Handler
+```
+
+NewRehydrateHandler returns the deterministic GET /v0/rehydrate handler.
+
+<a name="NewVerifyHandler"></a>
+## func [NewVerifyHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/verify.go#L22>)
+
+```go
+func NewVerifyHandler(deps Dependencies) http.Handler
+```
+
+NewVerifyHandler returns the verification read API handler.
+
+<a name="ActiveProjectLoadFunc"></a>
+## type [ActiveProjectLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L26>)
+
+ActiveProjectLoadFunc loads the current active project for API handlers.
+
+```go
+type ActiveProjectLoadFunc func() (string, error)
+```
+
+<a name="ArtifactReadOpenFunc"></a>
+## type [ArtifactReadOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L35>)
+
+ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
+
+```go
+type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
+```
+
+<a name="ArtifactReadStore"></a>
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L29-L32>)
+
+ArtifactReadStore exposes the current read\-only behavior required by artifact handlers.
+
+```go
+type ArtifactReadStore interface {
+    ListIntentRecords(context.Context, yanzilibrary.ArtifactReadQuery) ([]model.IntentRecord, error)
+    GetIntentRecord(context.Context, string) (model.IntentRecord, error)
+}
+```
+
 <a name="ConfigLoadFunc"></a>
-## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L17>)
+## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L20>)
 
 ConfigLoadFunc loads the current Yanzi configuration for API handlers.
 
@@ -1667,33 +2154,45 @@ type ConfigLoadFunc func() (config.Config, error)
 ```
 
 <a name="Dependencies"></a>
-## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L23-L35>)
+## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L41-L56>)
 
 Dependencies captures the lightweight handler dependencies used by the API foundation.
 
 ```go
 type Dependencies struct {
-    Version            string
-    LoadConfig         ConfigLoadFunc
-    OpenProvider       ProviderOpenFunc
-    CreateProject      func(string, string) (*yanzilibrary.Project, error)
-    ListProjects       func() ([]yanzilibrary.Project, error)
-    ProjectExists      func(string) (bool, error)
-    LoadActiveProject  func() (string, error)
-    SaveActiveProject  func(string) error
-    CreateCheckpoint   func(string, string, []string) (yanzilibrary.Checkpoint, error)
-    ListCheckpoints    func(string) ([]yanzilibrary.Checkpoint, error)
-    ListAllCheckpoints func() ([]yanzilibrary.Checkpoint, error)
+    Version               string
+    LoadConfig            ConfigLoadFunc
+    OpenProvider          ProviderOpenFunc
+    CreateProject         func(string, string) (*yanzilibrary.Project, error)
+    ListProjects          func() ([]yanzilibrary.Project, error)
+    ProjectExists         func(string) (bool, error)
+    LoadActiveProject     ActiveProjectLoadFunc
+    SaveActiveProject     func(string) error
+    CreateCheckpoint      func(string, string, []string) (yanzilibrary.Checkpoint, error)
+    ListCheckpoints       func(string) ([]yanzilibrary.Checkpoint, error)
+    ListAllCheckpoints    func() ([]yanzilibrary.Checkpoint, error)
+    OpenArtifactReadStore ArtifactReadOpenFunc
+    Now                   func() time.Time
+    RuntimeStatus         RuntimeStatusFunc
 }
 ```
 
 <a name="ProviderOpenFunc"></a>
-## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L20>)
+## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L23>)
 
 ProviderOpenFunc opens the current storage provider for API handlers.
 
 ```go
 type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
+```
+
+<a name="RuntimeStatusFunc"></a>
+## type [RuntimeStatusFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L38>)
+
+RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
+
+```go
+type RuntimeStatusFunc func() *models.RuntimeHealth
 ```
 
 # middleware
@@ -1725,8 +2224,12 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 ## Index
 
 - [type Artifact](<#Artifact>)
-- [type ArtifactCreateRequest](<#ArtifactCreateRequest>)
+- [type ArtifactCaptureRequest](<#ArtifactCaptureRequest>)
+- [type ArtifactCaptureResponse](<#ArtifactCaptureResponse>)
 - [type ArtifactListResponse](<#ArtifactListResponse>)
+- [type ArtifactResponse](<#ArtifactResponse>)
+- [type ArtifactSummary](<#ArtifactSummary>)
+- [type ChainResponse](<#ChainResponse>)
 - [type Checkpoint](<#Checkpoint>)
 - [type CheckpointCreateRequest](<#CheckpointCreateRequest>)
 - [type CheckpointListResponse](<#CheckpointListResponse>)
@@ -1737,58 +2240,128 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 - [type ProjectCreateRequest](<#ProjectCreateRequest>)
 - [type ProjectListResponse](<#ProjectListResponse>)
 - [type ProviderHealth](<#ProviderHealth>)
+- [type RehydrateCheckpoint](<#RehydrateCheckpoint>)
+- [type RehydrateIntent](<#RehydrateIntent>)
+- [type RehydrateResponse](<#RehydrateResponse>)
+- [type RuntimeHealth](<#RuntimeHealth>)
 - [type StatusResponse](<#StatusResponse>)
+- [type VerifyResponse](<#VerifyResponse>)
 
 
 <a name="Artifact"></a>
-## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L14-L24>)
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L25-L37>)
 
-Artifact represents the current operational API artifact payload.
+Artifact represents the current operational API artifact detail payload.
 
 ```go
 type Artifact struct {
     ID        string            `json:"id"`
-    Class     string            `json:"class"`
-    Type      string            `json:"type"`
-    Scope     string            `json:"scope,omitempty"`
-    Project   string            `json:"project,omitempty"`
-    Title     string            `json:"title"`
-    Content   string            `json:"content"`
-    Metadata  map[string]string `json:"metadata,omitempty"`
     CreatedAt string            `json:"created_at"`
+    Project   string            `json:"project,omitempty"`
+    Author    string            `json:"author"`
+    Source    string            `json:"source"`
+    Title     string            `json:"title"`
+    Prompt    string            `json:"prompt"`
+    Response  string            `json:"response"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
+    PrevHash  string            `json:"prev_hash,omitempty"`
+    Hash      string            `json:"hash"`
 }
 ```
 
-<a name="ArtifactCreateRequest"></a>
-## type [ArtifactCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L27-L35>)
+<a name="ArtifactCaptureRequest"></a>
+## type [ArtifactCaptureRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L50-L59>)
 
-ArtifactCreateRequest captures the current artifact creation shape.
+ArtifactCaptureRequest captures the POST /v0/artifacts capture payload.
 
 ```go
-type ArtifactCreateRequest struct {
-    Project  string            `json:"project,omitempty"`
-    Class    string            `json:"class"`
-    Type     string            `json:"type"`
-    Scope    string            `json:"scope,omitempty"`
-    Title    string            `json:"title"`
-    Content  string            `json:"content"`
-    Metadata map[string]string `json:"metadata,omitempty"`
+type ArtifactCaptureRequest struct {
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type,omitempty"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    Project    string            `json:"project,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="ArtifactCaptureResponse"></a>
+## type [ArtifactCaptureResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L62-L73>)
+
+ArtifactCaptureResponse is the deterministic capture artifact response.
+
+```go
+type ArtifactCaptureResponse struct {
+    ID         string            `json:"id"`
+    CreatedAt  string            `json:"created_at"`
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+    Hash       string            `json:"hash"`
 }
 ```
 
 <a name="ArtifactListResponse"></a>
-## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L38-L40>)
+## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L45-L47>)
 
 ArtifactListResponse is the collection response for artifact queries.
 
 ```go
 type ArtifactListResponse struct {
-    Artifacts []Artifact `json:"artifacts"`
+    Artifacts []ArtifactSummary `json:"artifacts"`
+}
+```
+
+<a name="ArtifactResponse"></a>
+## type [ArtifactResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L42>)
+
+ArtifactResponse is the detail response for artifact reads.
+
+```go
+type ArtifactResponse struct {
+    Artifact Artifact `json:"artifact"`
+}
+```
+
+<a name="ArtifactSummary"></a>
+## type [ArtifactSummary](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L14-L22>)
+
+ArtifactSummary represents the current operational API artifact list payload.
+
+```go
+type ArtifactSummary struct {
+    ID        string            `json:"id"`
+    CreatedAt string            `json:"created_at"`
+    Project   string            `json:"project,omitempty"`
+    Author    string            `json:"author"`
+    Source    string            `json:"source"`
+    Title     string            `json:"title"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
+}
+```
+
+<a name="ChainResponse"></a>
+## type [ChainResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L86-L91>)
+
+ChainResponse captures deterministic chain traversal output.
+
+```go
+type ChainResponse struct {
+    HeadID       string                    `json:"head_id"`
+    Length       int                       `json:"length"`
+    Intents      []ArtifactCaptureResponse `json:"intents"`
+    MissingLinks []string                  `json:"missing_links,omitempty"`
 }
 ```
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L61-L68>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L112-L119>)
 
 Checkpoint represents the current operational API checkpoint payload.
 
@@ -1804,7 +2377,7 @@ type Checkpoint struct {
 ```
 
 <a name="CheckpointCreateRequest"></a>
-## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L71-L75>)
+## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L122-L126>)
 
 CheckpointCreateRequest captures the current checkpoint creation shape.
 
@@ -1817,7 +2390,7 @@ type CheckpointCreateRequest struct {
 ```
 
 <a name="CheckpointListResponse"></a>
-## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L78-L80>)
+## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L129-L131>)
 
 CheckpointListResponse is the collection response for checkpoint queries.
 
@@ -1850,7 +2423,7 @@ type CurrentProjectResponse struct {
 ```
 
 <a name="HealthResponse"></a>
-## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L90-L94>)
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L184-L189>)
 
 HealthResponse is the minimal operational health/status response.
 
@@ -1858,12 +2431,13 @@ HealthResponse is the minimal operational health/status response.
 type HealthResponse struct {
     Version  string         `json:"version"`
     Mode     string         `json:"mode"`
+    Runtime  *RuntimeHealth `json:"runtime,omitempty"`
     Provider ProviderHealth `json:"provider"`
 }
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L43-L47>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L94-L98>)
 
 Project represents the current operational API project payload.
 
@@ -1876,7 +2450,7 @@ type Project struct {
 ```
 
 <a name="ProjectCreateRequest"></a>
-## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L50-L53>)
+## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L101-L104>)
 
 ProjectCreateRequest captures the current project creation shape.
 
@@ -1888,7 +2462,7 @@ type ProjectCreateRequest struct {
 ```
 
 <a name="ProjectListResponse"></a>
-## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L56-L58>)
+## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L107-L109>)
 
 ProjectListResponse is the collection response for project queries.
 
@@ -1899,7 +2473,7 @@ type ProjectListResponse struct {
 ```
 
 <a name="ProviderHealth"></a>
-## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L83-L87>)
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L177-L181>)
 
 ProviderHealth represents the current provider health payload for API status reads.
 
@@ -1911,8 +2485,75 @@ type ProviderHealth struct {
 }
 ```
 
+<a name="RehydrateCheckpoint"></a>
+## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L140-L147>)
+
+RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
+
+```go
+type RehydrateCheckpoint struct {
+    Hash                 string   `json:"hash"`
+    Project              string   `json:"project"`
+    Summary              string   `json:"summary"`
+    CreatedAt            string   `json:"created_at"`
+    ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+    PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+```
+
+<a name="RehydrateIntent"></a>
+## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L150-L163>)
+
+RehydrateIntent represents the current operational API rehydration intent payload.
+
+```go
+type RehydrateIntent struct {
+    ID              string            `json:"id"`
+    Timestamp       string            `json:"timestamp"`
+    Author          string            `json:"author"`
+    SourceType      string            `json:"source_type"`
+    Title           string            `json:"title,omitempty"`
+    Prompt          string            `json:"prompt"`
+    Response        string            `json:"response"`
+    PromptSnippet   string            `json:"prompt_snippet"`
+    ResponseSnippet string            `json:"response_snippet"`
+    Metadata        map[string]string `json:"metadata,omitempty"`
+    Hash            string            `json:"hash"`
+    PrevHash        string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="RehydrateResponse"></a>
+## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L166-L174>)
+
+RehydrateResponse is the deterministic operational API rehydration payload.
+
+```go
+type RehydrateResponse struct {
+    Project        string               `json:"project"`
+    HasCheckpoint  bool                 `json:"has_checkpoint"`
+    Fallback       bool                 `json:"fallback"`
+    FallbackReason string               `json:"fallback_reason,omitempty"`
+    FallbackLimit  int                  `json:"fallback_limit,omitempty"`
+    Checkpoint     *RehydrateCheckpoint `json:"checkpoint,omitempty"`
+    Intents        []RehydrateIntent    `json:"intents"`
+}
+```
+
+<a name="RuntimeHealth"></a>
+## type [RuntimeHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L134-L137>)
+
+RuntimeHealth represents the current runtime bootstrap visibility payload.
+
+```go
+type RuntimeHealth struct {
+    Mode      string `json:"mode"`
+    StartedAt string `json:"started_at,omitempty"`
+}
+```
+
 <a name="StatusResponse"></a>
-## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L97-L100>)
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L192-L195>)
 
 StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
 
@@ -1920,6 +2561,22 @@ StatusResponse is the generic deterministic status payload for non\-CRUD route g
 type StatusResponse struct {
     Status  string `json:"status"`
     Message string `json:"message"`
+}
+```
+
+<a name="VerifyResponse"></a>
+## type [VerifyResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L76-L83>)
+
+VerifyResponse captures deterministic verification read output.
+
+```go
+type VerifyResponse struct {
+    ID           string  `json:"id"`
+    Valid        bool    `json:"valid"`
+    StoredHash   string  `json:"stored_hash"`
+    ComputedHash string  `json:"computed_hash"`
+    PrevHash     string  `json:"prev_hash"`
+    Error        *string `json:"error,omitempty"`
 }
 ```
 
@@ -1990,7 +2647,7 @@ import "github.com/chuxorg/yanzi/internal/api/routes"
 
 
 <a name="NewHandler"></a>
-## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L20>)
+## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L25>)
 
 ```go
 func NewHandler(deps handlers.Dependencies) http.Handler
@@ -2013,6 +2670,8 @@ import "github.com/chuxorg/yanzi/internal/api/server"
   - [func NewLocal\(opts LocalOptions\) \*Server](<#NewLocal>)
   - [func \(s \*Server\) HTTPServer\(\) \*http.Server](<#Server.HTTPServer>)
   - [func \(s \*Server\) Handler\(\) http.Handler](<#Server.Handler>)
+  - [func \(s \*Server\) Serve\(listener net.Listener\) error](<#Server.Serve>)
+  - [func \(s \*Server\) Shutdown\(ctx context.Context\) error](<#Server.Shutdown>)
 
 
 <a name="LocalOptions"></a>
@@ -2030,7 +2689,7 @@ type LocalOptions struct {
 ```
 
 <a name="Options"></a>
-## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L11-L15>)
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L13-L17>)
 
 Options captures the minimal HTTP server configuration for the operational API.
 
@@ -2043,7 +2702,7 @@ type Options struct {
 ```
 
 <a name="Server"></a>
-## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L18-L21>)
+## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L20-L23>)
 
 Server is the lightweight internal HTTP server foundation for the operational API.
 
@@ -2054,7 +2713,7 @@ type Server struct {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L24>)
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L26>)
 
 ```go
 func New(opts Options) *Server
@@ -2072,7 +2731,7 @@ func NewLocal(opts LocalOptions) *Server
 NewLocal constructs a server wired to the current operational API route foundation.
 
 <a name="Server.HTTPServer"></a>
-### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L45>)
+### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L47>)
 
 ```go
 func (s *Server) HTTPServer() *http.Server
@@ -2081,13 +2740,31 @@ func (s *Server) HTTPServer() *http.Server
 HTTPServer exposes the underlying net/http server for controlled internal use.
 
 <a name="Server.Handler"></a>
-### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L37>)
+### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L39>)
 
 ```go
 func (s *Server) Handler() http.Handler
 ```
 
 Handler returns the server handler used to process HTTP requests.
+
+<a name="Server.Serve"></a>
+### func \(\*Server\) [Serve](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L55>)
+
+```go
+func (s *Server) Serve(listener net.Listener) error
+```
+
+Serve starts the HTTP server on the provided listener.
+
+<a name="Server.Shutdown"></a>
+### func \(\*Server\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L63>)
+
+```go
+func (s *Server) Shutdown(ctx context.Context) error
+```
+
+Shutdown gracefully stops the HTTP server.
 
 # hash
 

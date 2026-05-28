@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
 	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/projectstate"
 	"github.com/chuxorg/yanzi/internal/storage"
@@ -19,19 +22,37 @@ type ConfigLoadFunc func() (config.Config, error)
 // ProviderOpenFunc opens the current storage provider for API handlers.
 type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
 
+// ActiveProjectLoadFunc loads the current active project for API handlers.
+type ActiveProjectLoadFunc func() (string, error)
+
+// ArtifactReadStore exposes the current read-only behavior required by artifact handlers.
+type ArtifactReadStore interface {
+	ListIntentRecords(context.Context, yanzilibrary.ArtifactReadQuery) ([]model.IntentRecord, error)
+	GetIntentRecord(context.Context, string) (model.IntentRecord, error)
+}
+
+// ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
+type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
+
+// RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
+type RuntimeStatusFunc func() *models.RuntimeHealth
+
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
 type Dependencies struct {
-	Version            string
-	LoadConfig         ConfigLoadFunc
-	OpenProvider       ProviderOpenFunc
-	CreateProject      func(string, string) (*yanzilibrary.Project, error)
-	ListProjects       func() ([]yanzilibrary.Project, error)
-	ProjectExists      func(string) (bool, error)
-	LoadActiveProject  func() (string, error)
-	SaveActiveProject  func(string) error
-	CreateCheckpoint   func(string, string, []string) (yanzilibrary.Checkpoint, error)
-	ListCheckpoints    func(string) ([]yanzilibrary.Checkpoint, error)
-	ListAllCheckpoints func() ([]yanzilibrary.Checkpoint, error)
+	Version               string
+	LoadConfig            ConfigLoadFunc
+	OpenProvider          ProviderOpenFunc
+	CreateProject         func(string, string) (*yanzilibrary.Project, error)
+	ListProjects          func() ([]yanzilibrary.Project, error)
+	ProjectExists         func(string) (bool, error)
+	LoadActiveProject     ActiveProjectLoadFunc
+	SaveActiveProject     func(string) error
+	CreateCheckpoint      func(string, string, []string) (yanzilibrary.Checkpoint, error)
+	ListCheckpoints       func(string) ([]yanzilibrary.Checkpoint, error)
+	ListAllCheckpoints    func() ([]yanzilibrary.Checkpoint, error)
+	OpenArtifactReadStore ArtifactReadOpenFunc
+	Now                   func() time.Time
+	RuntimeStatus         RuntimeStatusFunc
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -44,14 +65,7 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 			return
 		}
 
-		resp := models.HealthResponse{
-			Version: deps.Version,
-			Mode:    string(cfg.Mode),
-			Provider: models.ProviderHealth{
-				Name:   string(storage.ProviderSQLite),
-				Status: string(storage.HealthUnavailable),
-			},
-		}
+		resp := newHealthResponse(deps.Version, cfg.Mode, deps.RuntimeStatus)
 
 		providerCfg := cfg
 		providerCfg.Mode = config.ModeLocal
@@ -74,6 +88,21 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 
 		responses.WriteJSON(w, http.StatusOK, resp)
 	})
+}
+
+func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeStatusFunc) models.HealthResponse {
+	resp := models.HealthResponse{
+		Version: version,
+		Mode:    string(mode),
+		Provider: models.ProviderHealth{
+			Name:   string(storage.ProviderSQLite),
+			Status: string(storage.HealthUnavailable),
+		},
+	}
+	if runtimeStatus != nil {
+		resp.Runtime = runtimeStatus()
+	}
+	return resp
 }
 
 func (d Dependencies) withDefaults() Dependencies {
@@ -108,6 +137,22 @@ func (d Dependencies) withDefaults() Dependencies {
 	}
 	if d.ListAllCheckpoints == nil {
 		d.ListAllCheckpoints = yanzilibrary.ListAllProjectCheckpoints
+	}
+	if d.OpenArtifactReadStore == nil {
+		d.OpenArtifactReadStore = func(ctx context.Context, cfg config.Config) (ArtifactReadStore, io.Closer, error) {
+			dbPath, err := config.EffectiveLocalDBPath(cfg)
+			if err != nil {
+				return nil, nil, err
+			}
+			db, err := yanzilibrary.InitDBAtPath(dbPath)
+			if err != nil {
+				return nil, nil, err
+			}
+			return yanzilibrary.NewArtifactReadStore(db), db, nil
+		}
+	}
+	if d.Now == nil {
+		d.Now = time.Now
 	}
 	return d
 }

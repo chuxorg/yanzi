@@ -1,6 +1,7 @@
 package yanzilibrary
 
 import (
+	"database/sql"
 	"os"
 	"path/filepath"
 	"strings"
@@ -70,6 +71,91 @@ func TestCreateArtifactRejectsInvalidType(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "invalid context type") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCreateArtifactPersistsCurrentWriteSemantics(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	if _, err := CreateProject("alpha", ""); err != nil {
+		t.Fatalf("CreateProject: %v", err)
+	}
+
+	artifact, err := CreateArtifact("alpha", ArtifactClassIntent, "decision", "Write boundary", "Preserve artifact writes.", `{"owner":"ops"}`)
+	if err != nil {
+		t.Fatalf("CreateArtifact: %v", err)
+	}
+
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	var createdAt string
+	var author string
+	var sourceType string
+	var title string
+	var prompt string
+	var response string
+	var metaText string
+	var hashValue string
+	var class string
+	var artifactType string
+	var content string
+	var metadataText string
+	var prevHash sql.NullString
+	if err := db.QueryRow(
+		`SELECT created_at, author, source_type, title, prompt, response, meta, prev_hash, hash, class, type, content, metadata
+		FROM intents WHERE id = ?`,
+		artifact.ID,
+	).Scan(
+		&createdAt,
+		&author,
+		&sourceType,
+		&title,
+		&prompt,
+		&response,
+		&metaText,
+		&prevHash,
+		&hashValue,
+		&class,
+		&artifactType,
+		&content,
+		&metadataText,
+	); err != nil {
+		t.Fatalf("query artifact: %v", err)
+	}
+
+	if createdAt != artifact.CreatedAt {
+		t.Fatalf("expected created_at %q, got %q", artifact.CreatedAt, createdAt)
+	}
+	if author != "yanzi" || sourceType != "artifact" {
+		t.Fatalf("unexpected author/source: %q/%q", author, sourceType)
+	}
+	if title != artifact.Title || prompt != artifact.Content || response != artifact.Content {
+		t.Fatalf("unexpected legacy payload: title=%q prompt=%q response=%q", title, prompt, response)
+	}
+	if prevHash.Valid {
+		t.Fatalf("expected nil prev_hash, got %q", prevHash.String)
+	}
+	if metaText != `{"project":"alpha"}` {
+		t.Fatalf("unexpected system metadata: %q", metaText)
+	}
+	if class != ArtifactClassIntent || artifactType != "decision" || content != artifact.Content {
+		t.Fatalf("unexpected artifact columns: class=%q type=%q content=%q", class, artifactType, content)
+	}
+	if metadataText != artifact.Metadata {
+		t.Fatalf("expected metadata %q, got %q", artifact.Metadata, metadataText)
+	}
+	expectedHash := hashArtifact(artifact.ID, artifact.CreatedAt, artifact.Class, artifact.Type, artifact.Title, artifact.Content, artifact.Metadata)
+	if hashValue != expectedHash {
+		t.Fatalf("expected artifact hash %q, got %q", expectedHash, hashValue)
 	}
 }
 
