@@ -62,6 +62,24 @@ func ListProjects() ([]Project, error) {
 	return projects, nil
 }
 
+// ProjectExists reports whether a project exists in the current local provider.
+func ProjectExists(name string) (bool, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return false, errors.New("project name is required")
+	}
+
+	provider, err := openStorageProvider()
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = provider.Close()
+	}()
+
+	return provider.ProjectExists(context.Background(), name)
+}
+
 func openStorageProvider() (storage.Provider, error) {
 	cfg, err := config.Load()
 	if err != nil {

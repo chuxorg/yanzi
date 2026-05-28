@@ -638,6 +638,7 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
 - [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
+- [func ProjectExists\(name string\) \(bool, error\)](<#ProjectExists>)
 - [func RenderOperationalExportLog\(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map\[string\]string, includeDeleted bool\) \(\[\]byte, string, error\)](<#RenderOperationalExportLog>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
 - [func StatePath\(\) \(string, error\)](<#StatePath>)
@@ -665,8 +666,11 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func ChainIntent\(ctx context.Context, provider storage.Provider, id string\) \(ChainResult, error\)](<#ChainIntent>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
+  - [func CreateProjectCheckpoint\(project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateProjectCheckpoint>)
   - [func ListAllCheckpoints\(ctx context.Context, db \*sql.DB\) \(\[\]Checkpoint, error\)](<#ListAllCheckpoints>)
+  - [func ListAllProjectCheckpoints\(\) \(\[\]Checkpoint, error\)](<#ListAllProjectCheckpoints>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
+  - [func ListProjectCheckpoints\(project string\) \(\[\]Checkpoint, error\)](<#ListProjectCheckpoints>)
   - [func \(c Checkpoint\) Normalize\(\) Checkpoint](<#Checkpoint.Normalize>)
   - [func \(c Checkpoint\) Validate\(\) error](<#Checkpoint.Validate>)
 - [type CheckpointStore](<#CheckpointStore>)
@@ -782,6 +786,15 @@ func MigrationsFS() fs.FS
 ```
 
 MigrationsFS exposes embedded migration files for libraryd.
+
+<a name="ProjectExists"></a>
+## func [ProjectExists](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L66>)
+
+```go
+func ProjectExists(name string) (bool, error)
+```
+
+ProjectExists reports whether a project exists in the current local provider.
 
 <a name="RenderOperationalExportLog"></a>
 ## func [RenderOperationalExportLog](<https://github.com/chuxorg/yanzi/blob/master/internal/library/export_log.go#L53>)
@@ -1067,6 +1080,15 @@ func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, 
 
 CreateCheckpoint is a convenience wrapper for CheckpointStore.CreateCheckpoint.
 
+<a name="CreateProjectCheckpoint"></a>
+### func [CreateProjectCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L10>)
+
+```go
+func CreateProjectCheckpoint(project, summary string, artifactIDs []string) (Checkpoint, error)
+```
+
+CreateProjectCheckpoint creates a checkpoint for the provided project using the current local provider.
+
 <a name="ListAllCheckpoints"></a>
 ### func [ListAllCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L65>)
 
@@ -1076,6 +1098,15 @@ func ListAllCheckpoints(ctx context.Context, db *sql.DB) ([]Checkpoint, error)
 
 ListAllCheckpoints is a convenience wrapper for all\-project checkpoint listing.
 
+<a name="ListAllProjectCheckpoints"></a>
+### func [ListAllProjectCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L52>)
+
+```go
+func ListAllProjectCheckpoints() ([]Checkpoint, error)
+```
+
+ListAllProjectCheckpoints lists checkpoints across all projects using the current local provider.
+
 <a name="ListCheckpoints"></a>
 ### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L60>)
 
@@ -1084,6 +1115,15 @@ func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpo
 ```
 
 ListCheckpoints is a convenience wrapper for CheckpointStore.ListCheckpoints.
+
+<a name="ListProjectCheckpoints"></a>
+### func [ListProjectCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L31>)
+
+```go
+func ListProjectCheckpoints(project string) ([]Checkpoint, error)
+```
+
+ListProjectCheckpoints lists checkpoints for a single project using the current local provider.
 
 <a name="Checkpoint.Normalize"></a>
 ### func \(Checkpoint\) [Normalize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L60>)
@@ -1350,6 +1390,46 @@ func VerifyIntent(ctx context.Context, provider storage.Provider, id string) (Ve
 ```
 
 VerifyIntent preserves current provider\-backed verification semantics.
+
+# projectstate
+
+```go
+import "github.com/chuxorg/yanzi/internal/projectstate"
+```
+
+## Index
+
+- [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
+- [func SaveActiveProject\(name string\) error](<#SaveActiveProject>)
+- [func WriteProjectBinding\(name string\) error](<#WriteProjectBinding>)
+
+
+<a name="LoadActiveProject"></a>
+## func [LoadActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L19>)
+
+```go
+func LoadActiveProject() (string, error)
+```
+
+LoadActiveProject resolves the active project using the current binding and state\-file precedence.
+
+<a name="SaveActiveProject"></a>
+## func [SaveActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L53>)
+
+```go
+func SaveActiveProject(name string) error
+```
+
+SaveActiveProject persists the active project in the current user state directory.
+
+<a name="WriteProjectBinding"></a>
+## func [WriteProjectBinding](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L92>)
+
+```go
+func WriteProjectBinding(name string) error
+```
+
+WriteProjectBinding persists the current working\-directory binding used by init and project workflows.
 
 # runtime
 
@@ -1936,9 +2016,12 @@ import "github.com/chuxorg/yanzi/internal/api/handlers"
 ## Index
 
 - [func NewArtifactHandler\(deps Dependencies\) http.Handler](<#NewArtifactHandler>)
+- [func NewCheckpointsHandler\(deps Dependencies\) http.Handler](<#NewCheckpointsHandler>)
+- [func NewCurrentProjectHandler\(deps Dependencies\) http.Handler](<#NewCurrentProjectHandler>)
 - [func NewDeferredRouteHandler\(group string\) http.Handler](<#NewDeferredRouteHandler>)
 - [func NewExportHandler\(deps Dependencies\) http.Handler](<#NewExportHandler>)
 - [func NewHealthHandler\(deps Dependencies\) http.Handler](<#NewHealthHandler>)
+- [func NewProjectsHandler\(deps Dependencies\) http.Handler](<#NewProjectsHandler>)
 - [func NewRehydrateHandler\(deps Dependencies\) http.Handler](<#NewRehydrateHandler>)
 - [func NewVerifyHandler\(deps Dependencies\) http.Handler](<#NewVerifyHandler>)
 - [type ActiveProjectLoadFunc](<#ActiveProjectLoadFunc>)
@@ -1959,6 +2042,24 @@ func NewArtifactHandler(deps Dependencies) http.Handler
 
 NewArtifactHandler returns the current artifact capture/read API handler.
 
+<a name="NewCheckpointsHandler"></a>
+## func [NewCheckpointsHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/checkpoint.go#L16>)
+
+```go
+func NewCheckpointsHandler(deps Dependencies) http.Handler
+```
+
+NewCheckpointsHandler returns the provider\-backed checkpoint collection handler.
+
+<a name="NewCurrentProjectHandler"></a>
+## func [NewCurrentProjectHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/project.go#L48>)
+
+```go
+func NewCurrentProjectHandler(deps Dependencies) http.Handler
+```
+
+NewCurrentProjectHandler returns the active\-project read/write handler.
+
 <a name="NewDeferredRouteHandler"></a>
 ## func [NewDeferredRouteHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/placeholders.go#L12>)
 
@@ -1978,13 +2079,22 @@ func NewExportHandler(deps Dependencies) http.Handler
 NewExportHandler returns the deterministic export read API handler.
 
 <a name="NewHealthHandler"></a>
-## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L51>)
+## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L59>)
 
 ```go
 func NewHealthHandler(deps Dependencies) http.Handler
 ```
 
 NewHealthHandler returns the minimal GET /v0/health handler.
+
+<a name="NewProjectsHandler"></a>
+## func [NewProjectsHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/project.go#L15>)
+
+```go
+func NewProjectsHandler(deps Dependencies) http.Handler
+```
+
+NewProjectsHandler returns the provider\-backed project collection handler.
 
 <a name="NewRehydrateHandler"></a>
 ## func [NewRehydrateHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/rehydrate.go#L19>)
@@ -2005,7 +2115,7 @@ func NewVerifyHandler(deps Dependencies) http.Handler
 NewVerifyHandler returns the verification read API handler.
 
 <a name="ActiveProjectLoadFunc"></a>
-## type [ActiveProjectLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L25>)
+## type [ActiveProjectLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L26>)
 
 ActiveProjectLoadFunc loads the current active project for API handlers.
 
@@ -2014,7 +2124,7 @@ type ActiveProjectLoadFunc func() (string, error)
 ```
 
 <a name="ArtifactReadOpenFunc"></a>
-## type [ArtifactReadOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L34>)
+## type [ArtifactReadOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L35>)
 
 ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
 
@@ -2023,7 +2133,7 @@ type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStor
 ```
 
 <a name="ArtifactReadStore"></a>
-## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L28-L31>)
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L29-L32>)
 
 ArtifactReadStore exposes the current read\-only behavior required by artifact handlers.
 
@@ -2035,7 +2145,7 @@ type ArtifactReadStore interface {
 ```
 
 <a name="ConfigLoadFunc"></a>
-## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L19>)
+## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L20>)
 
 ConfigLoadFunc loads the current Yanzi configuration for API handlers.
 
@@ -2044,7 +2154,7 @@ type ConfigLoadFunc func() (config.Config, error)
 ```
 
 <a name="Dependencies"></a>
-## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L40-L48>)
+## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L41-L56>)
 
 Dependencies captures the lightweight handler dependencies used by the API foundation.
 
@@ -2053,7 +2163,14 @@ type Dependencies struct {
     Version               string
     LoadConfig            ConfigLoadFunc
     OpenProvider          ProviderOpenFunc
+    CreateProject         func(string, string) (*yanzilibrary.Project, error)
+    ListProjects          func() ([]yanzilibrary.Project, error)
+    ProjectExists         func(string) (bool, error)
     LoadActiveProject     ActiveProjectLoadFunc
+    SaveActiveProject     func(string) error
+    CreateCheckpoint      func(string, string, []string) (yanzilibrary.Checkpoint, error)
+    ListCheckpoints       func(string) ([]yanzilibrary.Checkpoint, error)
+    ListAllCheckpoints    func() ([]yanzilibrary.Checkpoint, error)
     OpenArtifactReadStore ArtifactReadOpenFunc
     Now                   func() time.Time
     RuntimeStatus         RuntimeStatusFunc
@@ -2061,7 +2178,7 @@ type Dependencies struct {
 ```
 
 <a name="ProviderOpenFunc"></a>
-## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L22>)
+## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L23>)
 
 ProviderOpenFunc opens the current storage provider for API handlers.
 
@@ -2070,7 +2187,7 @@ type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, er
 ```
 
 <a name="RuntimeStatusFunc"></a>
-## type [RuntimeStatusFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L37>)
+## type [RuntimeStatusFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L38>)
 
 RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
 
@@ -2116,6 +2233,8 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 - [type Checkpoint](<#Checkpoint>)
 - [type CheckpointCreateRequest](<#CheckpointCreateRequest>)
 - [type CheckpointListResponse](<#CheckpointListResponse>)
+- [type CurrentProjectRequest](<#CurrentProjectRequest>)
+- [type CurrentProjectResponse](<#CurrentProjectResponse>)
 - [type HealthResponse](<#HealthResponse>)
 - [type Project](<#Project>)
 - [type ProjectCreateRequest](<#ProjectCreateRequest>)
@@ -2130,7 +2249,7 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 
 
 <a name="Artifact"></a>
-## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L15-L27>)
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L25-L37>)
 
 Artifact represents the current operational API artifact detail payload.
 
@@ -2151,7 +2270,7 @@ type Artifact struct {
 ```
 
 <a name="ArtifactCaptureRequest"></a>
-## type [ArtifactCaptureRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L49>)
+## type [ArtifactCaptureRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L50-L59>)
 
 ArtifactCaptureRequest captures the POST /v0/artifacts capture payload.
 
@@ -2169,7 +2288,7 @@ type ArtifactCaptureRequest struct {
 ```
 
 <a name="ArtifactCaptureResponse"></a>
-## type [ArtifactCaptureResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L52-L63>)
+## type [ArtifactCaptureResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L62-L73>)
 
 ArtifactCaptureResponse is the deterministic capture artifact response.
 
@@ -2189,7 +2308,7 @@ type ArtifactCaptureResponse struct {
 ```
 
 <a name="ArtifactListResponse"></a>
-## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L35-L37>)
+## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L45-L47>)
 
 ArtifactListResponse is the collection response for artifact queries.
 
@@ -2200,7 +2319,7 @@ type ArtifactListResponse struct {
 ```
 
 <a name="ArtifactResponse"></a>
-## type [ArtifactResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L30-L32>)
+## type [ArtifactResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L42>)
 
 ArtifactResponse is the detail response for artifact reads.
 
@@ -2211,7 +2330,7 @@ type ArtifactResponse struct {
 ```
 
 <a name="ArtifactSummary"></a>
-## type [ArtifactSummary](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L4-L12>)
+## type [ArtifactSummary](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L14-L22>)
 
 ArtifactSummary represents the current operational API artifact list payload.
 
@@ -2228,7 +2347,7 @@ type ArtifactSummary struct {
 ```
 
 <a name="ChainResponse"></a>
-## type [ChainResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L76-L81>)
+## type [ChainResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L86-L91>)
 
 ChainResponse captures deterministic chain traversal output.
 
@@ -2242,7 +2361,7 @@ type ChainResponse struct {
 ```
 
 <a name="Checkpoint"></a>
-## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L102-L109>)
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L112-L119>)
 
 Checkpoint represents the current operational API checkpoint payload.
 
@@ -2258,7 +2377,7 @@ type Checkpoint struct {
 ```
 
 <a name="CheckpointCreateRequest"></a>
-## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L112-L116>)
+## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L122-L126>)
 
 CheckpointCreateRequest captures the current checkpoint creation shape.
 
@@ -2271,7 +2390,7 @@ type CheckpointCreateRequest struct {
 ```
 
 <a name="CheckpointListResponse"></a>
-## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L119-L121>)
+## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L129-L131>)
 
 CheckpointListResponse is the collection response for checkpoint queries.
 
@@ -2281,8 +2400,30 @@ type CheckpointListResponse struct {
 }
 ```
 
+<a name="CurrentProjectRequest"></a>
+## type [CurrentProjectRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L4-L6>)
+
+CurrentProjectRequest captures the active\-project update shape.
+
+```go
+type CurrentProjectRequest struct {
+    Name string `json:"name"`
+}
+```
+
+<a name="CurrentProjectResponse"></a>
+## type [CurrentProjectResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L9-L11>)
+
+CurrentProjectResponse is the active\-project read response.
+
+```go
+type CurrentProjectResponse struct {
+    Project *Project `json:"project"`
+}
+```
+
 <a name="HealthResponse"></a>
-## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L174-L179>)
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L184-L189>)
 
 HealthResponse is the minimal operational health/status response.
 
@@ -2296,7 +2437,7 @@ type HealthResponse struct {
 ```
 
 <a name="Project"></a>
-## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L84-L88>)
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L94-L98>)
 
 Project represents the current operational API project payload.
 
@@ -2309,7 +2450,7 @@ type Project struct {
 ```
 
 <a name="ProjectCreateRequest"></a>
-## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L91-L94>)
+## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L101-L104>)
 
 ProjectCreateRequest captures the current project creation shape.
 
@@ -2321,7 +2462,7 @@ type ProjectCreateRequest struct {
 ```
 
 <a name="ProjectListResponse"></a>
-## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L97-L99>)
+## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L107-L109>)
 
 ProjectListResponse is the collection response for project queries.
 
@@ -2332,7 +2473,7 @@ type ProjectListResponse struct {
 ```
 
 <a name="ProviderHealth"></a>
-## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L167-L171>)
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L177-L181>)
 
 ProviderHealth represents the current provider health payload for API status reads.
 
@@ -2345,7 +2486,7 @@ type ProviderHealth struct {
 ```
 
 <a name="RehydrateCheckpoint"></a>
-## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L130-L137>)
+## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L140-L147>)
 
 RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
 
@@ -2361,7 +2502,7 @@ type RehydrateCheckpoint struct {
 ```
 
 <a name="RehydrateIntent"></a>
-## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L140-L153>)
+## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L150-L163>)
 
 RehydrateIntent represents the current operational API rehydration intent payload.
 
@@ -2383,7 +2524,7 @@ type RehydrateIntent struct {
 ```
 
 <a name="RehydrateResponse"></a>
-## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L156-L164>)
+## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L166-L174>)
 
 RehydrateResponse is the deterministic operational API rehydration payload.
 
@@ -2400,7 +2541,7 @@ type RehydrateResponse struct {
 ```
 
 <a name="RuntimeHealth"></a>
-## type [RuntimeHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L124-L127>)
+## type [RuntimeHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L134-L137>)
 
 RuntimeHealth represents the current runtime bootstrap visibility payload.
 
@@ -2412,7 +2553,7 @@ type RuntimeHealth struct {
 ```
 
 <a name="StatusResponse"></a>
-## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L182-L185>)
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L192-L195>)
 
 StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
 
@@ -2424,7 +2565,7 @@ type StatusResponse struct {
 ```
 
 <a name="VerifyResponse"></a>
-## type [VerifyResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L66-L73>)
+## type [VerifyResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L76-L83>)
 
 VerifyResponse captures deterministic verification read output.
 
@@ -2506,7 +2647,7 @@ import "github.com/chuxorg/yanzi/internal/api/routes"
 
 
 <a name="NewHandler"></a>
-## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L24>)
+## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L25>)
 
 ```go
 func NewHandler(deps handlers.Dependencies) http.Handler

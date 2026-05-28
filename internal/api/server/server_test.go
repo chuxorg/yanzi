@@ -36,11 +36,11 @@ func TestNewLocalWiresRouteFoundation(t *testing.T) {
 		t.Fatalf("unexpected addr: %q", srv.HTTPServer().Addr)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/v0/checkpoints/example", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts/example", nil)
 	rec := httptest.NewRecorder()
 	srv.Handler().ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusNotImplemented || !strings.Contains(rec.Body.String(), "checkpoints endpoints are deferred") {
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "artifact_not_found") {
 		t.Fatalf("unexpected routed response: code=%d body=%q", rec.Code, rec.Body.String())
 	}
 }

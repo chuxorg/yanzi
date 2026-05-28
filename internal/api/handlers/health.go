@@ -11,6 +11,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/projectstate"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
@@ -41,7 +42,14 @@ type Dependencies struct {
 	Version               string
 	LoadConfig            ConfigLoadFunc
 	OpenProvider          ProviderOpenFunc
+	CreateProject         func(string, string) (*yanzilibrary.Project, error)
+	ListProjects          func() ([]yanzilibrary.Project, error)
+	ProjectExists         func(string) (bool, error)
 	LoadActiveProject     ActiveProjectLoadFunc
+	SaveActiveProject     func(string) error
+	CreateCheckpoint      func(string, string, []string) (yanzilibrary.Checkpoint, error)
+	ListCheckpoints       func(string) ([]yanzilibrary.Checkpoint, error)
+	ListAllCheckpoints    func() ([]yanzilibrary.Checkpoint, error)
 	OpenArtifactReadStore ArtifactReadOpenFunc
 	Now                   func() time.Time
 	RuntimeStatus         RuntimeStatusFunc
@@ -106,8 +114,29 @@ func (d Dependencies) withDefaults() Dependencies {
 			return registry.Open(ctx, cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 		}
 	}
+	if d.CreateProject == nil {
+		d.CreateProject = yanzilibrary.CreateProject
+	}
+	if d.ListProjects == nil {
+		d.ListProjects = yanzilibrary.ListProjects
+	}
+	if d.ProjectExists == nil {
+		d.ProjectExists = yanzilibrary.ProjectExists
+	}
 	if d.LoadActiveProject == nil {
-		d.LoadActiveProject = loadAPIActiveProject
+		d.LoadActiveProject = projectstate.LoadActiveProject
+	}
+	if d.SaveActiveProject == nil {
+		d.SaveActiveProject = projectstate.SaveActiveProject
+	}
+	if d.CreateCheckpoint == nil {
+		d.CreateCheckpoint = yanzilibrary.CreateProjectCheckpoint
+	}
+	if d.ListCheckpoints == nil {
+		d.ListCheckpoints = yanzilibrary.ListProjectCheckpoints
+	}
+	if d.ListAllCheckpoints == nil {
+		d.ListAllCheckpoints = yanzilibrary.ListAllProjectCheckpoints
 	}
 	if d.OpenArtifactReadStore == nil {
 		d.OpenArtifactReadStore = func(ctx context.Context, cfg config.Config) (ArtifactReadStore, io.Closer, error) {

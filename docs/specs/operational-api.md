@@ -96,7 +96,7 @@ CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `int
 
 ## Implementation Status
 
-Current status: artifact capture, verification, export, and rehydration read endpoints available; broader operational API remains deferred.
+Current status: project and checkpoint endpoints are implemented alongside artifact capture/read, verification, export, rehydration, and runtime surfaces; the CAP-002 operational surface is now stabilized.
 
 Implemented in CAP-002 Phase 1:
 
@@ -107,6 +107,20 @@ Implemented in CAP-002 Phase 1:
 - health handler wired through existing config and storage provider seams
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
+
+Implemented in CAP-002 Phase 2:
+
+- `GET /v0/projects`
+- `POST /v0/projects`
+- `GET /v0/projects/current`
+- `POST /v0/projects/current`
+- `GET /v0/checkpoints`
+- `POST /v0/checkpoints`
+- provider-backed project create/list execution
+- provider-backed checkpoint create/list execution
+- active-project state handling shared with current CLI semantics
+- deterministic error response mapping for duplicate, missing, invalid, and active-project-dependent operations
+- route-level API tests for project/current/checkpoint success and failure behavior
 
 Implemented in CAP-002 Phase 3:
 
@@ -170,7 +184,6 @@ Current health/status limitation:
 
 Deferred endpoint work:
 
-- project and checkpoint endpoint implementation
 - tombstone mutation APIs
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 

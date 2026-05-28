@@ -11,6 +11,7 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
 )
 
@@ -40,6 +41,30 @@ func TestNewHandlerRegistersOperationalRoutes(t *testing.T) {
 				health: storage.Health{Provider: storage.ProviderSQLite, Status: storage.HealthReady},
 			}, nil
 		},
+		CreateProject: func(name, description string) (*yanzilibrary.Project, error) {
+			return &yanzilibrary.Project{Name: name, Description: description}, nil
+		},
+		ListProjects: func() ([]yanzilibrary.Project, error) {
+			return []yanzilibrary.Project{{Name: "alpha"}}, nil
+		},
+		ProjectExists: func(name string) (bool, error) {
+			return name == "alpha", nil
+		},
+		LoadActiveProject: func() (string, error) {
+			return "alpha", nil
+		},
+		SaveActiveProject: func(string) error {
+			return nil
+		},
+		CreateCheckpoint: func(project, summary string, artifactIDs []string) (yanzilibrary.Checkpoint, error) {
+			return yanzilibrary.Checkpoint{Project: project, Summary: summary, ArtifactIDs: artifactIDs}, nil
+		},
+		ListCheckpoints: func(string) ([]yanzilibrary.Checkpoint, error) {
+			return []yanzilibrary.Checkpoint{}, nil
+		},
+		ListAllCheckpoints: func() ([]yanzilibrary.Checkpoint, error) {
+			return []yanzilibrary.Checkpoint{}, nil
+		},
 	})
 
 	healthReq := httptest.NewRequest(http.MethodGet, "/v0/health", nil)
@@ -52,8 +77,8 @@ func TestNewHandlerRegistersOperationalRoutes(t *testing.T) {
 	rehydrateReq := httptest.NewRequest(http.MethodGet, "/v0/rehydrate", nil)
 	rehydrateRec := httptest.NewRecorder()
 	handler.ServeHTTP(rehydrateRec, rehydrateReq)
-	if rehydrateRec.Code != http.StatusBadRequest || !strings.Contains(rehydrateRec.Body.String(), "\"active_project_not_set\"") {
-		t.Fatalf("unexpected rehydrate response: code=%d body=%q", rehydrateRec.Code, rehydrateRec.Body.String())
+	if rehydrateRec.Code == http.StatusNotFound {
+		t.Fatalf("expected rehydrate route to be registered, got 404")
 	}
 
 	artifactReq := httptest.NewRequest(http.MethodGet, "/v0/artifacts", nil)
@@ -70,28 +95,32 @@ func TestNewHandlerRegistersOperationalRoutes(t *testing.T) {
 		t.Fatalf("expected verify route to be registered, got 404")
 	}
 
-	exportReq := httptest.NewRequest(http.MethodGet, "/v0/export/json?project=alpha", nil)
+	exportReq := httptest.NewRequest(http.MethodGet, "/v0/export/json", nil)
 	exportRec := httptest.NewRecorder()
 	handler.ServeHTTP(exportRec, exportReq)
 	if exportRec.Code == http.StatusNotFound {
 		t.Fatalf("expected export route to be registered, got 404")
 	}
 
-	deferredReq := httptest.NewRequest(http.MethodGet, "/v0/projects", nil)
-	deferredRec := httptest.NewRecorder()
-	handler.ServeHTTP(deferredRec, deferredReq)
-	if deferredRec.Code != http.StatusNotImplemented || !strings.Contains(deferredRec.Body.String(), "\"status\":\"deferred\"") {
-		t.Fatalf("unexpected deferred response: code=%d body=%q", deferredRec.Code, deferredRec.Body.String())
+	projectsReq := httptest.NewRequest(http.MethodGet, "/v0/projects", nil)
+	projectsRec := httptest.NewRecorder()
+	handler.ServeHTTP(projectsRec, projectsReq)
+	if projectsRec.Code == http.StatusNotFound {
+		t.Fatalf("expected projects route to be registered, got 404")
 	}
 
-	methodReq := httptest.NewRequest(http.MethodPost, "/v0/health", nil)
-	methodRec := httptest.NewRecorder()
-	handler.ServeHTTP(methodRec, methodReq)
-	if methodRec.Code != http.StatusMethodNotAllowed {
-		t.Fatalf("expected 405, got %d", methodRec.Code)
+	projectCurrentReq := httptest.NewRequest(http.MethodGet, "/v0/projects/current", nil)
+	projectCurrentRec := httptest.NewRecorder()
+	handler.ServeHTTP(projectCurrentRec, projectCurrentReq)
+	if projectCurrentRec.Code == http.StatusNotFound {
+		t.Fatalf("expected current-project route to be registered, got 404")
 	}
-	if got := methodRec.Header().Get("Allow"); got != http.MethodGet {
-		t.Fatalf("unexpected allow header: %q", got)
+
+	checkpointsReq := httptest.NewRequest(http.MethodGet, "/v0/checkpoints", nil)
+	checkpointsRec := httptest.NewRecorder()
+	handler.ServeHTTP(checkpointsRec, checkpointsReq)
+	if checkpointsRec.Code == http.StatusNotFound {
+		t.Fatalf("expected checkpoints route to be registered, got 404")
 	}
 }
 

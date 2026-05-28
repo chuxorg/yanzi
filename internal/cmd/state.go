@@ -3,33 +3,17 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
-	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/projectstate"
 )
 
-type projectState struct {
-	ActiveProject string `json:"active_project"`
-}
-
 func loadActiveProject() (string, error) {
-	return yanzilibrary.LoadActiveProject()
+	return projectstate.LoadActiveProject()
 }
 
 func writeProjectBinding(name string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("resolve working dir: %w", err)
-	}
-
-	dir := filepath.Join(wd, ".yanzi")
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create binding dir: %w", err)
-	}
-	path := filepath.Join(dir, "project")
-	return os.WriteFile(path, []byte(strings.TrimSpace(name)+"\n"), 0o644)
+	return projectstate.WriteProjectBinding(name)
 }
 
 func attachProjectMeta(meta json.RawMessage, project string) (json.RawMessage, error) {
@@ -53,39 +37,5 @@ func attachProjectMeta(meta json.RawMessage, project string) (json.RawMessage, e
 }
 
 func saveActiveProject(name string) error {
-	path, err := yanzilibrary.StatePath()
-	if err != nil {
-		return err
-	}
-
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return fmt.Errorf("create state dir: %w", err)
-	}
-
-	state := projectState{ActiveProject: strings.TrimSpace(name)}
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode state: %w", err)
-	}
-	data = append(data, '\n')
-
-	tmp, err := os.CreateTemp(dir, "state-*.json")
-	if err != nil {
-		return fmt.Errorf("create state file: %w", err)
-	}
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmp.Name())
-		return fmt.Errorf("write state file: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmp.Name())
-		return fmt.Errorf("close state file: %w", err)
-	}
-	if err := os.Rename(tmp.Name(), path); err != nil {
-		_ = os.Remove(tmp.Name())
-		return fmt.Errorf("persist state file: %w", err)
-	}
-	return nil
+	return projectstate.SaveActiveProject(name)
 }
