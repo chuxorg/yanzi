@@ -69,7 +69,7 @@ func setModeHTTP() error {
 		return err
 	}
 	fmt.Printf("Mode set to http (%s).\n", baseURL)
-	fmt.Println("Run 'libraryd' to start the server.")
+	fmt.Println("Run 'yanzi serve' to start the server.")
 	return nil
 }
 
