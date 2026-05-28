@@ -1,5 +1,5 @@
 site_name: Yanzi
-site_description: Technical documentation for Yanzi
+site_description: Authoritative technical documentation for Yanzi
 repo_name: chuxorg/yanzi
 repo_url: https://github.com/chuxorg/yanzi
 docs_dir: docs
@@ -22,8 +22,8 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
-    - navigation.tabs
     - navigation.sections
+    - navigation.expand
     - content.code.copy
 
 extra_css:
@@ -33,28 +33,42 @@ plugins:
   - search
 
 nav:
-  - Home: index.md
-  - Getting Started: getting-started.md
-  - Problem: problem.md
-  - How It Works: how-it-works.md
-  - Use Yanzi: use-yanzi.md
-  - UI: ui.md
-  - CLI: cli.md
-  - Install: install.md
-  - Quickstart: quickstart.md
-  - AI Seed: ai-seed.md
-  - Use Cases:
-      - Overview: use-cases/index.md
-      - Agent Communication: use-cases/agent-communication.md
-      - Seeding: use-cases/seeding.md
-      - Retrieval: use-cases/retrieval.md
-  - Rehydrate: rehydrate.md
-  - Architecture: architecture.md
-  - API: api/index.md
-  - Agent Bootstrap: agent-bootstrap.md
-  - Release Protocol: dev/RELEASE_PROTOCOL.md
-  - Code Documentation: dev/CODE_DOCUMENTATION.md
-  - Branch Protection: dev/BRANCH_PROTECTION.md
+  - Getting Started:
+      - Overview: index.md
+      - Install: install.md
+      - Quickstart: quickstart.md
+      - Getting Started: getting-started.md
+  - Reference:
+      - CLI: cli.md
+      - API: api/index.md
+      - Rehydrate: rehydrate.md
+      - UI: ui.md
+  - Specifications:
+      - Architecture: architecture.md
+      - Domain Model: domain-model.md
+      - Workflow: workflow.md
+      - Problem: problem.md
+      - Rules: rules.md
+      - Guardrails: guardrails.md
+      - Release Lineage Governance: release-lineage-governance.md
+      - Documentation Topology: specs/documentation-topology.md
+  - Operational Docs:
+      - How It Works: how-it-works.md
+      - Use Yanzi: use-yanzi.md
+      - AI Seed: ai-seed.md
+      - Use Cases:
+          - Overview: use-cases/index.md
+          - Agent Communication: use-cases/agent-communication.md
+          - Seeding: use-cases/seeding.md
+          - Retrieval: use-cases/retrieval.md
+      - Changelog: changelog.md
+      - Release Protocol: dev/RELEASE_PROTOCOL.md
+  - Roadmap:
+      - CAP-100 Phase 1: roadmap/phases/CAP-100-phase-1-doc-topology-alignment.md
+  - Roles:
+      - Agent Bootstrap: agent-bootstrap.md
+      - Code Documentation: dev/CODE_DOCUMENTATION.md
+      - Branch Protection: dev/BRANCH_PROTECTION.md
   - Generated API:
       - Overview: api/index.md
       - CLI Package: api/cmd.md

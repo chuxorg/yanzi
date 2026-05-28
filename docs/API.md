@@ -187,6 +187,7 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunList\(args \[\]string\) error](<#RunList>)
 - [func RunMessage\(args \[\]string\) error](<#RunMessage>)
 - [func RunMode\(args \[\]string\) error](<#RunMode>)
+- [func RunPack\(args \[\]string\) error](<#RunPack>)
 - [func RunProject\(args \[\]string\) error](<#RunProject>)
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
 - [func RunRestore\(args \[\]string\) error](<#RunRestore>)
@@ -241,7 +242,7 @@ func RunChain(args []string) error
 RunChain prints the intent chain from oldest to newest.
 
 <a name="RunCheckpoint"></a>
-## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L31>)
+## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L34>)
 
 ```go
 func RunCheckpoint(args []string) error
@@ -345,7 +346,7 @@ func RunIntent(args []string) error
 
 
 <a name="RunList"></a>
-## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L15>)
+## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L16>)
 
 ```go
 func RunList(args []string) error
@@ -388,6 +389,25 @@ func RunMode(args []string) error
 
 RunMode shows or sets the runtime mode.
 
+<a name="RunPack"></a>
+## func [RunPack](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/pack.go#L43>)
+
+```go
+func RunPack(args []string) error
+```
+
+RunPack applies or exports portable context packs.
+
+Problem: Reusing the same stored context across projects is tedious when each item must be added manually.
+
+Solution: RunPack exposes \`apply\` for idempotent pack loading and \`export\` for producing a pack definition plus sidecar files from visible context.
+
+Arguments:
+
+```
+args starts with `apply` or `export` followed by the corresponding flags.
+```
+
 <a name="RunProject"></a>
 ## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L28>)
 
@@ -410,7 +430,7 @@ yanzi project use demo
 ```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L32>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L73>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -425,7 +445,7 @@ Solution: RunRehydrate loads the active project, resolves the latest checkpoint,
 Arguments:
 
 ```
-args supports `--dry-run` and no positional arguments.
+args supports `--dry-run`, `--format text|json`, and no positional arguments.
 ```
 
 Example:
@@ -487,16 +507,26 @@ import "github.com/chuxorg/yanzi/internal/config"
 
 ## Index
 
+- [Constants](<#constants>)
 - [func ConfigPath\(\) \(string, error\)](<#ConfigPath>)
 - [func DefaultDBPath\(\) \(string, error\)](<#DefaultDBPath>)
+- [func EffectiveLocalDBPath\(cfg Config\) \(string, error\)](<#EffectiveLocalDBPath>)
 - [func StateDir\(\) \(string, error\)](<#StateDir>)
 - [type Config](<#Config>)
   - [func Load\(\) \(Config, error\)](<#Load>)
 - [type Mode](<#Mode>)
 
 
+## Constants
+
+<a name="LocalDBPathEnvVar"></a>LocalDBPathEnvVar is the environment variable that overrides local SQLite resolution.
+
+```go
+const LocalDBPathEnvVar = "YANZI_DB_PATH"
+```
+
 <a name="ConfigPath"></a>
-## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L105>)
+## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L108>)
 
 ```go
 func ConfigPath() (string, error)
@@ -505,7 +535,7 @@ func ConfigPath() (string, error)
 ConfigPath returns the full path to \~/.yanzi/config.yaml.
 
 <a name="DefaultDBPath"></a>
-## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L123>)
+## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L126>)
 
 ```go
 func DefaultDBPath() (string, error)
@@ -513,8 +543,23 @@ func DefaultDBPath() (string, error)
 
 DefaultDBPath returns the default SQLite path under \~/.yanzi.
 
+<a name="EffectiveLocalDBPath"></a>
+## func [EffectiveLocalDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L140>)
+
+```go
+func EffectiveLocalDBPath(cfg Config) (string, error)
+```
+
+EffectiveLocalDBPath resolves the local SQLite path using deterministic precedence.
+
+Precedence:
+
+1. YANZI\_DB\_PATH
+2. Config.DBPath
+3. DefaultDBPath\(\)
+
 <a name="StateDir"></a>
-## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L114>)
+## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L117>)
 
 ```go
 func StateDir() (string, error)
@@ -536,7 +581,7 @@ type Config struct {
 ```
 
 <a name="Load"></a>
-### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L39>)
+### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L42>)
 
 ```go
 func Load() (Config, error)
@@ -578,6 +623,7 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [Variables](<#variables>)
 - [func HashCheckpoint\(checkpoint Checkpoint\) \(string, error\)](<#HashCheckpoint>)
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
+- [func InitDBAtPath\(path string\) \(\*sql.DB, error\)](<#InitDBAtPath>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
@@ -586,7 +632,9 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
   - [func GetVisibleContextArtifact\(idPrefix, activeProject string\) \(Artifact, error\)](<#GetVisibleContextArtifact>)
   - [func ListArtifacts\(projectID, class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifacts>)
+  - [func ListArtifactsAllProjects\(class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifactsAllProjects>)
   - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
+  - [func ListVisibleContextArtifactsAllProjects\(artifactType, scopeFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifactsAllProjects>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
@@ -606,6 +654,7 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func \(e ProjectNotFoundError\) Error\(\) string](<#ProjectNotFoundError.Error>)
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
+  - [func RehydrateProjectWithFallback\(project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrateProjectWithFallback>)
 
 
 ## Constants
@@ -619,6 +668,12 @@ const (
     ContextScopeGlobal   = "global"
     ContextScopeProject  = "project"
 )
+```
+
+<a name="DefaultRehydrateFallbackLimit"></a>DefaultRehydrateFallbackLimit is the deterministic fallback window when no checkpoint exists.
+
+```go
+const DefaultRehydrateFallbackLimit = 10
 ```
 
 ## Variables
@@ -639,7 +694,7 @@ func HashCheckpoint(checkpoint Checkpoint) (string, error)
 HashCheckpoint computes a deterministic SHA\-256 hash for a Checkpoint. The hash preimage excludes the hash field and uses canonical field order.
 
 <a name="InitDB"></a>
-## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L58>)
+## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L59>)
 
 ```go
 func InitDB() (*sql.DB, error)
@@ -647,8 +702,17 @@ func InitDB() (*sql.DB, error)
 
 InitDB resolves the database path, ensures migrations, and returns a SQLite handle.
 
+<a name="InitDBAtPath"></a>
+## func [InitDBAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L69>)
+
+```go
+func InitDBAtPath(path string) (*sql.DB, error)
+```
+
+InitDBAtPath ensures migrations and returns a SQLite handle for the provided path.
+
 <a name="Initialize"></a>
-## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L39>)
+## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L40>)
 
 ```go
 func Initialize() (bool, error)
@@ -666,7 +730,7 @@ func MigrationsFS() fs.FS
 MigrationsFS exposes embedded migration files for libraryd.
 
 <a name="ResolvedDBPath"></a>
-## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L74>)
+## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L80>)
 
 ```go
 func ResolvedDBPath() string
@@ -712,7 +776,7 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
 
 <a name="GetVisibleContextArtifact"></a>
-### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L309>)
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L412>)
 
 ```go
 func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
@@ -729,14 +793,32 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 
 ListArtifacts lists artifacts for a project and class, optionally filtered by type.
 
+<a name="ListArtifactsAllProjects"></a>
+### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L135>)
+
+```go
+func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListArtifactsAllProjects lists artifacts across every project for the requested class.
+
 <a name="ListVisibleContextArtifacts"></a>
-### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L238>)
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L271>)
 
 ```go
 func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
 ```
 
 ListVisibleContextArtifacts returns global context plus project context visible to the caller.
+
+<a name="ListVisibleContextArtifactsAllProjects"></a>
+### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L342>)
+
+```go
+func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListVisibleContextArtifactsAllProjects returns global and project\-scoped context across every project.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)
@@ -850,7 +932,7 @@ func (e CheckpointValidationError) Error() string
 Error returns the validation error as "\<field\> \<message\>".
 
 <a name="Intent"></a>
-## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L17-L28>)
+## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L20-L31>)
 
 Intent represents an intent artifact loaded from the intents table for rehydration.
 
@@ -921,26 +1003,40 @@ func (e ProjectNotFoundError) Error() string
 Error returns the project\-not\-found message including the project name.
 
 <a name="RehydratePayload"></a>
-## type [RehydratePayload](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L31-L35>)
+## type [RehydratePayload](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L34-L41>)
 
-RehydratePayload contains the latest checkpoint and the intents created after it.
+RehydratePayload contains the checkpoint boundary or fallback state and the ordered intents to render.
 
 ```go
 type RehydratePayload struct {
     Project          string
-    LatestCheckpoint Checkpoint
-    IntentsSince     []Intent
+    LatestCheckpoint *Checkpoint
+    Intents          []Intent
+    Fallback         bool
+    FallbackReason   string
+    FallbackLimit    int
 }
 ```
 
 <a name="RehydrateProject"></a>
-### func [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L38>)
+### func [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L47>)
 
 ```go
 func RehydrateProject(project string) (*RehydratePayload, error)
 ```
 
 RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+If no checkpoint exists, the payload falls back to the latest project intents so operational continuity remains available during recovery.
+
+<a name="RehydrateProjectWithFallback"></a>
+### func [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L52>)
+
+```go
+func RehydrateProjectWithFallback(project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
 
 # hash
 
