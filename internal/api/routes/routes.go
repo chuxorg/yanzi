@@ -10,6 +10,7 @@ import (
 const (
 	basePath        = "/v0"
 	healthPath      = basePath + "/health"
+	rehydratePath   = basePath + "/rehydrate"
 	intentsPath     = basePath + "/intents"
 	artifactsPath   = basePath + "/artifacts"
 	verifyPath      = basePath + "/verify/"
@@ -23,6 +24,7 @@ const (
 func NewHandler(deps handlers.Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerGet(mux, healthPath, handlers.NewHealthHandler(deps))
+	registerGet(mux, rehydratePath, handlers.NewRehydrateHandler(deps))
 	registerArtifacts(mux, handlers.NewArtifactHandler(deps))
 	registerVerification(mux, handlers.NewVerifyHandler(deps))
 	registerExport(mux, handlers.NewExportHandler(deps))

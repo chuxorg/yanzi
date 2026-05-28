@@ -120,6 +120,43 @@ type CheckpointListResponse struct {
 	Checkpoints []Checkpoint `json:"checkpoints"`
 }
 
+// RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
+type RehydrateCheckpoint struct {
+	Hash                 string   `json:"hash"`
+	Project              string   `json:"project"`
+	Summary              string   `json:"summary"`
+	CreatedAt            string   `json:"created_at"`
+	ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+	PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+
+// RehydrateIntent represents the current operational API rehydration intent payload.
+type RehydrateIntent struct {
+	ID              string            `json:"id"`
+	Timestamp       string            `json:"timestamp"`
+	Author          string            `json:"author"`
+	SourceType      string            `json:"source_type"`
+	Title           string            `json:"title,omitempty"`
+	Prompt          string            `json:"prompt"`
+	Response        string            `json:"response"`
+	PromptSnippet   string            `json:"prompt_snippet"`
+	ResponseSnippet string            `json:"response_snippet"`
+	Metadata        map[string]string `json:"metadata,omitempty"`
+	Hash            string            `json:"hash"`
+	PrevHash        string            `json:"prev_hash,omitempty"`
+}
+
+// RehydrateResponse is the deterministic operational API rehydration payload.
+type RehydrateResponse struct {
+	Project        string               `json:"project"`
+	HasCheckpoint  bool                 `json:"has_checkpoint"`
+	Fallback       bool                 `json:"fallback"`
+	FallbackReason string               `json:"fallback_reason,omitempty"`
+	FallbackLimit  int                  `json:"fallback_limit,omitempty"`
+	Checkpoint     *RehydrateCheckpoint `json:"checkpoint,omitempty"`
+	Intents        []RehydrateIntent    `json:"intents"`
+}
+
 // ProviderHealth represents the current provider health payload for API status reads.
 type ProviderHealth struct {
 	Name   string `json:"name"`

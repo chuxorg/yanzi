@@ -85,13 +85,14 @@ func TestHealthHandlerReturnsConfigLoadError(t *testing.T) {
 type stubProvider struct {
 	health storage.Health
 	closed bool
+	db     *sql.DB
 }
 
 func (p *stubProvider) Name() storage.ProviderName { return p.health.Provider }
 func (p *stubProvider) Health(context.Context) storage.Health {
 	return p.health
 }
-func (p *stubProvider) SQLDB() *sql.DB { return nil }
+func (p *stubProvider) SQLDB() *sql.DB { return p.db }
 func (p *stubProvider) Close() error {
 	p.closed = true
 	return nil

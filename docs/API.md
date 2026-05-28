@@ -430,7 +430,7 @@ yanzi project use demo
 ```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L73>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L74>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -626,9 +626,11 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
 - [func InitDBAtPath\(path string\) \(\*sql.DB, error\)](<#InitDBAtPath>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
+- [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
 - [func RenderOperationalExportLog\(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map\[string\]string, includeDeleted bool\) \(\[\]byte, string, error\)](<#RenderOperationalExportLog>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
+- [func StatePath\(\) \(string, error\)](<#StatePath>)
 - [type Artifact](<#Artifact>)
   - [func CreateArtifact\(projectID, class, artifactType, title, content, metadata string\) \(Artifact, error\)](<#CreateArtifact>)
   - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
@@ -673,6 +675,10 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
   - [func RehydrateProjectWithFallback\(project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrateProjectWithFallback>)
+- [type RehydrationService](<#RehydrationService>)
+  - [func NewRehydrationService\(db \*sql.DB\) \*RehydrationService](<#NewRehydrationService>)
+  - [func \(s \*RehydrationService\) RehydrateProject\(ctx context.Context, project string\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProject>)
+  - [func \(s \*RehydrationService\) RehydrateProjectWithFallback\(ctx context.Context, project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProjectWithFallback>)
 - [type VerifyResult](<#VerifyResult>)
   - [func VerifyIntent\(ctx context.Context, provider storage.Provider, id string\) \(VerifyResult, error\)](<#VerifyIntent>)
 
@@ -749,6 +755,15 @@ func Initialize() (bool, error)
 
 Initialize ensures the default yanzi runtime directory, database, and schema exist. It returns true when this run performed first\-time schema initialization.
 
+<a name="LoadActiveProject"></a>
+## func [LoadActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L20>)
+
+```go
+func LoadActiveProject() (string, error)
+```
+
+LoadActiveProject resolves the current active project using the same local\-state lookup order as the CLI.
+
 <a name="MigrationsFS"></a>
 ## func [MigrationsFS](<https://github.com/chuxorg/yanzi/blob/master/internal/library/migrations_embed.go#L12>)
 
@@ -775,6 +790,15 @@ func ResolvedDBPath() string
 ```
 
 ResolvedDBPath returns the most recently resolved database path.
+
+<a name="StatePath"></a>
+## func [StatePath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L55>)
+
+```go
+func StatePath() (string, error)
+```
+
+StatePath resolves the canonical state.json path used for active project persistence.
 
 <a name="Artifact"></a>
 ## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact.go#L40-L50>)
@@ -1250,6 +1274,44 @@ If no checkpoint exists, the payload falls back to the latest project intents so
 
 ```go
 func RehydrateProjectWithFallback(project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
+
+<a name="RehydrationService"></a>
+## type [RehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L11-L13>)
+
+RehydrationService isolates the current SQL\-backed rehydration flow.
+
+```go
+type RehydrationService struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewRehydrationService"></a>
+### func [NewRehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L16>)
+
+```go
+func NewRehydrationService(db *sql.DB) *RehydrationService
+```
+
+NewRehydrationService constructs a rehydration service around the provided database handle.
+
+<a name="RehydrationService.RehydrateProject"></a>
+### func \(\*RehydrationService\) [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L21>)
+
+```go
+func (s *RehydrationService) RehydrateProject(ctx context.Context, project string) (*RehydratePayload, error)
+```
+
+RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+<a name="RehydrationService.RehydrateProjectWithFallback"></a>
+### func \(\*RehydrationService\) [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L26>)
+
+```go
+func (s *RehydrationService) RehydrateProjectWithFallback(ctx context.Context, project string, fallbackLimit int) (*RehydratePayload, error)
 ```
 
 RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
@@ -1757,6 +1819,7 @@ import "github.com/chuxorg/yanzi/internal/api/handlers"
 - [func NewDeferredRouteHandler\(group string\) http.Handler](<#NewDeferredRouteHandler>)
 - [func NewExportHandler\(deps Dependencies\) http.Handler](<#NewExportHandler>)
 - [func NewHealthHandler\(deps Dependencies\) http.Handler](<#NewHealthHandler>)
+- [func NewRehydrateHandler\(deps Dependencies\) http.Handler](<#NewRehydrateHandler>)
 - [func NewVerifyHandler\(deps Dependencies\) http.Handler](<#NewVerifyHandler>)
 - [type ActiveProjectLoadFunc](<#ActiveProjectLoadFunc>)
 - [type ArtifactReadOpenFunc](<#ArtifactReadOpenFunc>)
@@ -1801,6 +1864,15 @@ func NewHealthHandler(deps Dependencies) http.Handler
 ```
 
 NewHealthHandler returns the minimal GET /v0/health handler.
+
+<a name="NewRehydrateHandler"></a>
+## func [NewRehydrateHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/rehydrate.go#L19>)
+
+```go
+func NewRehydrateHandler(deps Dependencies) http.Handler
+```
+
+NewRehydrateHandler returns the deterministic GET /v0/rehydrate handler.
 
 <a name="NewVerifyHandler"></a>
 ## func [NewVerifyHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/verify.go#L22>)
@@ -1918,6 +1990,9 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 - [type ProjectCreateRequest](<#ProjectCreateRequest>)
 - [type ProjectListResponse](<#ProjectListResponse>)
 - [type ProviderHealth](<#ProviderHealth>)
+- [type RehydrateCheckpoint](<#RehydrateCheckpoint>)
+- [type RehydrateIntent](<#RehydrateIntent>)
+- [type RehydrateResponse](<#RehydrateResponse>)
 - [type StatusResponse](<#StatusResponse>)
 - [type VerifyResponse](<#VerifyResponse>)
 
@@ -2075,7 +2150,7 @@ type CheckpointListResponse struct {
 ```
 
 <a name="HealthResponse"></a>
-## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L131-L135>)
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L168-L172>)
 
 HealthResponse is the minimal operational health/status response.
 
@@ -2124,7 +2199,7 @@ type ProjectListResponse struct {
 ```
 
 <a name="ProviderHealth"></a>
-## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L124-L128>)
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L161-L165>)
 
 ProviderHealth represents the current provider health payload for API status reads.
 
@@ -2136,8 +2211,63 @@ type ProviderHealth struct {
 }
 ```
 
+<a name="RehydrateCheckpoint"></a>
+## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L124-L131>)
+
+RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
+
+```go
+type RehydrateCheckpoint struct {
+    Hash                 string   `json:"hash"`
+    Project              string   `json:"project"`
+    Summary              string   `json:"summary"`
+    CreatedAt            string   `json:"created_at"`
+    ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+    PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+```
+
+<a name="RehydrateIntent"></a>
+## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L134-L147>)
+
+RehydrateIntent represents the current operational API rehydration intent payload.
+
+```go
+type RehydrateIntent struct {
+    ID              string            `json:"id"`
+    Timestamp       string            `json:"timestamp"`
+    Author          string            `json:"author"`
+    SourceType      string            `json:"source_type"`
+    Title           string            `json:"title,omitempty"`
+    Prompt          string            `json:"prompt"`
+    Response        string            `json:"response"`
+    PromptSnippet   string            `json:"prompt_snippet"`
+    ResponseSnippet string            `json:"response_snippet"`
+    Metadata        map[string]string `json:"metadata,omitempty"`
+    Hash            string            `json:"hash"`
+    PrevHash        string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="RehydrateResponse"></a>
+## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L150-L158>)
+
+RehydrateResponse is the deterministic operational API rehydration payload.
+
+```go
+type RehydrateResponse struct {
+    Project        string               `json:"project"`
+    HasCheckpoint  bool                 `json:"has_checkpoint"`
+    Fallback       bool                 `json:"fallback"`
+    FallbackReason string               `json:"fallback_reason,omitempty"`
+    FallbackLimit  int                  `json:"fallback_limit,omitempty"`
+    Checkpoint     *RehydrateCheckpoint `json:"checkpoint,omitempty"`
+    Intents        []RehydrateIntent    `json:"intents"`
+}
+```
+
 <a name="StatusResponse"></a>
-## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L138-L141>)
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L175-L178>)
 
 StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
 
@@ -2231,7 +2361,7 @@ import "github.com/chuxorg/yanzi/internal/api/routes"
 
 
 <a name="NewHandler"></a>
-## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L23>)
+## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L24>)
 
 ```go
 func NewHandler(deps handlers.Dependencies) http.Handler
