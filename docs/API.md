@@ -192,6 +192,7 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
 - [func RunRestore\(args \[\]string\) error](<#RunRestore>)
 - [func RunRules\(args \[\]string, cliVersion string\) error](<#RunRules>)
+- [func RunServe\(args \[\]string, version string\) error](<#RunServe>)
 - [func RunShow\(args \[\]string\) error](<#RunShow>)
 - [func RunTypes\(args \[\]string\) error](<#RunTypes>)
 - [func RunVerify\(args \[\]string\) error](<#RunVerify>)
@@ -471,6 +472,15 @@ func RunRules(args []string, cliVersion string) error
 ```
 
 
+
+<a name="RunServe"></a>
+## func [RunServe](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/serve.go#L18>)
+
+```go
+func RunServe(args []string, version string) error
+```
+
+RunServe starts the shared runtime server in the foreground.
 
 <a name="RunShow"></a>
 ## func [RunShow](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/show.go#L15>)
@@ -1341,6 +1351,116 @@ func VerifyIntent(ctx context.Context, provider storage.Provider, id string) (Ve
 
 VerifyIntent preserves current provider\-backed verification semantics.
 
+# runtime
+
+```go
+import "github.com/chuxorg/yanzi/internal/runtime"
+```
+
+## Index
+
+- [type Instance](<#Instance>)
+  - [func \(i \*Instance\) Addr\(\) string](<#Instance.Addr>)
+  - [func \(i \*Instance\) Shutdown\(ctx context.Context\) error](<#Instance.Shutdown>)
+  - [func \(i \*Instance\) StartedAt\(\) time.Time](<#Instance.StartedAt>)
+  - [func \(i \*Instance\) Wait\(\) error](<#Instance.Wait>)
+- [type Options](<#Options>)
+- [type Runtime](<#Runtime>)
+  - [func New\(opts Options\) \*Runtime](<#New>)
+  - [func \(r \*Runtime\) Start\(\) \(\*Instance, error\)](<#Runtime.Start>)
+
+
+<a name="Instance"></a>
+## type [Instance](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L38-L43>)
+
+Instance represents a started runtime server.
+
+```go
+type Instance struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="Instance.Addr"></a>
+### func \(\*Instance\) [Addr](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L116>)
+
+```go
+func (i *Instance) Addr() string
+```
+
+Addr returns the bound listener address.
+
+<a name="Instance.Shutdown"></a>
+### func \(\*Instance\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L132>)
+
+```go
+func (i *Instance) Shutdown(ctx context.Context) error
+```
+
+Shutdown stops the runtime server with a bounded grace period.
+
+<a name="Instance.StartedAt"></a>
+### func \(\*Instance\) [StartedAt](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L124>)
+
+```go
+func (i *Instance) StartedAt() time.Time
+```
+
+StartedAt returns the runtime startup timestamp.
+
+<a name="Instance.Wait"></a>
+### func \(\*Instance\) [Wait](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L142>)
+
+```go
+func (i *Instance) Wait() error
+```
+
+Wait returns the background server error or nil after shutdown.
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L21-L27>)
+
+Options captures the minimal runtime bootstrap inputs.
+
+```go
+type Options struct {
+    Addr            string
+    Version         string
+    RuntimeMode     string
+    ShutdownTimeout time.Duration
+    Dependencies    handlers.Dependencies
+}
+```
+
+<a name="Runtime"></a>
+## type [Runtime](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L30-L35>)
+
+Runtime owns a lightweight shared operational API server.
+
+```go
+type Runtime struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L46>)
+
+```go
+func New(opts Options) *Runtime
+```
+
+New constructs a runtime bootstrap wrapper around the operational API server.
+
+<a name="Runtime.Start"></a>
+### func \(\*Runtime\) [Start](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L85>)
+
+```go
+func (r *Runtime) Start() (*Instance, error)
+```
+
+Start binds the runtime listener and begins serving requests in the background.
+
 # storage
 
 ```go
@@ -1827,6 +1947,7 @@ import "github.com/chuxorg/yanzi/internal/api/handlers"
 - [type ConfigLoadFunc](<#ConfigLoadFunc>)
 - [type Dependencies](<#Dependencies>)
 - [type ProviderOpenFunc](<#ProviderOpenFunc>)
+- [type RuntimeStatusFunc](<#RuntimeStatusFunc>)
 
 
 <a name="NewArtifactHandler"></a>
@@ -1857,7 +1978,7 @@ func NewExportHandler(deps Dependencies) http.Handler
 NewExportHandler returns the deterministic export read API handler.
 
 <a name="NewHealthHandler"></a>
-## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L47>)
+## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L51>)
 
 ```go
 func NewHealthHandler(deps Dependencies) http.Handler
@@ -1923,7 +2044,7 @@ type ConfigLoadFunc func() (config.Config, error)
 ```
 
 <a name="Dependencies"></a>
-## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L37-L44>)
+## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L40-L48>)
 
 Dependencies captures the lightweight handler dependencies used by the API foundation.
 
@@ -1935,6 +2056,7 @@ type Dependencies struct {
     LoadActiveProject     ActiveProjectLoadFunc
     OpenArtifactReadStore ArtifactReadOpenFunc
     Now                   func() time.Time
+    RuntimeStatus         RuntimeStatusFunc
 }
 ```
 
@@ -1945,6 +2067,15 @@ ProviderOpenFunc opens the current storage provider for API handlers.
 
 ```go
 type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
+```
+
+<a name="RuntimeStatusFunc"></a>
+## type [RuntimeStatusFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L37>)
+
+RuntimeStatusFunc reports the runtime bootstrap state for health responses.
+
+```go
+type RuntimeStatusFunc func() *models.RuntimeHealth
 ```
 
 # middleware
@@ -1993,6 +2124,7 @@ import "github.com/chuxorg/yanzi/internal/api/models"
 - [type RehydrateCheckpoint](<#RehydrateCheckpoint>)
 - [type RehydrateIntent](<#RehydrateIntent>)
 - [type RehydrateResponse](<#RehydrateResponse>)
+- [type RuntimeHealth](<#RuntimeHealth>)
 - [type StatusResponse](<#StatusResponse>)
 - [type VerifyResponse](<#VerifyResponse>)
 
@@ -2150,7 +2282,7 @@ type CheckpointListResponse struct {
 ```
 
 <a name="HealthResponse"></a>
-## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L168-L172>)
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L174-L179>)
 
 HealthResponse is the minimal operational health/status response.
 
@@ -2158,6 +2290,7 @@ HealthResponse is the minimal operational health/status response.
 type HealthResponse struct {
     Version  string         `json:"version"`
     Mode     string         `json:"mode"`
+    Runtime  *RuntimeHealth `json:"runtime,omitempty"`
     Provider ProviderHealth `json:"provider"`
 }
 ```
@@ -2199,7 +2332,7 @@ type ProjectListResponse struct {
 ```
 
 <a name="ProviderHealth"></a>
-## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L161-L165>)
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L167-L171>)
 
 ProviderHealth represents the current provider health payload for API status reads.
 
@@ -2212,7 +2345,7 @@ type ProviderHealth struct {
 ```
 
 <a name="RehydrateCheckpoint"></a>
-## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L124-L131>)
+## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L130-L137>)
 
 RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
 
@@ -2228,7 +2361,7 @@ type RehydrateCheckpoint struct {
 ```
 
 <a name="RehydrateIntent"></a>
-## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L134-L147>)
+## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L140-L153>)
 
 RehydrateIntent represents the current operational API rehydration intent payload.
 
@@ -2250,7 +2383,7 @@ type RehydrateIntent struct {
 ```
 
 <a name="RehydrateResponse"></a>
-## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L150-L158>)
+## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L156-L164>)
 
 RehydrateResponse is the deterministic operational API rehydration payload.
 
@@ -2266,8 +2399,20 @@ type RehydrateResponse struct {
 }
 ```
 
+<a name="RuntimeHealth"></a>
+## type [RuntimeHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L124-L127>)
+
+RuntimeHealth represents the current runtime bootstrap visibility payload.
+
+```go
+type RuntimeHealth struct {
+    Mode      string `json:"mode"`
+    StartedAt string `json:"started_at,omitempty"`
+}
+```
+
 <a name="StatusResponse"></a>
-## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L175-L178>)
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L182-L185>)
 
 StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
 
@@ -2384,6 +2529,8 @@ import "github.com/chuxorg/yanzi/internal/api/server"
   - [func NewLocal\(opts LocalOptions\) \*Server](<#NewLocal>)
   - [func \(s \*Server\) HTTPServer\(\) \*http.Server](<#Server.HTTPServer>)
   - [func \(s \*Server\) Handler\(\) http.Handler](<#Server.Handler>)
+  - [func \(s \*Server\) Serve\(listener net.Listener\) error](<#Server.Serve>)
+  - [func \(s \*Server\) Shutdown\(ctx context.Context\) error](<#Server.Shutdown>)
 
 
 <a name="LocalOptions"></a>
@@ -2401,7 +2548,7 @@ type LocalOptions struct {
 ```
 
 <a name="Options"></a>
-## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L11-L15>)
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L13-L17>)
 
 Options captures the minimal HTTP server configuration for the operational API.
 
@@ -2414,7 +2561,7 @@ type Options struct {
 ```
 
 <a name="Server"></a>
-## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L18-L21>)
+## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L20-L23>)
 
 Server is the lightweight internal HTTP server foundation for the operational API.
 
@@ -2425,7 +2572,7 @@ type Server struct {
 ```
 
 <a name="New"></a>
-### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L24>)
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L26>)
 
 ```go
 func New(opts Options) *Server
@@ -2443,7 +2590,7 @@ func NewLocal(opts LocalOptions) *Server
 NewLocal constructs a server wired to the current operational API route foundation.
 
 <a name="Server.HTTPServer"></a>
-### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L45>)
+### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L47>)
 
 ```go
 func (s *Server) HTTPServer() *http.Server
@@ -2452,13 +2599,31 @@ func (s *Server) HTTPServer() *http.Server
 HTTPServer exposes the underlying net/http server for controlled internal use.
 
 <a name="Server.Handler"></a>
-### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L37>)
+### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L39>)
 
 ```go
 func (s *Server) Handler() http.Handler
 ```
 
 Handler returns the server handler used to process HTTP requests.
+
+<a name="Server.Serve"></a>
+### func \(\*Server\) [Serve](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L55>)
+
+```go
+func (s *Server) Serve(listener net.Listener) error
+```
+
+Serve starts the HTTP server on the provided listener.
+
+<a name="Server.Shutdown"></a>
+### func \(\*Server\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L63>)
+
+```go
+func (s *Server) Shutdown(ctx context.Context) error
+```
+
+Shutdown gracefully stops the HTTP server.
 
 # hash
 

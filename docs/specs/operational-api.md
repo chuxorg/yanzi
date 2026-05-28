@@ -15,6 +15,7 @@ The operational API foundation covers:
 - canonical request and response models
 - handler boundaries that delegate to existing library and provider seams
 - minimal operational health and status exposure
+- explicit foreground runtime bootstrap for optional shared access
 
 ## Non-Goals
 
@@ -118,11 +119,19 @@ Implemented in CAP-002 Phase 9:
 - deterministic API response shaping for checkpoint and fallback reconstruction
 - API tests for deterministic reconstruction, missing active-project handling, missing-project handling, and fallback behavior
 
+Implemented in CAP-002 Phase 10:
+
+- explicit `yanzi serve` foreground runtime bootstrap
+- lightweight server execution mode for the existing Operational API
+- runtime health visibility in the shared runtime path
+- runtime lifecycle tests for startup, shutdown, route serving, and bind failure handling
+
 Current runtime status:
 
 - internal-only
-- local-only friendly
+- local-first friendly
 - experimental
+- optional foreground shared runtime available via `yanzi serve`
 - not daemonized
 - not exposed as a full supported runtime surface
 
@@ -135,7 +144,7 @@ Deferred endpoint work:
 
 - project and checkpoint endpoint implementation
 - tombstone endpoint work
-- auth, runtime hosting, orchestration, and non-SQLite provider concerns
+- auth, orchestration, and non-SQLite provider concerns
 
 ## Artifact Read Boundary
 
@@ -152,6 +161,12 @@ Current rehydration status:
 - `GET /v0/rehydrate` is implemented
 - CLI `rehydrate` and the API endpoint both route through the internal rehydration service boundary
 - the endpoint preserves deterministic checkpoint anchoring, fallback behavior, and serialization
+
+Current runtime/health status:
+
+- `GET /v0/health` remains the primary readiness surface
+- health responses now include minimal runtime visibility when the shared runtime is active
+- runtime visibility is informational only and does not imply workflow orchestration
 
 Current internal read status:
 
@@ -178,3 +193,9 @@ Future rehydration endpoint work:
 
 - preserve deterministic checkpoint and fallback behavior for any future expansion
 - keep runtime, auth, federation, MCP, and Postgres work deferred
+
+Future runtime work:
+
+- keep runtime bootstrap lightweight and foreground only
+- avoid background workers, orchestration, or distributed coordination
+- preserve CLI primacy and local-first behavior

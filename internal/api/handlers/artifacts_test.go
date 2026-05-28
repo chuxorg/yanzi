@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
 	cmdpkg "github.com/chuxorg/yanzi/internal/cmd"
@@ -83,7 +84,7 @@ func TestArtifactHandlerListsScopedArtifactsWithDeterministicOrder(t *testing.T)
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts?author=alice&profile=engineer&meta=kind=note", nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
+	handlers.NewArtifactHandler(handlers.Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%q", rec.Code, rec.Body.String())
@@ -142,7 +143,7 @@ func TestArtifactHandlerGetsArtifactByID(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts/"+id, nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
+	handlers.NewArtifactHandler(handlers.Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d body=%q", rec.Code, rec.Body.String())
@@ -181,7 +182,7 @@ func TestArtifactHandlerReturnsNotFoundForMissingArtifact(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/v0/artifacts/missing-id", nil)
 	rec := httptest.NewRecorder()
-	NewArtifactHandler(Dependencies{}).ServeHTTP(rec, req)
+	handlers.NewArtifactHandler(handlers.Dependencies{}).ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d body=%q", rec.Code, rec.Body.String())
@@ -201,7 +202,7 @@ func TestArtifactCaptureEndpointCreatesReadableCapture(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeAPIHandlerTestConfig(t, home)
 
-	handler := NewArtifactHandler(Dependencies{})
+	handler := handlers.NewArtifactHandler(handlers.Dependencies{})
 	payload := `{
 		"author":"Ada",
 		"source_type":"agent",
@@ -306,7 +307,7 @@ func TestArtifactCaptureEndpointRejectsMalformedPayload(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeAPIHandlerTestConfig(t, home)
 
-	handler := NewArtifactHandler(Dependencies{})
+	handler := handlers.NewArtifactHandler(handlers.Dependencies{})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v0/artifacts", strings.NewReader(`{"author":`)))
 
@@ -323,7 +324,7 @@ func TestArtifactCaptureEndpointRejectsValidationErrors(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeAPIHandlerTestConfig(t, home)
 
-	handler := NewArtifactHandler(Dependencies{})
+	handler := handlers.NewArtifactHandler(handlers.Dependencies{})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v0/artifacts", strings.NewReader(`{"prompt":"p","response":"r"}`)))
 
@@ -344,7 +345,7 @@ func TestArtifactCaptureEndpointRejectsMutationMethods(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeAPIHandlerTestConfig(t, home)
 
-	handler := NewArtifactHandler(Dependencies{})
+	handler := handlers.NewArtifactHandler(handlers.Dependencies{})
 	deleteRec := httptest.NewRecorder()
 	handler.ServeHTTP(deleteRec, httptest.NewRequest(http.MethodDelete, "/v0/artifacts/example", nil))
 	if deleteRec.Code != http.StatusMethodNotAllowed {
@@ -360,7 +361,7 @@ func TestArtifactCaptureResponseShapeIsStable(t *testing.T) {
 	t.Setenv("HOME", home)
 	writeAPIHandlerTestConfig(t, home)
 
-	handler := NewArtifactHandler(Dependencies{})
+	handler := handlers.NewArtifactHandler(handlers.Dependencies{})
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/v0/artifacts", bytes.NewBufferString(`{"author":"Ada","prompt":"p","response":"r"}`)))
 	if rec.Code != http.StatusCreated {

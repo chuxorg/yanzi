@@ -33,6 +33,9 @@ type ArtifactReadStore interface {
 // ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
 type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
 
+// RuntimeStatusFunc reports the runtime bootstrap state for health responses.
+type RuntimeStatusFunc func() *models.RuntimeHealth
+
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
 type Dependencies struct {
 	Version               string
@@ -41,6 +44,7 @@ type Dependencies struct {
 	LoadActiveProject     ActiveProjectLoadFunc
 	OpenArtifactReadStore ArtifactReadOpenFunc
 	Now                   func() time.Time
+	RuntimeStatus         RuntimeStatusFunc
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -60,6 +64,9 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 				Name:   string(storage.ProviderSQLite),
 				Status: string(storage.HealthUnavailable),
 			},
+		}
+		if deps.RuntimeStatus != nil {
+			resp.Runtime = deps.RuntimeStatus()
 		}
 
 		providerCfg := cfg

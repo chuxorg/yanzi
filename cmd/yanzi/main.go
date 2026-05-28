@@ -61,6 +61,8 @@ func run(args []string) int {
 		err = cmd.RunRestore(args[1:])
 	case "mode":
 		err = cmd.RunMode(args[1:])
+	case "serve":
+		err = cmd.RunServe(args[1:], version)
 	case "project":
 		err = cmd.RunProject(args[1:])
 	case "init":
@@ -116,6 +118,7 @@ commands:
   delete   Tombstone an intent or artifact by id.
   restore  Remove tombstone metadata by id.
   mode     Show or set runtime mode (local | http).
+  serve    Start the shared operational runtime.
   project  Manage project context.
   init  Create or bind a project to the current directory.
   intent  Manage intent artifacts.

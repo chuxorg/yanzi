@@ -19,6 +19,7 @@ Yanzi gives you a local workflow for:
 - [Problem](problem.md)
 - [Install](install.md)
 - [How It Works](how-it-works.md)
+- [Runtime Architecture](specs/runtime-architecture.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
