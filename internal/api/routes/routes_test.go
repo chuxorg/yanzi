@@ -72,6 +72,20 @@ func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
 	if rehydrateRec.Code != http.StatusBadRequest || !strings.Contains(rehydrateRec.Body.String(), "\"active_project_not_set\"") {
 		t.Fatalf("unexpected rehydrate response: code=%d body=%q", rehydrateRec.Code, rehydrateRec.Body.String())
 	}
+
+	verifyReq := httptest.NewRequest(http.MethodGet, "/v0/verify/example", nil)
+	verifyRec := httptest.NewRecorder()
+	handler.ServeHTTP(verifyRec, verifyReq)
+	if verifyRec.Code == http.StatusNotFound {
+		t.Fatalf("expected verify route to be registered, got 404")
+	}
+
+	exportReq := httptest.NewRequest(http.MethodGet, "/v0/export/json?project=alpha", nil)
+	exportRec := httptest.NewRecorder()
+	handler.ServeHTTP(exportRec, exportReq)
+	if exportRec.Code == http.StatusNotFound {
+		t.Fatalf("expected export route to be registered, got 404")
+	}
 }
 
 type routeStubProvider struct {

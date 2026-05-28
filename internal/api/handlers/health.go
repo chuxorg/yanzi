@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"context"
+	"io"
 	"net/http"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
 	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
@@ -18,15 +21,30 @@ type ConfigLoadFunc func() (config.Config, error)
 // ProviderOpenFunc opens the current storage provider for API handlers.
 type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
 
-// RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
+// ActiveProjectLoadFunc loads the current active project for API handlers.
+type ActiveProjectLoadFunc func() (string, error)
+
+// ArtifactReadStore exposes the current read-only behavior required by artifact handlers.
+type ArtifactReadStore interface {
+	ListIntentRecords(context.Context, yanzilibrary.ArtifactReadQuery) ([]model.IntentRecord, error)
+	GetIntentRecord(context.Context, string) (model.IntentRecord, error)
+}
+
+// ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
+type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
+
+// RuntimeStatusFunc reports the runtime bootstrap state for health responses.
 type RuntimeStatusFunc func() *models.RuntimeHealth
 
 // Dependencies captures the lightweight handler dependencies used by the API foundation.
 type Dependencies struct {
-	Version       string
-	LoadConfig    ConfigLoadFunc
-	OpenProvider  ProviderOpenFunc
-	RuntimeStatus RuntimeStatusFunc
+	Version               string
+	LoadConfig            ConfigLoadFunc
+	OpenProvider          ProviderOpenFunc
+	LoadActiveProject     ActiveProjectLoadFunc
+	OpenArtifactReadStore ArtifactReadOpenFunc
+	Now                   func() time.Time
+	RuntimeStatus         RuntimeStatusFunc
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -82,6 +100,25 @@ func (d Dependencies) withDefaults() Dependencies {
 		d.OpenProvider = func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
 			return registry.Open(ctx, cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 		}
+	}
+	if d.LoadActiveProject == nil {
+		d.LoadActiveProject = loadAPIActiveProject
+	}
+	if d.OpenArtifactReadStore == nil {
+		d.OpenArtifactReadStore = func(ctx context.Context, cfg config.Config) (ArtifactReadStore, io.Closer, error) {
+			dbPath, err := config.EffectiveLocalDBPath(cfg)
+			if err != nil {
+				return nil, nil, err
+			}
+			db, err := yanzilibrary.InitDBAtPath(dbPath)
+			if err != nil {
+				return nil, nil, err
+			}
+			return yanzilibrary.NewArtifactReadStore(db), db, nil
+		}
+	}
+	if d.Now == nil {
+		d.Now = time.Now
 	}
 	return d
 }
