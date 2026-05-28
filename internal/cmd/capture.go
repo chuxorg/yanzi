@@ -15,6 +15,7 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/client"
 	"github.com/chuxorg/yanzi/internal/config"
+	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 )
 
 // RunCapture stores one prompt/response pair as an intent record.
@@ -170,11 +171,17 @@ func RunCapture(args []string) error {
 		}
 		defer db.Close()
 
-		record, err := buildLocalIntent(input)
+		writeStore := yanzilibrary.NewArtifactWriteStore(db)
+		record, err := writeStore.CreateCapture(ctx, yanzilibrary.CaptureWriteInput{
+			Author:     input.Author,
+			SourceType: input.SourceType,
+			Title:      input.Title,
+			Prompt:     input.Prompt,
+			Response:   input.Response,
+			Meta:       input.Meta,
+			PrevHash:   input.PrevHash,
+		})
 		if err != nil {
-			return err
-		}
-		if err := createLocalIntent(ctx, db, record); err != nil {
 			return err
 		}
 		intent = record

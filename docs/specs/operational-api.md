@@ -38,6 +38,8 @@ The API foundation uses the existing `/v0` prefix and introduces the following r
 - `/v0/health`
 - `/v0/rehydrate`
 - `/v0/artifacts`
+- `/v0/verify`
+- `/v0/export`
 - `/v0/projects`
 - `/v0/checkpoints`
 
@@ -82,11 +84,13 @@ Phase 1 must not migrate those paths. Future artifact endpoint phases will addre
 
 CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
+CAP-002 Phase 7 exposes verification and export read endpoints. Verification and chain handlers delegate through provider-backed verification helpers. Export handlers delegate through provider-backed export reads and shared deterministic renderers. No direct SQL access is introduced in handlers, and mutation, tombstone, and rehydration work remain deferred.
+
 CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `internal/library/rehydration_service.go` as the current local rehydration boundary. The CLI continues to use existing rehydration semantics, but future rehydration endpoints must delegate through that boundary instead of duplicating project selection, checkpoint scoping, or output behavior in handlers.
 
 ## Implementation Status
 
-Current status: API foundation plus deterministic rehydration read support.
+Current status: artifact capture, verification, export, and rehydration read endpoints available; broader operational API remains deferred.
 
 Implemented in CAP-002 Phase 1:
 
@@ -97,6 +101,15 @@ Implemented in CAP-002 Phase 1:
 - health handler wired through existing config and storage provider seams
 - deterministic placeholder responses for deferred route groups
 - lightweight routing and response tests
+
+Implemented in CAP-002 Phase 7:
+
+- `GET /v0/verify/{id}`
+- `GET /v0/chain/{id}`
+- `GET /v0/export/markdown`
+- `GET /v0/export/json`
+- `GET /v0/export/html`
+- provider-backed verification and export delegation
 
 Implemented in CAP-002 Phase 9:
 
@@ -120,9 +133,7 @@ Current health/status limitation:
 
 Deferred endpoint work:
 
-- full artifact endpoint implementation
 - project and checkpoint endpoint implementation
-- capture endpoint migration
 - tombstone endpoint work
 - auth, runtime hosting, orchestration, and non-SQLite provider concerns
 
@@ -130,8 +141,11 @@ Deferred endpoint work:
 
 Current artifact endpoint status:
 
-- `/v0/artifacts` remains a deferred placeholder
-- no public artifact list, show, or create endpoint is exposed yet
+- `GET /v0/artifacts` is implemented
+- `GET /v0/artifacts/{id}` is implemented
+- `POST /v0/artifacts` is implemented
+- artifact API behavior is currently read-only for reads and capture-only for writes
+- artifact mutation endpoints remain deferred
 
 Current rehydration status:
 
@@ -156,8 +170,9 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- implement artifact read endpoints only through the read boundary
-- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+- keep artifact read endpoints routed only through the read boundary
+- keep capture writes routed only through the write boundary
+- keep mutation endpoints deferred until the remaining write and tombstone debt is explicitly addressed
 
 Future rehydration endpoint work:
 
