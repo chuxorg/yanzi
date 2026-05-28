@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
 	"github.com/chuxorg/yanzi/internal/config"
@@ -20,7 +21,7 @@ import (
 
 func TestVerifyEndpointReturnsDeterministicVerification(t *testing.T) {
 	deps, dbPath := newVerifyExportTestDeps(t)
-	verifyHandler := NewVerifyHandler(deps)
+	verifyHandler := handlers.NewVerifyHandler(deps)
 	record := seedCaptureForVerifyExport(t, dbPath, yanzilibrary.CaptureWriteInput{
 		Author:   "Ada",
 		Prompt:   "verify prompt",
@@ -45,7 +46,7 @@ func TestVerifyEndpointReturnsDeterministicVerification(t *testing.T) {
 
 func TestVerifyEndpointSupportsIntentAliasAndMissingBehavior(t *testing.T) {
 	deps, dbPath := newVerifyExportTestDeps(t)
-	verifyHandler := NewVerifyHandler(deps)
+	verifyHandler := handlers.NewVerifyHandler(deps)
 	record := seedCaptureForVerifyExport(t, dbPath, yanzilibrary.CaptureWriteInput{
 		Author:   "Ada",
 		Prompt:   "alias prompt",
@@ -75,7 +76,7 @@ func TestVerifyEndpointSupportsIntentAliasAndMissingBehavior(t *testing.T) {
 
 func TestChainEndpointPreservesLineageOrder(t *testing.T) {
 	deps, dbPath := newVerifyExportTestDeps(t)
-	chainHandler := NewVerifyHandler(deps)
+	chainHandler := handlers.NewVerifyHandler(deps)
 	root := seedCaptureForVerifyExport(t, dbPath, yanzilibrary.CaptureWriteInput{
 		Author:   "Ada",
 		Prompt:   "root prompt",
@@ -110,13 +111,13 @@ func TestChainEndpointPreservesLineageOrder(t *testing.T) {
 
 func TestExportEndpointsReturnDeterministicProjectScopedFormats(t *testing.T) {
 	deps, dbPath := newVerifyExportTestDeps(t)
-	exportHandler := NewExportHandler(deps)
+	exportHandler := handlers.NewExportHandler(deps)
 	alphaOne := seedCaptureForVerifyExport(t, dbPath, yanzilibrary.CaptureWriteInput{
 		Author:   "Ada",
 		Prompt:   "alpha prompt one",
 		Response: "alpha response one",
 		Project:  "alpha",
-		Meta:     mustMarshalMetadata(t, map[string]string{"area": "auth"}),
+		Meta:     mustMarshalMetadataVerify(t, map[string]string{"area": "auth"}),
 	})
 	_ = alphaOne
 	seedCheckpointForVerifyExport(t, dbPath, "alpha", "checkpoint one")
@@ -125,7 +126,7 @@ func TestExportEndpointsReturnDeterministicProjectScopedFormats(t *testing.T) {
 		Prompt:   "alpha prompt two",
 		Response: "alpha response two",
 		Project:  "alpha",
-		Meta:     mustMarshalMetadata(t, map[string]string{"area": "ops"}),
+		Meta:     mustMarshalMetadataVerify(t, map[string]string{"area": "ops"}),
 	})
 	seedCaptureForVerifyExport(t, dbPath, yanzilibrary.CaptureWriteInput{
 		Author:   "Bea",
@@ -173,7 +174,7 @@ func TestExportEndpointsReturnDeterministicProjectScopedFormats(t *testing.T) {
 
 func TestExportEndpointValidation(t *testing.T) {
 	deps, _ := newVerifyExportTestDeps(t)
-	exportHandler := NewExportHandler(deps)
+	exportHandler := handlers.NewExportHandler(deps)
 
 	missingProject := httptest.NewRecorder()
 	exportHandler.ServeHTTP(missingProject, httptest.NewRequest(http.MethodGet, "/v0/export/json", nil))
@@ -188,10 +189,10 @@ func TestExportEndpointValidation(t *testing.T) {
 	}
 }
 
-func newVerifyExportTestDeps(t *testing.T) (Dependencies, string) {
+func newVerifyExportTestDeps(t *testing.T) (handlers.Dependencies, string) {
 	t.Helper()
 	dbPath := filepath.Join(t.TempDir(), "yanzi.db")
-	deps := Dependencies{
+	deps := handlers.Dependencies{
 		Version: "v0.0.0-test",
 		LoadConfig: func() (config.Config, error) {
 			return config.Config{Mode: config.ModeLocal, DBPath: dbPath}, nil
@@ -225,11 +226,24 @@ func seedCaptureForVerifyExport(t *testing.T, dbPath string, input yanzilibrary.
 	if err != nil {
 		t.Fatalf("CreateCapture: %v", err)
 	}
-	response, err := artifactCaptureResponse(record)
-	if err != nil {
-		t.Fatalf("artifactCaptureResponse: %v", err)
+	var metadata map[string]string
+	if len(record.Meta) > 0 {
+		if err := json.Unmarshal(record.Meta, &metadata); err != nil {
+			t.Fatalf("decode metadata: %v", err)
+		}
 	}
-	return response
+	return models.ArtifactCaptureResponse{
+		ID:         record.ID,
+		CreatedAt:  record.CreatedAt,
+		Author:     record.Author,
+		SourceType: record.SourceType,
+		Title:      record.Title,
+		Prompt:     record.Prompt,
+		Response:   record.Response,
+		Metadata:   metadata,
+		PrevHash:   record.PrevHash,
+		Hash:       record.Hash,
+	}
 }
 
 func seedCheckpointForVerifyExport(t *testing.T, dbPath, project, summary string) {
@@ -268,4 +282,13 @@ func ensureProjectForVerifyExport(t *testing.T, provider storage.Provider, proje
 	if _, err := provider.CreateProject(context.Background(), storage.CreateProjectInput{Name: project}); err != nil {
 		t.Fatalf("CreateProject: %v", err)
 	}
+}
+
+func mustMarshalMetadataVerify(t *testing.T, metadata map[string]string) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(metadata)
+	if err != nil {
+		t.Fatalf("marshal metadata: %v", err)
+	}
+	return raw
 }

@@ -88,6 +88,16 @@ Future phases must keep those paths behind internal boundaries rather than expos
 
 ## CAP-002 Boundary Status
 
+CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
+
+CAP-002 Phase 7 exposes verification and export read endpoints. Verification and chain handlers delegate through provider-backed verification helpers. Export handlers delegate through provider-backed export reads and shared deterministic renderers. No direct SQL access is introduced in handlers, and mutation, tombstone, and rehydration work remain deferred.
+
+CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `internal/library/rehydration_service.go` as the current local rehydration boundary. The CLI continues to use existing rehydration semantics, but future rehydration endpoints must delegate through that boundary instead of duplicating project selection, checkpoint scoping, or output behavior in handlers.
+
+## Implementation Status
+
+Current status: artifact capture, verification, export, and rehydration read endpoints available; broader operational API remains deferred.
+
 Implemented in CAP-002 Phase 1:
 
 - internal `internal/api` package structure
@@ -118,6 +128,8 @@ Implemented in CAP-002 Phase 7:
 - `GET /v0/export/markdown`
 - `GET /v0/export/json`
 - `GET /v0/export/html`
+
+- provider-backed verification and export delegation
 
 Implemented in CAP-002 Phase 8:
 
@@ -166,9 +178,11 @@ Deferred endpoint work:
 
 Current artifact endpoint status:
 
-- `GET /v0/artifacts/{id}` is available for capture read-after-write
-- `GET /v0/artifacts` remains deferred
-- no artifact list endpoint is exposed yet
+- `GET /v0/artifacts` is implemented
+- `GET /v0/artifacts/{id}` is implemented
+- `POST /v0/artifacts` is implemented
+- artifact API behavior is currently read-only for reads and capture-only for writes
+- artifact mutation endpoints remain deferred
 
 Current internal read status:
 
