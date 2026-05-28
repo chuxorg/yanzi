@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
@@ -170,6 +171,9 @@ func newArtifactTestHandler(t *testing.T) (http.Handler, string) {
 		OpenProvider: func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
 			provider, _, err := registry.OpenAtPath(ctx, dbPath, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
 			return provider, err
+		},
+		Now: func() time.Time {
+			return time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
 		},
 	}
 	return NewArtifactHandler(deps), dbPath
