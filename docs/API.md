@@ -187,10 +187,12 @@ import "github.com/chuxorg/yanzi/internal/cmd"
 - [func RunList\(args \[\]string\) error](<#RunList>)
 - [func RunMessage\(args \[\]string\) error](<#RunMessage>)
 - [func RunMode\(args \[\]string\) error](<#RunMode>)
+- [func RunPack\(args \[\]string\) error](<#RunPack>)
 - [func RunProject\(args \[\]string\) error](<#RunProject>)
 - [func RunRehydrate\(args \[\]string\) error](<#RunRehydrate>)
 - [func RunRestore\(args \[\]string\) error](<#RunRestore>)
 - [func RunRules\(args \[\]string, cliVersion string\) error](<#RunRules>)
+- [func RunServe\(args \[\]string, version string\) error](<#RunServe>)
 - [func RunShow\(args \[\]string\) error](<#RunShow>)
 - [func RunTypes\(args \[\]string\) error](<#RunTypes>)
 - [func RunVerify\(args \[\]string\) error](<#RunVerify>)
@@ -206,7 +208,7 @@ func RunBootstrap(args []string) error
 
 
 <a name="RunCapture"></a>
-## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L38>)
+## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L39>)
 
 ```go
 func RunCapture(args []string) error
@@ -241,7 +243,7 @@ func RunChain(args []string) error
 RunChain prints the intent chain from oldest to newest.
 
 <a name="RunCheckpoint"></a>
-## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L31>)
+## func [RunCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/checkpoint.go#L33>)
 
 ```go
 func RunCheckpoint(args []string) error
@@ -275,7 +277,7 @@ func RunContext(args []string) error
 
 
 <a name="RunDelete"></a>
-## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L15>)
+## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L16>)
 
 ```go
 func RunDelete(args []string) error
@@ -345,7 +347,7 @@ func RunIntent(args []string) error
 
 
 <a name="RunList"></a>
-## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L15>)
+## func [RunList](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/list.go#L16>)
 
 ```go
 func RunList(args []string) error
@@ -388,8 +390,27 @@ func RunMode(args []string) error
 
 RunMode shows or sets the runtime mode.
 
+<a name="RunPack"></a>
+## func [RunPack](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/pack.go#L43>)
+
+```go
+func RunPack(args []string) error
+```
+
+RunPack applies or exports portable context packs.
+
+Problem: Reusing the same stored context across projects is tedious when each item must be added manually.
+
+Solution: RunPack exposes \`apply\` for idempotent pack loading and \`export\` for producing a pack definition plus sidecar files from visible context.
+
+Arguments:
+
+```
+args starts with `apply` or `export` followed by the corresponding flags.
+```
+
 <a name="RunProject"></a>
-## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L28>)
+## func [RunProject](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/project.go#L26>)
 
 ```go
 func RunProject(args []string) error
@@ -410,7 +431,7 @@ yanzi project use demo
 ```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L32>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L74>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -425,7 +446,7 @@ Solution: RunRehydrate loads the active project, resolves the latest checkpoint,
 Arguments:
 
 ```
-args supports `--dry-run` and no positional arguments.
+args supports `--dry-run`, `--format text|json`, and no positional arguments.
 ```
 
 Example:
@@ -435,7 +456,7 @@ yanzi rehydrate --dry-run
 ```
 
 <a name="RunRestore"></a>
-## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L67>)
+## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L69>)
 
 ```go
 func RunRestore(args []string) error
@@ -451,6 +472,15 @@ func RunRules(args []string, cliVersion string) error
 ```
 
 
+
+<a name="RunServe"></a>
+## func [RunServe](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/serve.go#L18>)
+
+```go
+func RunServe(args []string, version string) error
+```
+
+RunServe starts the shared runtime server in the foreground.
 
 <a name="RunShow"></a>
 ## func [RunShow](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/show.go#L15>)
@@ -487,16 +517,26 @@ import "github.com/chuxorg/yanzi/internal/config"
 
 ## Index
 
+- [Constants](<#constants>)
 - [func ConfigPath\(\) \(string, error\)](<#ConfigPath>)
 - [func DefaultDBPath\(\) \(string, error\)](<#DefaultDBPath>)
+- [func EffectiveLocalDBPath\(cfg Config\) \(string, error\)](<#EffectiveLocalDBPath>)
 - [func StateDir\(\) \(string, error\)](<#StateDir>)
 - [type Config](<#Config>)
   - [func Load\(\) \(Config, error\)](<#Load>)
 - [type Mode](<#Mode>)
 
 
+## Constants
+
+<a name="LocalDBPathEnvVar"></a>LocalDBPathEnvVar is the environment variable that overrides local SQLite resolution.
+
+```go
+const LocalDBPathEnvVar = "YANZI_DB_PATH"
+```
+
 <a name="ConfigPath"></a>
-## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L105>)
+## func [ConfigPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L108>)
 
 ```go
 func ConfigPath() (string, error)
@@ -505,7 +545,7 @@ func ConfigPath() (string, error)
 ConfigPath returns the full path to \~/.yanzi/config.yaml.
 
 <a name="DefaultDBPath"></a>
-## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L123>)
+## func [DefaultDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L126>)
 
 ```go
 func DefaultDBPath() (string, error)
@@ -513,8 +553,23 @@ func DefaultDBPath() (string, error)
 
 DefaultDBPath returns the default SQLite path under \~/.yanzi.
 
+<a name="EffectiveLocalDBPath"></a>
+## func [EffectiveLocalDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L140>)
+
+```go
+func EffectiveLocalDBPath(cfg Config) (string, error)
+```
+
+EffectiveLocalDBPath resolves the local SQLite path using deterministic precedence.
+
+Precedence:
+
+1. YANZI\_DB\_PATH
+2. Config.DBPath
+3. DefaultDBPath\(\)
+
 <a name="StateDir"></a>
-## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L114>)
+## func [StateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L117>)
 
 ```go
 func StateDir() (string, error)
@@ -536,7 +591,7 @@ type Config struct {
 ```
 
 <a name="Load"></a>
-### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L39>)
+### func [Load](<https://github.com/chuxorg/yanzi/blob/master/internal/config/config.go#L42>)
 
 ```go
 func Load() (Config, error)
@@ -576,20 +631,46 @@ import "github.com/chuxorg/yanzi/internal/library"
 
 - [Constants](<#constants>)
 - [Variables](<#variables>)
+- [func DecodeArtifactReadMetadata\(raw string\) \(map\[string\]string, error\)](<#DecodeArtifactReadMetadata>)
 - [func HashCheckpoint\(checkpoint Checkpoint\) \(string, error\)](<#HashCheckpoint>)
 - [func InitDB\(\) \(\*sql.DB, error\)](<#InitDB>)
+- [func InitDBAtPath\(path string\) \(\*sql.DB, error\)](<#InitDBAtPath>)
 - [func Initialize\(\) \(bool, error\)](<#Initialize>)
+- [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
 - [func MigrationsFS\(\) fs.FS](<#MigrationsFS>)
+- [func ProjectExists\(name string\) \(bool, error\)](<#ProjectExists>)
+- [func RenderOperationalExportLog\(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map\[string\]string, includeDeleted bool\) \(\[\]byte, string, error\)](<#RenderOperationalExportLog>)
 - [func ResolvedDBPath\(\) string](<#ResolvedDBPath>)
+- [func StatePath\(\) \(string, error\)](<#StatePath>)
 - [type Artifact](<#Artifact>)
   - [func CreateArtifact\(projectID, class, artifactType, title, content, metadata string\) \(Artifact, error\)](<#CreateArtifact>)
   - [func CreateContextArtifact\(projectID, artifactType, scope, title, content, metadata string\) \(Artifact, error\)](<#CreateContextArtifact>)
   - [func GetVisibleContextArtifact\(idPrefix, activeProject string\) \(Artifact, error\)](<#GetVisibleContextArtifact>)
   - [func ListArtifacts\(projectID, class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifacts>)
+  - [func ListArtifactsAllProjects\(class, artifactType string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListArtifactsAllProjects>)
   - [func ListVisibleContextArtifacts\(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifacts>)
+  - [func ListVisibleContextArtifactsAllProjects\(artifactType, scopeFilter string, includeDeleted bool\) \(\[\]Artifact, error\)](<#ListVisibleContextArtifactsAllProjects>)
+- [type ArtifactReadQuery](<#ArtifactReadQuery>)
+- [type ArtifactReadStore](<#ArtifactReadStore>)
+  - [func NewArtifactReadStore\(db \*sql.DB\) \*ArtifactReadStore](<#NewArtifactReadStore>)
+  - [func \(s \*ArtifactReadStore\) GetIntentRecord\(ctx context.Context, id string\) \(model.IntentRecord, error\)](<#ArtifactReadStore.GetIntentRecord>)
+  - [func \(s \*ArtifactReadStore\) ListIntentRecords\(ctx context.Context, query ArtifactReadQuery\) \(\[\]model.IntentRecord, error\)](<#ArtifactReadStore.ListIntentRecords>)
+- [type ArtifactWriteStore](<#ArtifactWriteStore>)
+  - [func NewArtifactWriteStore\(db \*sql.DB\) \*ArtifactWriteStore](<#NewArtifactWriteStore>)
+  - [func \(s \*ArtifactWriteStore\) CreateArtifact\(ctx context.Context, input storage.CreateArtifactInput\) \(Artifact, error\)](<#ArtifactWriteStore.CreateArtifact>)
+  - [func \(s \*ArtifactWriteStore\) CreateCapture\(ctx context.Context, input CaptureWriteInput\) \(model.IntentRecord, error\)](<#ArtifactWriteStore.CreateCapture>)
+  - [func \(s \*ArtifactWriteStore\) Restore\(ctx context.Context, id string\) error](<#ArtifactWriteStore.Restore>)
+  - [func \(s \*ArtifactWriteStore\) Tombstone\(ctx context.Context, id string, cascade, force bool\) \(\[\]string, error\)](<#ArtifactWriteStore.Tombstone>)
+- [type CaptureWriteInput](<#CaptureWriteInput>)
+- [type ChainResult](<#ChainResult>)
+  - [func ChainIntent\(ctx context.Context, provider storage.Provider, id string\) \(ChainResult, error\)](<#ChainIntent>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
+  - [func CreateProjectCheckpoint\(project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateProjectCheckpoint>)
+  - [func ListAllCheckpoints\(ctx context.Context, db \*sql.DB\) \(\[\]Checkpoint, error\)](<#ListAllCheckpoints>)
+  - [func ListAllProjectCheckpoints\(\) \(\[\]Checkpoint, error\)](<#ListAllProjectCheckpoints>)
   - [func ListCheckpoints\(ctx context.Context, db \*sql.DB, project string\) \(\[\]Checkpoint, error\)](<#ListCheckpoints>)
+  - [func ListProjectCheckpoints\(project string\) \(\[\]Checkpoint, error\)](<#ListProjectCheckpoints>)
   - [func \(c Checkpoint\) Normalize\(\) Checkpoint](<#Checkpoint.Normalize>)
   - [func \(c Checkpoint\) Validate\(\) error](<#Checkpoint.Validate>)
 - [type CheckpointStore](<#CheckpointStore>)
@@ -598,6 +679,7 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func \(s \*CheckpointStore\) ListCheckpoints\(ctx context.Context, project string\) \(\[\]Checkpoint, error\)](<#CheckpointStore.ListCheckpoints>)
 - [type CheckpointValidationError](<#CheckpointValidationError>)
   - [func \(e CheckpointValidationError\) Error\(\) string](<#CheckpointValidationError.Error>)
+- [type ExportLogFormat](<#ExportLogFormat>)
 - [type Intent](<#Intent>)
 - [type Project](<#Project>)
   - [func CreateProject\(name string, description string\) \(\*Project, error\)](<#CreateProject>)
@@ -606,6 +688,13 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func \(e ProjectNotFoundError\) Error\(\) string](<#ProjectNotFoundError.Error>)
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
+  - [func RehydrateProjectWithFallback\(project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrateProjectWithFallback>)
+- [type RehydrationService](<#RehydrationService>)
+  - [func NewRehydrationService\(db \*sql.DB\) \*RehydrationService](<#NewRehydrationService>)
+  - [func \(s \*RehydrationService\) RehydrateProject\(ctx context.Context, project string\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProject>)
+  - [func \(s \*RehydrationService\) RehydrateProjectWithFallback\(ctx context.Context, project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProjectWithFallback>)
+- [type VerifyResult](<#VerifyResult>)
+  - [func VerifyIntent\(ctx context.Context, provider storage.Provider, id string\) \(VerifyResult, error\)](<#VerifyIntent>)
 
 
 ## Constants
@@ -621,6 +710,12 @@ const (
 )
 ```
 
+<a name="DefaultRehydrateFallbackLimit"></a>DefaultRehydrateFallbackLimit is the deterministic fallback window when no checkpoint exists.
+
+```go
+const DefaultRehydrateFallbackLimit = 10
+```
+
 ## Variables
 
 <a name="ErrCheckpointNotFound"></a>ErrCheckpointNotFound indicates that no checkpoint exists for the requested project.
@@ -628,6 +723,15 @@ const (
 ```go
 var ErrCheckpointNotFound = errors.New("checkpoint not found")
 ```
+
+<a name="DecodeArtifactReadMetadata"></a>
+## func [DecodeArtifactReadMetadata](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L228>)
+
+```go
+func DecodeArtifactReadMetadata(raw string) (map[string]string, error)
+```
+
+DecodeArtifactReadMetadata decodes the current artifact read metadata payload.
 
 <a name="HashCheckpoint"></a>
 ## func [HashCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_hash.go#L14>)
@@ -639,7 +743,7 @@ func HashCheckpoint(checkpoint Checkpoint) (string, error)
 HashCheckpoint computes a deterministic SHA\-256 hash for a Checkpoint. The hash preimage excludes the hash field and uses canonical field order.
 
 <a name="InitDB"></a>
-## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L58>)
+## func [InitDB](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L47>)
 
 ```go
 func InitDB() (*sql.DB, error)
@@ -647,14 +751,32 @@ func InitDB() (*sql.DB, error)
 
 InitDB resolves the database path, ensures migrations, and returns a SQLite handle.
 
+<a name="InitDBAtPath"></a>
+## func [InitDBAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L57>)
+
+```go
+func InitDBAtPath(path string) (*sql.DB, error)
+```
+
+InitDBAtPath ensures migrations and returns a SQLite handle for the provided path.
+
 <a name="Initialize"></a>
-## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L39>)
+## func [Initialize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L28>)
 
 ```go
 func Initialize() (bool, error)
 ```
 
 Initialize ensures the default yanzi runtime directory, database, and schema exist. It returns true when this run performed first\-time schema initialization.
+
+<a name="LoadActiveProject"></a>
+## func [LoadActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L20>)
+
+```go
+func LoadActiveProject() (string, error)
+```
+
+LoadActiveProject resolves the current active project using the same local\-state lookup order as the CLI.
 
 <a name="MigrationsFS"></a>
 ## func [MigrationsFS](<https://github.com/chuxorg/yanzi/blob/master/internal/library/migrations_embed.go#L12>)
@@ -665,14 +787,41 @@ func MigrationsFS() fs.FS
 
 MigrationsFS exposes embedded migration files for libraryd.
 
+<a name="ProjectExists"></a>
+## func [ProjectExists](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L66>)
+
+```go
+func ProjectExists(name string) (bool, error)
+```
+
+ProjectExists reports whether a project exists in the current local provider.
+
+<a name="RenderOperationalExportLog"></a>
+## func [RenderOperationalExportLog](<https://github.com/chuxorg/yanzi/blob/master/internal/library/export_log.go#L53>)
+
+```go
+func RenderOperationalExportLog(ctx context.Context, provider storage.Provider, project, cliVersion string, now time.Time, format ExportLogFormat, metaFilters map[string]string, includeDeleted bool) ([]byte, string, error)
+```
+
+RenderOperationalExportLog preserves the current deterministic log export behavior.
+
 <a name="ResolvedDBPath"></a>
-## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L74>)
+## func [ResolvedDBPath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/db_init.go#L68>)
 
 ```go
 func ResolvedDBPath() string
 ```
 
 ResolvedDBPath returns the most recently resolved database path.
+
+<a name="StatePath"></a>
+## func [StatePath](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_state.go#L55>)
+
+```go
+func StatePath() (string, error)
+```
+
+StatePath resolves the canonical state.json path used for active project persistence.
 
 <a name="Artifact"></a>
 ## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact.go#L40-L50>)
@@ -694,7 +843,7 @@ type Artifact struct {
 ```
 
 <a name="CreateArtifact"></a>
-### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L12>)
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L14>)
 
 ```go
 func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
@@ -703,7 +852,7 @@ func CreateArtifact(projectID, class, artifactType, title, content, metadata str
 CreateArtifact stores a new artifact for a project.
 
 <a name="CreateContextArtifact"></a>
-### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L33>)
+### func [CreateContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L48>)
 
 ```go
 func CreateContextArtifact(projectID, artifactType, scope, title, content, metadata string) (Artifact, error)
@@ -712,7 +861,7 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
 
 <a name="GetVisibleContextArtifact"></a>
-### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L309>)
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L337>)
 
 ```go
 func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
@@ -721,7 +870,7 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="ListArtifacts"></a>
-### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L115>)
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L94>)
 
 ```go
 func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -729,14 +878,182 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 
 ListArtifacts lists artifacts for a project and class, optionally filtered by type.
 
+<a name="ListArtifactsAllProjects"></a>
+### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L123>)
+
+```go
+func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListArtifactsAllProjects lists artifacts across every project for the requested class.
+
 <a name="ListVisibleContextArtifacts"></a>
-### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L238>)
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L267>)
 
 ```go
 func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
 ```
 
 ListVisibleContextArtifacts returns global context plus project context visible to the caller.
+
+<a name="ListVisibleContextArtifactsAllProjects"></a>
+### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L304>)
+
+```go
+func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, includeDeleted bool) ([]Artifact, error)
+```
+
+ListVisibleContextArtifactsAllProjects returns global and project\-scoped context across every project.
+
+<a name="ArtifactReadQuery"></a>
+## type [ArtifactReadQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L16-L22>)
+
+ArtifactReadQuery describes the current local list/show read behavior.
+
+```go
+type ArtifactReadQuery struct {
+    Author         string
+    Source         string
+    Limit          int
+    MetaFilters    map[string]string
+    IncludeDeleted bool
+}
+```
+
+<a name="ArtifactReadStore"></a>
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L25-L27>)
+
+ArtifactReadStore isolates the legacy SQL\-backed list/show read path.
+
+```go
+type ArtifactReadStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactReadStore"></a>
+### func [NewArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L30>)
+
+```go
+func NewArtifactReadStore(db *sql.DB) *ArtifactReadStore
+```
+
+NewArtifactReadStore constructs a read store using the provided database handle.
+
+<a name="ArtifactReadStore.GetIntentRecord"></a>
+### func \(\*ArtifactReadStore\) [GetIntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L81>)
+
+```go
+func (s *ArtifactReadStore) GetIntentRecord(ctx context.Context, id string) (model.IntentRecord, error)
+```
+
+GetIntentRecord returns the current local show record with existing not\-found behavior preserved.
+
+<a name="ArtifactReadStore.ListIntentRecords"></a>
+### func \(\*ArtifactReadStore\) [ListIntentRecords](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_read_store.go#L35>)
+
+```go
+func (s *ArtifactReadStore) ListIntentRecords(ctx context.Context, query ArtifactReadQuery) ([]model.IntentRecord, error)
+```
+
+ListIntentRecords returns current list/show records with existing filter semantics preserved.
+
+<a name="ArtifactWriteStore"></a>
+## type [ArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L27-L29>)
+
+ArtifactWriteStore is the internal write boundary for current local artifact, capture, and tombstone writes.
+
+```go
+type ArtifactWriteStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactWriteStore"></a>
+### func [NewArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L58>)
+
+```go
+func NewArtifactWriteStore(db *sql.DB) *ArtifactWriteStore
+```
+
+NewArtifactWriteStore creates a local artifact write boundary over db.
+
+<a name="ArtifactWriteStore.CreateArtifact"></a>
+### func \(\*ArtifactWriteStore\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L78>)
+
+```go
+func (s *ArtifactWriteStore) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (Artifact, error)
+```
+
+CreateArtifact stores an artifact through the provider\-compatible SQLite path.
+
+<a name="ArtifactWriteStore.CreateCapture"></a>
+### func \(\*ArtifactWriteStore\) [CreateCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L63>)
+
+```go
+func (s *ArtifactWriteStore) CreateCapture(ctx context.Context, input CaptureWriteInput) (model.IntentRecord, error)
+```
+
+CreateCapture stores a local capture using current intent ledger semantics.
+
+<a name="ArtifactWriteStore.Restore"></a>
+### func \(\*ArtifactWriteStore\) [Restore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L142>)
+
+```go
+func (s *ArtifactWriteStore) Restore(ctx context.Context, id string) error
+```
+
+Restore removes current tombstone metadata from an intent or artifact.
+
+<a name="ArtifactWriteStore.Tombstone"></a>
+### func \(\*ArtifactWriteStore\) [Tombstone](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L91>)
+
+```go
+func (s *ArtifactWriteStore) Tombstone(ctx context.Context, id string, cascade, force bool) ([]string, error)
+```
+
+Tombstone marks an intent or artifact deleted using current metadata column rules.
+
+<a name="CaptureWriteInput"></a>
+## type [CaptureWriteInput](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L32-L41>)
+
+CaptureWriteInput captures the current local prompt/response write shape.
+
+```go
+type CaptureWriteInput struct {
+    Author     string
+    SourceType string
+    Title      string
+    Prompt     string
+    Response   string
+    Meta       json.RawMessage
+    Project    string
+    PrevHash   string
+}
+```
+
+<a name="ChainResult"></a>
+## type [ChainResult](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L24-L29>)
+
+ChainResult captures current deterministic chain traversal output.
+
+```go
+type ChainResult struct {
+    HeadID       string
+    Length       int
+    Intents      []model.IntentRecord
+    MissingLinks []string
+}
+```
+
+<a name="ChainIntent"></a>
+### func [ChainIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L57>)
+
+```go
+func ChainIntent(ctx context.Context, provider storage.Provider, id string) (ChainResult, error)
+```
+
+ChainIntent preserves current provider\-backed chain traversal semantics.
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)
@@ -755,7 +1072,7 @@ type Checkpoint struct {
 ```
 
 <a name="CreateCheckpoint"></a>
-### func [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L155>)
+### func [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L55>)
 
 ```go
 func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, artifactIDs []string) (Checkpoint, error)
@@ -763,14 +1080,50 @@ func CreateCheckpoint(ctx context.Context, db *sql.DB, project, summary string, 
 
 CreateCheckpoint is a convenience wrapper for CheckpointStore.CreateCheckpoint.
 
+<a name="CreateProjectCheckpoint"></a>
+### func [CreateProjectCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L10>)
+
+```go
+func CreateProjectCheckpoint(project, summary string, artifactIDs []string) (Checkpoint, error)
+```
+
+CreateProjectCheckpoint creates a checkpoint for the provided project using the current local provider.
+
+<a name="ListAllCheckpoints"></a>
+### func [ListAllCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L65>)
+
+```go
+func ListAllCheckpoints(ctx context.Context, db *sql.DB) ([]Checkpoint, error)
+```
+
+ListAllCheckpoints is a convenience wrapper for all\-project checkpoint listing.
+
+<a name="ListAllProjectCheckpoints"></a>
+### func [ListAllProjectCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L52>)
+
+```go
+func ListAllProjectCheckpoints() ([]Checkpoint, error)
+```
+
+ListAllProjectCheckpoints lists checkpoints across all projects using the current local provider.
+
 <a name="ListCheckpoints"></a>
-### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L160>)
+### func [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L60>)
 
 ```go
 func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpoint, error)
 ```
 
 ListCheckpoints is a convenience wrapper for CheckpointStore.ListCheckpoints.
+
+<a name="ListProjectCheckpoints"></a>
+### func [ListProjectCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_api.go#L31>)
+
+```go
+func ListProjectCheckpoints(project string) ([]Checkpoint, error)
+```
+
+ListProjectCheckpoints lists checkpoints for a single project using the current local provider.
 
 <a name="Checkpoint.Normalize"></a>
 ### func \(Checkpoint\) [Normalize](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L60>)
@@ -820,7 +1173,7 @@ func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary
 CreateCheckpoint creates a new checkpoint artifact for a project.
 
 <a name="CheckpointStore.ListCheckpoints"></a>
-### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L99>)
+### func \(\*CheckpointStore\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint_store.go#L39>)
 
 ```go
 func (s *CheckpointStore) ListCheckpoints(ctx context.Context, project string) ([]Checkpoint, error)
@@ -849,8 +1202,27 @@ func (e CheckpointValidationError) Error() string
 
 Error returns the validation error as "\<field\> \<message\>".
 
+<a name="ExportLogFormat"></a>
+## type [ExportLogFormat](<https://github.com/chuxorg/yanzi/blob/master/internal/library/export_log.go#L16>)
+
+ExportLogFormat is the current API/CLI log export format selector.
+
+```go
+type ExportLogFormat string
+```
+
+<a name="ExportLogFormatMarkdown"></a>
+
+```go
+const (
+    ExportLogFormatMarkdown ExportLogFormat = "markdown"
+    ExportLogFormatJSON     ExportLogFormat = "json"
+    ExportLogFormatHTML     ExportLogFormat = "html"
+)
+```
+
 <a name="Intent"></a>
-## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L17-L28>)
+## type [Intent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L20-L31>)
 
 Intent represents an intent artifact loaded from the intents table for rehydration.
 
@@ -883,7 +1255,7 @@ type Project struct {
 ```
 
 <a name="CreateProject"></a>
-### func [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L15>)
+### func [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L14>)
 
 ```go
 func CreateProject(name string, description string) (*Project, error)
@@ -892,7 +1264,7 @@ func CreateProject(name string, description string) (*Project, error)
 CreateProject creates a unique project record and returns the created project.
 
 <a name="ListProjects"></a>
-### func [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L65>)
+### func [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/project_store.go#L40>)
 
 ```go
 func ListProjects() ([]Project, error)
@@ -921,26 +1293,1478 @@ func (e ProjectNotFoundError) Error() string
 Error returns the project\-not\-found message including the project name.
 
 <a name="RehydratePayload"></a>
-## type [RehydratePayload](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L31-L35>)
+## type [RehydratePayload](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L34-L41>)
 
-RehydratePayload contains the latest checkpoint and the intents created after it.
+RehydratePayload contains the checkpoint boundary or fallback state and the ordered intents to render.
 
 ```go
 type RehydratePayload struct {
     Project          string
-    LatestCheckpoint Checkpoint
-    IntentsSince     []Intent
+    LatestCheckpoint *Checkpoint
+    Intents          []Intent
+    Fallback         bool
+    FallbackReason   string
+    FallbackLimit    int
 }
 ```
 
 <a name="RehydrateProject"></a>
-### func [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L38>)
+### func [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L47>)
 
 ```go
 func RehydrateProject(project string) (*RehydratePayload, error)
 ```
 
 RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+If no checkpoint exists, the payload falls back to the latest project intents so operational continuity remains available during recovery.
+
+<a name="RehydrateProjectWithFallback"></a>
+### func [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydrate.go#L52>)
+
+```go
+func RehydrateProjectWithFallback(project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
+
+<a name="RehydrationService"></a>
+## type [RehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L11-L13>)
+
+RehydrationService isolates the current SQL\-backed rehydration flow.
+
+```go
+type RehydrationService struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewRehydrationService"></a>
+### func [NewRehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L16>)
+
+```go
+func NewRehydrationService(db *sql.DB) *RehydrationService
+```
+
+NewRehydrationService constructs a rehydration service around the provided database handle.
+
+<a name="RehydrationService.RehydrateProject"></a>
+### func \(\*RehydrationService\) [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L21>)
+
+```go
+func (s *RehydrationService) RehydrateProject(ctx context.Context, project string) (*RehydratePayload, error)
+```
+
+RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+<a name="RehydrationService.RehydrateProjectWithFallback"></a>
+### func \(\*RehydrationService\) [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L26>)
+
+```go
+func (s *RehydrationService) RehydrateProjectWithFallback(ctx context.Context, project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
+
+<a name="VerifyResult"></a>
+## type [VerifyResult](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L14-L21>)
+
+VerifyResult captures current deterministic verification output.
+
+```go
+type VerifyResult struct {
+    ID           string
+    Valid        bool
+    StoredHash   string
+    ComputedHash string
+    PrevHash     string
+    Error        *string
+}
+```
+
+<a name="VerifyIntent"></a>
+### func [VerifyIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/library/verification_service.go#L32>)
+
+```go
+func VerifyIntent(ctx context.Context, provider storage.Provider, id string) (VerifyResult, error)
+```
+
+VerifyIntent preserves current provider\-backed verification semantics.
+
+# projectstate
+
+```go
+import "github.com/chuxorg/yanzi/internal/projectstate"
+```
+
+## Index
+
+- [func LoadActiveProject\(\) \(string, error\)](<#LoadActiveProject>)
+- [func SaveActiveProject\(name string\) error](<#SaveActiveProject>)
+- [func WriteProjectBinding\(name string\) error](<#WriteProjectBinding>)
+
+
+<a name="LoadActiveProject"></a>
+## func [LoadActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L19>)
+
+```go
+func LoadActiveProject() (string, error)
+```
+
+LoadActiveProject resolves the active project using the current binding and state\-file precedence.
+
+<a name="SaveActiveProject"></a>
+## func [SaveActiveProject](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L53>)
+
+```go
+func SaveActiveProject(name string) error
+```
+
+SaveActiveProject persists the active project in the current user state directory.
+
+<a name="WriteProjectBinding"></a>
+## func [WriteProjectBinding](<https://github.com/chuxorg/yanzi/blob/master/internal/projectstate/state.go#L92>)
+
+```go
+func WriteProjectBinding(name string) error
+```
+
+WriteProjectBinding persists the current working\-directory binding used by init and project workflows.
+
+# runtime
+
+```go
+import "github.com/chuxorg/yanzi/internal/runtime"
+```
+
+## Index
+
+- [type Instance](<#Instance>)
+  - [func \(i \*Instance\) Addr\(\) string](<#Instance.Addr>)
+  - [func \(i \*Instance\) Shutdown\(ctx context.Context\) error](<#Instance.Shutdown>)
+  - [func \(i \*Instance\) StartedAt\(\) time.Time](<#Instance.StartedAt>)
+  - [func \(i \*Instance\) Wait\(\) error](<#Instance.Wait>)
+- [type Options](<#Options>)
+- [type Runtime](<#Runtime>)
+  - [func New\(opts Options\) \*Runtime](<#New>)
+  - [func \(r \*Runtime\) Start\(\) \(\*Instance, error\)](<#Runtime.Start>)
+
+
+<a name="Instance"></a>
+## type [Instance](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L38-L43>)
+
+Instance represents a started runtime server.
+
+```go
+type Instance struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="Instance.Addr"></a>
+### func \(\*Instance\) [Addr](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L108>)
+
+```go
+func (i *Instance) Addr() string
+```
+
+Addr returns the bound listener address.
+
+<a name="Instance.Shutdown"></a>
+### func \(\*Instance\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L124>)
+
+```go
+func (i *Instance) Shutdown(ctx context.Context) error
+```
+
+Shutdown stops the runtime server with a bounded grace period.
+
+<a name="Instance.StartedAt"></a>
+### func \(\*Instance\) [StartedAt](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L116>)
+
+```go
+func (i *Instance) StartedAt() time.Time
+```
+
+StartedAt returns the runtime startup timestamp.
+
+<a name="Instance.Wait"></a>
+### func \(\*Instance\) [Wait](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L138>)
+
+```go
+func (i *Instance) Wait() error
+```
+
+Wait returns the background server error or nil after shutdown.
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L21-L27>)
+
+Options captures the minimal runtime bootstrap inputs.
+
+```go
+type Options struct {
+    Addr            string
+    Version         string
+    RuntimeMode     string
+    ShutdownTimeout time.Duration
+    Dependencies    handlers.Dependencies
+}
+```
+
+<a name="Runtime"></a>
+## type [Runtime](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L30-L35>)
+
+Runtime owns a lightweight shared operational API server.
+
+```go
+type Runtime struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L46>)
+
+```go
+func New(opts Options) *Runtime
+```
+
+New constructs a runtime bootstrap wrapper around the operational API server.
+
+<a name="Runtime.Start"></a>
+### func \(\*Runtime\) [Start](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L77>)
+
+```go
+func (r *Runtime) Start() (*Instance, error)
+```
+
+Start binds the runtime listener and begins serving requests in the background.
+
+# storage
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage"
+```
+
+## Index
+
+- [Constants](<#constants>)
+- [Variables](<#variables>)
+- [type Artifact](<#Artifact>)
+- [type ArtifactOperations](<#ArtifactOperations>)
+- [type ArtifactQuery](<#ArtifactQuery>)
+- [type Checkpoint](<#Checkpoint>)
+- [type CheckpointOperations](<#CheckpointOperations>)
+- [type CheckpointQuery](<#CheckpointQuery>)
+- [type ContextArtifactQuery](<#ContextArtifactQuery>)
+- [type CreateArtifactInput](<#CreateArtifactInput>)
+- [type CreateCheckpointInput](<#CreateCheckpointInput>)
+- [type CreateProjectInput](<#CreateProjectInput>)
+- [type ExportCapture](<#ExportCapture>)
+- [type ExportItem](<#ExportItem>)
+- [type ExportItemKind](<#ExportItemKind>)
+- [type ExportMeta](<#ExportMeta>)
+- [type ExportQuery](<#ExportQuery>)
+- [type Health](<#Health>)
+- [type HealthStatus](<#HealthStatus>)
+- [type ImportExportOperations](<#ImportExportOperations>)
+- [type IntentRecord](<#IntentRecord>)
+- [type Project](<#Project>)
+- [type ProjectOperations](<#ProjectOperations>)
+- [type ProjectQuery](<#ProjectQuery>)
+- [type Provider](<#Provider>)
+- [type ProviderName](<#ProviderName>)
+- [type VerificationOperations](<#VerificationOperations>)
+- [type VerificationQuery](<#VerificationQuery>)
+
+
+## Constants
+
+<a name="ArtifactClassIntent"></a>
+
+```go
+const (
+    // ArtifactClassIntent is the current intent artifact class.
+    ArtifactClassIntent = "intent"
+    // ArtifactClassContext is the current context artifact class.
+    ArtifactClassContext = "context"
+    // ContextScopeGlobal is the current globally visible context scope.
+    ContextScopeGlobal = "global"
+    // ContextScopeProject is the current project-visible context scope.
+    ContextScopeProject = "project"
+)
+```
+
+## Variables
+
+<a name="ErrProviderUnavailable"></a>
+
+```go
+var (
+    // ErrProviderUnavailable indicates that a provider cannot service requests.
+    ErrProviderUnavailable = errors.New("storage provider unavailable")
+    // ErrUnsupportedProvider indicates that provider selection requested an implementation not present in this build.
+    ErrUnsupportedProvider = errors.New("unsupported storage provider")
+    // ErrNotFound indicates that a requested storage record does not exist.
+    ErrNotFound = errors.New("storage record not found")
+)
+```
+
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L151-L161>)
+
+Artifact is the provider\-level artifact record used by current storage behavior.
+
+```go
+type Artifact struct {
+    ID        string
+    Class     string
+    Type      string
+    Scope     string
+    Project   string
+    Title     string
+    Content   string
+    Metadata  string
+    CreatedAt string
+}
+```
+
+<a name="ArtifactOperations"></a>
+## type [ArtifactOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L27-L33>)
+
+ArtifactOperations represents artifact persistence and retrieval capability.
+
+```go
+type ArtifactOperations interface {
+    Artifacts() bool
+    CreateArtifact(context.Context, CreateArtifactInput) (Artifact, error)
+    ListArtifacts(context.Context, ArtifactQuery) ([]Artifact, error)
+    ListVisibleContextArtifacts(context.Context, ContextArtifactQuery) ([]Artifact, error)
+    GetVisibleContextArtifact(context.Context, string, string) (Artifact, error)
+}
+```
+
+<a name="ArtifactQuery"></a>
+## type [ArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L44-L49>)
+
+ArtifactQuery captures the current artifact list dimensions.
+
+```go
+type ArtifactQuery struct {
+    Project        string
+    Class          string
+    Type           string
+    IncludeDeleted bool
+}
+```
+
+<a name="Checkpoint"></a>
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L184-L191>)
+
+Checkpoint is the provider\-level checkpoint record used by current storage behavior.
+
+```go
+type Checkpoint struct {
+    Project              string
+    Summary              string
+    CreatedAt            string
+    ArtifactIDs          []string
+    PreviousCheckpointID string
+    Hash                 string
+}
+```
+
+<a name="CheckpointOperations"></a>
+## type [CheckpointOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L44-L49>)
+
+CheckpointOperations represents checkpoint persistence and retrieval capability.
+
+```go
+type CheckpointOperations interface {
+    Checkpoints() bool
+    CreateCheckpoint(context.Context, CreateCheckpointInput) (Checkpoint, error)
+    ListCheckpoints(context.Context, string) ([]Checkpoint, error)
+    ListAllCheckpoints(context.Context) ([]Checkpoint, error)
+}
+```
+
+<a name="CheckpointQuery"></a>
+## type [CheckpointQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L67-L69>)
+
+CheckpointQuery captures current checkpoint list dimensions.
+
+```go
+type CheckpointQuery struct {
+    Project string
+}
+```
+
+<a name="ContextArtifactQuery"></a>
+## type [ContextArtifactQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L52-L59>)
+
+ContextArtifactQuery captures current context visibility dimensions.
+
+```go
+type ContextArtifactQuery struct {
+    ActiveProject  string
+    Type           string
+    Scope          string
+    Project        string
+    IncludeDeleted bool
+    AllProjects    bool
+}
+```
+
+<a name="CreateArtifactInput"></a>
+## type [CreateArtifactInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L140-L148>)
+
+CreateArtifactInput captures current artifact creation inputs.
+
+```go
+type CreateArtifactInput struct {
+    Project  string
+    Class    string
+    Type     string
+    Scope    string
+    Title    string
+    Content  string
+    Metadata string
+}
+```
+
+<a name="CreateCheckpointInput"></a>
+## type [CreateCheckpointInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L177-L181>)
+
+CreateCheckpointInput captures current checkpoint creation inputs.
+
+```go
+type CreateCheckpointInput struct {
+    Project     string
+    Summary     string
+    ArtifactIDs []string
+}
+```
+
+<a name="CreateProjectInput"></a>
+## type [CreateProjectInput](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L164-L167>)
+
+CreateProjectInput captures current project creation inputs.
+
+```go
+type CreateProjectInput struct {
+    Name        string
+    Description string
+}
+```
+
+<a name="ExportCapture"></a>
+## type [ExportCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L110-L120>)
+
+ExportCapture is the provider\-level capture payload used by current export renderers.
+
+```go
+type ExportCapture struct {
+    ID        string
+    CreatedAt string
+    Author    string
+    Source    string
+    Title     string
+    Hash      string
+    Prompt    string
+    Response  string
+    Metadata  map[string]string
+}
+```
+
+<a name="ExportItem"></a>
+## type [ExportItem](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L130-L137>)
+
+ExportItem is the provider\-level event used by current deterministic exports.
+
+```go
+type ExportItem struct {
+    Kind       ExportItemKind
+    Timestamp  string
+    RowID      int64
+    Capture    ExportCapture
+    Checkpoint Checkpoint
+    Meta       ExportMeta
+}
+```
+
+<a name="ExportItemKind"></a>
+## type [ExportItemKind](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L84>)
+
+ExportItemKind identifies the current export timeline item category.
+
+```go
+type ExportItemKind string
+```
+
+<a name="ExportItemCheckpoint"></a>
+
+```go
+const (
+    // ExportItemCheckpoint is a checkpoint boundary in a deterministic export.
+    ExportItemCheckpoint ExportItemKind = "checkpoint"
+    // ExportItemCapture is a captured prompt/response record in a deterministic export.
+    ExportItemCapture ExportItemKind = "capture"
+    // ExportItemMeta is a current meta-command/event record in a deterministic export.
+    ExportItemMeta ExportItemKind = "meta"
+)
+```
+
+<a name="ExportMeta"></a>
+## type [ExportMeta](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L123-L127>)
+
+ExportMeta is the provider\-level meta event payload used by current export renderers.
+
+```go
+type ExportMeta struct {
+    CreatedAt string
+    Command   string
+    Value     string
+}
+```
+
+<a name="ExportQuery"></a>
+## type [ExportQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L72-L76>)
+
+ExportQuery captures current deterministic local export dimensions.
+
+```go
+type ExportQuery struct {
+    Project        string
+    MetaFilters    map[string]string
+    IncludeDeleted bool
+}
+```
+
+<a name="Health"></a>
+## type [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L36-L41>)
+
+Health describes the internal provider health state.
+
+```go
+type Health struct {
+    Provider ProviderName
+    Status   HealthStatus
+    Path     string
+    Error    string
+}
+```
+
+<a name="HealthStatus"></a>
+## type [HealthStatus](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L28>)
+
+HealthStatus reports internal provider readiness without exposing a CLI surface.
+
+```go
+type HealthStatus string
+```
+
+<a name="HealthReady"></a>
+
+```go
+const (
+    HealthReady       HealthStatus = "ready"
+    HealthUnavailable HealthStatus = "unavailable"
+)
+```
+
+<a name="ImportExportOperations"></a>
+## type [ImportExportOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L59-L62>)
+
+ImportExportOperations represents deterministic local import/export capability.
+
+```go
+type ImportExportOperations interface {
+    ImportExport() bool
+    ListExportItems(context.Context, ExportQuery) ([]ExportItem, int, error)
+}
+```
+
+<a name="IntentRecord"></a>
+## type [IntentRecord](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L96-L107>)
+
+IntentRecord is the provider\-level form of the current intent record used by verification reads.
+
+```go
+type IntentRecord struct {
+    ID         string
+    CreatedAt  string
+    Author     string
+    SourceType string
+    Title      string
+    Prompt     string
+    Response   string
+    Meta       json.RawMessage
+    PrevHash   string
+    Hash       string
+}
+```
+
+<a name="Project"></a>
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L170-L174>)
+
+Project is the provider\-level project record used by current storage behavior.
+
+```go
+type Project struct {
+    Name        string
+    Description string
+    CreatedAt   time.Time
+}
+```
+
+<a name="ProjectOperations"></a>
+## type [ProjectOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L36-L41>)
+
+ProjectOperations represents project persistence and retrieval capability.
+
+```go
+type ProjectOperations interface {
+    Projects() bool
+    CreateProject(context.Context, CreateProjectInput) (Project, error)
+    ListProjects(context.Context) ([]Project, error)
+    ProjectExists(context.Context, string) (bool, error)
+}
+```
+
+<a name="ProjectQuery"></a>
+## type [ProjectQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L62-L64>)
+
+ProjectQuery captures current project lookup dimensions.
+
+```go
+type ProjectQuery struct {
+    Name string
+}
+```
+
+<a name="Provider"></a>
+## type [Provider](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L13-L24>)
+
+Provider is the current internal storage boundary.
+
+The SQLDB method intentionally preserves existing SQLite\-backed call sites for CAP\-001 Phase 1. Future phases can move operations behind narrower methods without changing CLI contracts.
+
+```go
+type Provider interface {
+    ArtifactOperations
+    ProjectOperations
+    CheckpointOperations
+    VerificationOperations
+    ImportExportOperations
+
+    Name() ProviderName
+    Health(context.Context) Health
+    SQLDB() *sql.DB
+    Close() error
+}
+```
+
+<a name="ProviderName"></a>
+## type [ProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L9>)
+
+ProviderName identifies a storage provider implementation.
+
+```go
+type ProviderName string
+```
+
+<a name="ProviderSQLite"></a>
+
+```go
+const (
+    // ProviderSQLite is the embedded local SQLite provider.
+    ProviderSQLite ProviderName = "sqlite"
+)
+```
+
+<a name="VerificationOperations"></a>
+## type [VerificationOperations](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/provider.go#L52-L56>)
+
+VerificationOperations represents local digest verification capability.
+
+```go
+type VerificationOperations interface {
+    Verification() bool
+    GetVerificationIntent(context.Context, string) (IntentRecord, error)
+    GetVerificationIntentByHash(context.Context, string) (IntentRecord, error)
+}
+```
+
+<a name="VerificationQuery"></a>
+## type [VerificationQuery](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/types.go#L79-L81>)
+
+VerificationQuery captures current hash verification dimensions.
+
+```go
+type VerificationQuery struct {
+    ID string
+}
+```
+
+# handlers
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/handlers"
+```
+
+## Index
+
+- [func NewArtifactHandler\(deps Dependencies\) http.Handler](<#NewArtifactHandler>)
+- [func NewCheckpointsHandler\(deps Dependencies\) http.Handler](<#NewCheckpointsHandler>)
+- [func NewCurrentProjectHandler\(deps Dependencies\) http.Handler](<#NewCurrentProjectHandler>)
+- [func NewDeferredRouteHandler\(group string\) http.Handler](<#NewDeferredRouteHandler>)
+- [func NewExportHandler\(deps Dependencies\) http.Handler](<#NewExportHandler>)
+- [func NewHealthHandler\(deps Dependencies\) http.Handler](<#NewHealthHandler>)
+- [func NewProjectsHandler\(deps Dependencies\) http.Handler](<#NewProjectsHandler>)
+- [func NewRehydrateHandler\(deps Dependencies\) http.Handler](<#NewRehydrateHandler>)
+- [func NewVerifyHandler\(deps Dependencies\) http.Handler](<#NewVerifyHandler>)
+- [type ActiveProjectLoadFunc](<#ActiveProjectLoadFunc>)
+- [type ArtifactReadOpenFunc](<#ArtifactReadOpenFunc>)
+- [type ArtifactReadStore](<#ArtifactReadStore>)
+- [type ConfigLoadFunc](<#ConfigLoadFunc>)
+- [type Dependencies](<#Dependencies>)
+- [type ProviderOpenFunc](<#ProviderOpenFunc>)
+- [type RuntimeStatusFunc](<#RuntimeStatusFunc>)
+
+
+<a name="NewArtifactHandler"></a>
+## func [NewArtifactHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/artifacts.go#L24>)
+
+```go
+func NewArtifactHandler(deps Dependencies) http.Handler
+```
+
+NewArtifactHandler returns the current artifact capture/read API handler.
+
+<a name="NewCheckpointsHandler"></a>
+## func [NewCheckpointsHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/checkpoint.go#L16>)
+
+```go
+func NewCheckpointsHandler(deps Dependencies) http.Handler
+```
+
+NewCheckpointsHandler returns the provider\-backed checkpoint collection handler.
+
+<a name="NewCurrentProjectHandler"></a>
+## func [NewCurrentProjectHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/project.go#L48>)
+
+```go
+func NewCurrentProjectHandler(deps Dependencies) http.Handler
+```
+
+NewCurrentProjectHandler returns the active\-project read/write handler.
+
+<a name="NewDeferredRouteHandler"></a>
+## func [NewDeferredRouteHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/placeholders.go#L12>)
+
+```go
+func NewDeferredRouteHandler(group string) http.Handler
+```
+
+NewDeferredRouteHandler returns a deterministic placeholder for deferred route groups.
+
+<a name="NewExportHandler"></a>
+## func [NewExportHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/export.go#L15>)
+
+```go
+func NewExportHandler(deps Dependencies) http.Handler
+```
+
+NewExportHandler returns the deterministic export read API handler.
+
+<a name="NewHealthHandler"></a>
+## func [NewHealthHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L59>)
+
+```go
+func NewHealthHandler(deps Dependencies) http.Handler
+```
+
+NewHealthHandler returns the minimal GET /v0/health handler.
+
+<a name="NewProjectsHandler"></a>
+## func [NewProjectsHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/project.go#L15>)
+
+```go
+func NewProjectsHandler(deps Dependencies) http.Handler
+```
+
+NewProjectsHandler returns the provider\-backed project collection handler.
+
+<a name="NewRehydrateHandler"></a>
+## func [NewRehydrateHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/rehydrate.go#L19>)
+
+```go
+func NewRehydrateHandler(deps Dependencies) http.Handler
+```
+
+NewRehydrateHandler returns the deterministic GET /v0/rehydrate handler.
+
+<a name="NewVerifyHandler"></a>
+## func [NewVerifyHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/verify.go#L22>)
+
+```go
+func NewVerifyHandler(deps Dependencies) http.Handler
+```
+
+NewVerifyHandler returns the verification read API handler.
+
+<a name="ActiveProjectLoadFunc"></a>
+## type [ActiveProjectLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L26>)
+
+ActiveProjectLoadFunc loads the current active project for API handlers.
+
+```go
+type ActiveProjectLoadFunc func() (string, error)
+```
+
+<a name="ArtifactReadOpenFunc"></a>
+## type [ArtifactReadOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L35>)
+
+ArtifactReadOpenFunc opens the current artifact read boundary for API handlers.
+
+```go
+type ArtifactReadOpenFunc func(context.Context, config.Config) (ArtifactReadStore, io.Closer, error)
+```
+
+<a name="ArtifactReadStore"></a>
+## type [ArtifactReadStore](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L29-L32>)
+
+ArtifactReadStore exposes the current read\-only behavior required by artifact handlers.
+
+```go
+type ArtifactReadStore interface {
+    ListIntentRecords(context.Context, yanzilibrary.ArtifactReadQuery) ([]model.IntentRecord, error)
+    GetIntentRecord(context.Context, string) (model.IntentRecord, error)
+}
+```
+
+<a name="ConfigLoadFunc"></a>
+## type [ConfigLoadFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L20>)
+
+ConfigLoadFunc loads the current Yanzi configuration for API handlers.
+
+```go
+type ConfigLoadFunc func() (config.Config, error)
+```
+
+<a name="Dependencies"></a>
+## type [Dependencies](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L41-L56>)
+
+Dependencies captures the lightweight handler dependencies used by the API foundation.
+
+```go
+type Dependencies struct {
+    Version               string
+    LoadConfig            ConfigLoadFunc
+    OpenProvider          ProviderOpenFunc
+    CreateProject         func(string, string) (*yanzilibrary.Project, error)
+    ListProjects          func() ([]yanzilibrary.Project, error)
+    ProjectExists         func(string) (bool, error)
+    LoadActiveProject     ActiveProjectLoadFunc
+    SaveActiveProject     func(string) error
+    CreateCheckpoint      func(string, string, []string) (yanzilibrary.Checkpoint, error)
+    ListCheckpoints       func(string) ([]yanzilibrary.Checkpoint, error)
+    ListAllCheckpoints    func() ([]yanzilibrary.Checkpoint, error)
+    OpenArtifactReadStore ArtifactReadOpenFunc
+    Now                   func() time.Time
+    RuntimeStatus         RuntimeStatusFunc
+}
+```
+
+<a name="ProviderOpenFunc"></a>
+## type [ProviderOpenFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L23>)
+
+ProviderOpenFunc opens the current storage provider for API handlers.
+
+```go
+type ProviderOpenFunc func(context.Context, config.Config) (storage.Provider, error)
+```
+
+<a name="RuntimeStatusFunc"></a>
+## type [RuntimeStatusFunc](<https://github.com/chuxorg/yanzi/blob/master/internal/api/handlers/health.go#L38>)
+
+RuntimeStatusFunc reports the currently active runtime bootstrap visibility.
+
+```go
+type RuntimeStatusFunc func() *models.RuntimeHealth
+```
+
+# middleware
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/middleware"
+```
+
+## Index
+
+- [func AllowMethods\(next http.Handler, methods ...string\) http.Handler](<#AllowMethods>)
+
+
+<a name="AllowMethods"></a>
+## func [AllowMethods](<https://github.com/chuxorg/yanzi/blob/master/internal/api/middleware/method.go#L11>)
+
+```go
+func AllowMethods(next http.Handler, methods ...string) http.Handler
+```
+
+AllowMethods restricts a handler to the provided HTTP methods.
+
+# models
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/models"
+```
+
+## Index
+
+- [type Artifact](<#Artifact>)
+- [type ArtifactCaptureRequest](<#ArtifactCaptureRequest>)
+- [type ArtifactCaptureResponse](<#ArtifactCaptureResponse>)
+- [type ArtifactListResponse](<#ArtifactListResponse>)
+- [type ArtifactResponse](<#ArtifactResponse>)
+- [type ArtifactSummary](<#ArtifactSummary>)
+- [type ChainResponse](<#ChainResponse>)
+- [type Checkpoint](<#Checkpoint>)
+- [type CheckpointCreateRequest](<#CheckpointCreateRequest>)
+- [type CheckpointListResponse](<#CheckpointListResponse>)
+- [type CurrentProjectRequest](<#CurrentProjectRequest>)
+- [type CurrentProjectResponse](<#CurrentProjectResponse>)
+- [type HealthResponse](<#HealthResponse>)
+- [type Project](<#Project>)
+- [type ProjectCreateRequest](<#ProjectCreateRequest>)
+- [type ProjectListResponse](<#ProjectListResponse>)
+- [type ProviderHealth](<#ProviderHealth>)
+- [type RehydrateCheckpoint](<#RehydrateCheckpoint>)
+- [type RehydrateIntent](<#RehydrateIntent>)
+- [type RehydrateResponse](<#RehydrateResponse>)
+- [type RuntimeHealth](<#RuntimeHealth>)
+- [type StatusResponse](<#StatusResponse>)
+- [type VerifyResponse](<#VerifyResponse>)
+
+
+<a name="Artifact"></a>
+## type [Artifact](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L25-L37>)
+
+Artifact represents the current operational API artifact detail payload.
+
+```go
+type Artifact struct {
+    ID        string            `json:"id"`
+    CreatedAt string            `json:"created_at"`
+    Project   string            `json:"project,omitempty"`
+    Author    string            `json:"author"`
+    Source    string            `json:"source"`
+    Title     string            `json:"title"`
+    Prompt    string            `json:"prompt"`
+    Response  string            `json:"response"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
+    PrevHash  string            `json:"prev_hash,omitempty"`
+    Hash      string            `json:"hash"`
+}
+```
+
+<a name="ArtifactCaptureRequest"></a>
+## type [ArtifactCaptureRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L50-L59>)
+
+ArtifactCaptureRequest captures the POST /v0/artifacts capture payload.
+
+```go
+type ArtifactCaptureRequest struct {
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type,omitempty"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    Project    string            `json:"project,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="ArtifactCaptureResponse"></a>
+## type [ArtifactCaptureResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L62-L73>)
+
+ArtifactCaptureResponse is the deterministic capture artifact response.
+
+```go
+type ArtifactCaptureResponse struct {
+    ID         string            `json:"id"`
+    CreatedAt  string            `json:"created_at"`
+    Author     string            `json:"author"`
+    SourceType string            `json:"source_type"`
+    Title      string            `json:"title,omitempty"`
+    Prompt     string            `json:"prompt"`
+    Response   string            `json:"response"`
+    Metadata   map[string]string `json:"metadata,omitempty"`
+    PrevHash   string            `json:"prev_hash,omitempty"`
+    Hash       string            `json:"hash"`
+}
+```
+
+<a name="ArtifactListResponse"></a>
+## type [ArtifactListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L45-L47>)
+
+ArtifactListResponse is the collection response for artifact queries.
+
+```go
+type ArtifactListResponse struct {
+    Artifacts []ArtifactSummary `json:"artifacts"`
+}
+```
+
+<a name="ArtifactResponse"></a>
+## type [ArtifactResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L40-L42>)
+
+ArtifactResponse is the detail response for artifact reads.
+
+```go
+type ArtifactResponse struct {
+    Artifact Artifact `json:"artifact"`
+}
+```
+
+<a name="ArtifactSummary"></a>
+## type [ArtifactSummary](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L14-L22>)
+
+ArtifactSummary represents the current operational API artifact list payload.
+
+```go
+type ArtifactSummary struct {
+    ID        string            `json:"id"`
+    CreatedAt string            `json:"created_at"`
+    Project   string            `json:"project,omitempty"`
+    Author    string            `json:"author"`
+    Source    string            `json:"source"`
+    Title     string            `json:"title"`
+    Metadata  map[string]string `json:"metadata,omitempty"`
+}
+```
+
+<a name="ChainResponse"></a>
+## type [ChainResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L86-L91>)
+
+ChainResponse captures deterministic chain traversal output.
+
+```go
+type ChainResponse struct {
+    HeadID       string                    `json:"head_id"`
+    Length       int                       `json:"length"`
+    Intents      []ArtifactCaptureResponse `json:"intents"`
+    MissingLinks []string                  `json:"missing_links,omitempty"`
+}
+```
+
+<a name="Checkpoint"></a>
+## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L112-L119>)
+
+Checkpoint represents the current operational API checkpoint payload.
+
+```go
+type Checkpoint struct {
+    Hash                 string   `json:"hash"`
+    Project              string   `json:"project"`
+    Summary              string   `json:"summary"`
+    CreatedAt            string   `json:"created_at"`
+    ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+    PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+```
+
+<a name="CheckpointCreateRequest"></a>
+## type [CheckpointCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L122-L126>)
+
+CheckpointCreateRequest captures the current checkpoint creation shape.
+
+```go
+type CheckpointCreateRequest struct {
+    Project     string   `json:"project"`
+    Summary     string   `json:"summary"`
+    ArtifactIDs []string `json:"artifact_ids,omitempty"`
+}
+```
+
+<a name="CheckpointListResponse"></a>
+## type [CheckpointListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L129-L131>)
+
+CheckpointListResponse is the collection response for checkpoint queries.
+
+```go
+type CheckpointListResponse struct {
+    Checkpoints []Checkpoint `json:"checkpoints"`
+}
+```
+
+<a name="CurrentProjectRequest"></a>
+## type [CurrentProjectRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L4-L6>)
+
+CurrentProjectRequest captures the active\-project update shape.
+
+```go
+type CurrentProjectRequest struct {
+    Name string `json:"name"`
+}
+```
+
+<a name="CurrentProjectResponse"></a>
+## type [CurrentProjectResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L9-L11>)
+
+CurrentProjectResponse is the active\-project read response.
+
+```go
+type CurrentProjectResponse struct {
+    Project *Project `json:"project"`
+}
+```
+
+<a name="HealthResponse"></a>
+## type [HealthResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L184-L189>)
+
+HealthResponse is the minimal operational health/status response.
+
+```go
+type HealthResponse struct {
+    Version  string         `json:"version"`
+    Mode     string         `json:"mode"`
+    Runtime  *RuntimeHealth `json:"runtime,omitempty"`
+    Provider ProviderHealth `json:"provider"`
+}
+```
+
+<a name="Project"></a>
+## type [Project](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L94-L98>)
+
+Project represents the current operational API project payload.
+
+```go
+type Project struct {
+    Name        string `json:"name"`
+    Description string `json:"description,omitempty"`
+    CreatedAt   string `json:"created_at"`
+}
+```
+
+<a name="ProjectCreateRequest"></a>
+## type [ProjectCreateRequest](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L101-L104>)
+
+ProjectCreateRequest captures the current project creation shape.
+
+```go
+type ProjectCreateRequest struct {
+    Name        string `json:"name"`
+    Description string `json:"description,omitempty"`
+}
+```
+
+<a name="ProjectListResponse"></a>
+## type [ProjectListResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L107-L109>)
+
+ProjectListResponse is the collection response for project queries.
+
+```go
+type ProjectListResponse struct {
+    Projects []Project `json:"projects"`
+}
+```
+
+<a name="ProviderHealth"></a>
+## type [ProviderHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L177-L181>)
+
+ProviderHealth represents the current provider health payload for API status reads.
+
+```go
+type ProviderHealth struct {
+    Name   string `json:"name"`
+    Status string `json:"status"`
+    Error  string `json:"error,omitempty"`
+}
+```
+
+<a name="RehydrateCheckpoint"></a>
+## type [RehydrateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L140-L147>)
+
+RehydrateCheckpoint represents the current operational API rehydration checkpoint payload.
+
+```go
+type RehydrateCheckpoint struct {
+    Hash                 string   `json:"hash"`
+    Project              string   `json:"project"`
+    Summary              string   `json:"summary"`
+    CreatedAt            string   `json:"created_at"`
+    ArtifactIDs          []string `json:"artifact_ids,omitempty"`
+    PreviousCheckpointID string   `json:"previous_checkpoint_id,omitempty"`
+}
+```
+
+<a name="RehydrateIntent"></a>
+## type [RehydrateIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L150-L163>)
+
+RehydrateIntent represents the current operational API rehydration intent payload.
+
+```go
+type RehydrateIntent struct {
+    ID              string            `json:"id"`
+    Timestamp       string            `json:"timestamp"`
+    Author          string            `json:"author"`
+    SourceType      string            `json:"source_type"`
+    Title           string            `json:"title,omitempty"`
+    Prompt          string            `json:"prompt"`
+    Response        string            `json:"response"`
+    PromptSnippet   string            `json:"prompt_snippet"`
+    ResponseSnippet string            `json:"response_snippet"`
+    Metadata        map[string]string `json:"metadata,omitempty"`
+    Hash            string            `json:"hash"`
+    PrevHash        string            `json:"prev_hash,omitempty"`
+}
+```
+
+<a name="RehydrateResponse"></a>
+## type [RehydrateResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L166-L174>)
+
+RehydrateResponse is the deterministic operational API rehydration payload.
+
+```go
+type RehydrateResponse struct {
+    Project        string               `json:"project"`
+    HasCheckpoint  bool                 `json:"has_checkpoint"`
+    Fallback       bool                 `json:"fallback"`
+    FallbackReason string               `json:"fallback_reason,omitempty"`
+    FallbackLimit  int                  `json:"fallback_limit,omitempty"`
+    Checkpoint     *RehydrateCheckpoint `json:"checkpoint,omitempty"`
+    Intents        []RehydrateIntent    `json:"intents"`
+}
+```
+
+<a name="RuntimeHealth"></a>
+## type [RuntimeHealth](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L134-L137>)
+
+RuntimeHealth represents the current runtime bootstrap visibility payload.
+
+```go
+type RuntimeHealth struct {
+    Mode      string `json:"mode"`
+    StartedAt string `json:"started_at,omitempty"`
+}
+```
+
+<a name="StatusResponse"></a>
+## type [StatusResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L192-L195>)
+
+StatusResponse is the generic deterministic status payload for non\-CRUD route groups.
+
+```go
+type StatusResponse struct {
+    Status  string `json:"status"`
+    Message string `json:"message"`
+}
+```
+
+<a name="VerifyResponse"></a>
+## type [VerifyResponse](<https://github.com/chuxorg/yanzi/blob/master/internal/api/models/models.go#L76-L83>)
+
+VerifyResponse captures deterministic verification read output.
+
+```go
+type VerifyResponse struct {
+    ID           string  `json:"id"`
+    Valid        bool    `json:"valid"`
+    StoredHash   string  `json:"stored_hash"`
+    ComputedHash string  `json:"computed_hash"`
+    PrevHash     string  `json:"prev_hash"`
+    Error        *string `json:"error,omitempty"`
+}
+```
+
+# responses
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/responses"
+```
+
+## Index
+
+- [func WriteError\(w http.ResponseWriter, status int, code, message string\)](<#WriteError>)
+- [func WriteJSON\(w http.ResponseWriter, status int, value any\)](<#WriteJSON>)
+- [type ErrorBody](<#ErrorBody>)
+- [type ErrorDetail](<#ErrorDetail>)
+
+
+<a name="WriteError"></a>
+## func [WriteError](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L32>)
+
+```go
+func WriteError(w http.ResponseWriter, status int, code, message string)
+```
+
+WriteError writes a deterministic JSON error response.
+
+<a name="WriteJSON"></a>
+## func [WriteJSON](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L20>)
+
+```go
+func WriteJSON(w http.ResponseWriter, status int, value any)
+```
+
+WriteJSON writes a JSON response with the provided status code.
+
+<a name="ErrorBody"></a>
+## type [ErrorBody](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L9-L11>)
+
+ErrorBody is the deterministic API error response envelope.
+
+```go
+type ErrorBody struct {
+    Error ErrorDetail `json:"error"`
+}
+```
+
+<a name="ErrorDetail"></a>
+## type [ErrorDetail](<https://github.com/chuxorg/yanzi/blob/master/internal/api/responses/json.go#L14-L17>)
+
+ErrorDetail is the machine\-readable operational API error payload.
+
+```go
+type ErrorDetail struct {
+    Code    string `json:"code"`
+    Message string `json:"message"`
+}
+```
+
+# routes
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/routes"
+```
+
+## Index
+
+- [func NewHandler\(deps handlers.Dependencies\) http.Handler](<#NewHandler>)
+
+
+<a name="NewHandler"></a>
+## func [NewHandler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/routes/routes.go#L25>)
+
+```go
+func NewHandler(deps handlers.Dependencies) http.Handler
+```
+
+NewHandler constructs the operational API route foundation.
+
+# server
+
+```go
+import "github.com/chuxorg/yanzi/internal/api/server"
+```
+
+## Index
+
+- [type LocalOptions](<#LocalOptions>)
+- [type Options](<#Options>)
+- [type Server](<#Server>)
+  - [func New\(opts Options\) \*Server](<#New>)
+  - [func NewLocal\(opts LocalOptions\) \*Server](<#NewLocal>)
+  - [func \(s \*Server\) HTTPServer\(\) \*http.Server](<#Server.HTTPServer>)
+  - [func \(s \*Server\) Handler\(\) http.Handler](<#Server.Handler>)
+  - [func \(s \*Server\) Serve\(listener net.Listener\) error](<#Server.Serve>)
+  - [func \(s \*Server\) Shutdown\(ctx context.Context\) error](<#Server.Shutdown>)
+
+
+<a name="LocalOptions"></a>
+## type [LocalOptions](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/local.go#L11-L16>)
+
+LocalOptions captures the local\-only operational API server construction inputs.
+
+```go
+type LocalOptions struct {
+    Addr              string
+    Version           string
+    ReadHeaderTimeout time.Duration
+    Dependencies      handlers.Dependencies
+}
+```
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L13-L17>)
+
+Options captures the minimal HTTP server configuration for the operational API.
+
+```go
+type Options struct {
+    Addr              string
+    Handler           http.Handler
+    ReadHeaderTimeout time.Duration
+}
+```
+
+<a name="Server"></a>
+## type [Server](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L20-L23>)
+
+Server is the lightweight internal HTTP server foundation for the operational API.
+
+```go
+type Server struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="New"></a>
+### func [New](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L26>)
+
+```go
+func New(opts Options) *Server
+```
+
+New constructs an internal operational API server with conservative defaults.
+
+<a name="NewLocal"></a>
+### func [NewLocal](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/local.go#L19>)
+
+```go
+func NewLocal(opts LocalOptions) *Server
+```
+
+NewLocal constructs a server wired to the current operational API route foundation.
+
+<a name="Server.HTTPServer"></a>
+### func \(\*Server\) [HTTPServer](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L47>)
+
+```go
+func (s *Server) HTTPServer() *http.Server
+```
+
+HTTPServer exposes the underlying net/http server for controlled internal use.
+
+<a name="Server.Handler"></a>
+### func \(\*Server\) [Handler](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L39>)
+
+```go
+func (s *Server) Handler() http.Handler
+```
+
+Handler returns the server handler used to process HTTP requests.
+
+<a name="Server.Serve"></a>
+### func \(\*Server\) [Serve](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L55>)
+
+```go
+func (s *Server) Serve(listener net.Listener) error
+```
+
+Serve starts the HTTP server on the provided listener.
+
+<a name="Server.Shutdown"></a>
+### func \(\*Server\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/api/server/server.go#L63>)
+
+```go
+func (s *Server) Shutdown(ctx context.Context) error
+```
+
+Shutdown gracefully stops the HTTP server.
 
 # hash
 
@@ -1127,6 +2951,332 @@ func (s *Store) ListIntents(ctx context.Context, limit int) ([]model.IntentRecor
 
 ```go
 func (s *Store) Migrate(ctx context.Context) error
+```
+
+
+
+# registry
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage/registry"
+```
+
+## Index
+
+- [func EnsureLocalStateDir\(\) error](<#EnsureLocalStateDir>)
+- [func Open\(ctx context.Context, cfg config.Config, opts Options\) \(storage.Provider, error\)](<#Open>)
+- [func OpenAtPath\(ctx context.Context, path string, opts Options\) \(storage.Provider, bool, error\)](<#OpenAtPath>)
+- [func ValidateProviderName\(name string\) error](<#ValidateProviderName>)
+- [type Options](<#Options>)
+
+
+<a name="EnsureLocalStateDir"></a>
+## func [EnsureLocalStateDir](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L42>)
+
+```go
+func EnsureLocalStateDir() error
+```
+
+EnsureLocalStateDir preserves existing local SQLite directory creation.
+
+<a name="Open"></a>
+## func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L24>)
+
+```go
+func Open(ctx context.Context, cfg config.Config, opts Options) (storage.Provider, error)
+```
+
+Open returns the configured storage provider.
+
+CAP\-001 Phase 1 supports SQLite only and preserves existing local db\_path resolution. No provider config key is active yet.
+
+<a name="OpenAtPath"></a>
+## func [OpenAtPath](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L37>)
+
+```go
+func OpenAtPath(ctx context.Context, path string, opts Options) (storage.Provider, bool, error)
+```
+
+OpenAtPath returns the SQLite provider at a specific path.
+
+<a name="ValidateProviderName"></a>
+## func [ValidateProviderName](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L54>)
+
+```go
+func ValidateProviderName(name string) error
+```
+
+ValidateProviderName rejects future provider names until implementations exist.
+
+<a name="Options"></a>
+## type [Options](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/registry/registry.go#L16-L18>)
+
+Options contains provider construction inputs that are not user\-facing config.
+
+```go
+type Options struct {
+    Migrations fs.FS
+}
+```
+
+# sqlite
+
+```go
+import "github.com/chuxorg/yanzi/internal/storage/sqlite"
+```
+
+## Index
+
+- [type Provider](<#Provider>)
+  - [func FromDB\(db \*sql.DB\) \*Provider](<#FromDB>)
+  - [func Open\(ctx context.Context, path string, migrations fs.FS\) \(\*Provider, bool, error\)](<#Open>)
+  - [func \(p \*Provider\) Artifacts\(\) bool](<#Provider.Artifacts>)
+  - [func \(p \*Provider\) Checkpoints\(\) bool](<#Provider.Checkpoints>)
+  - [func \(p \*Provider\) Close\(\) error](<#Provider.Close>)
+  - [func \(p \*Provider\) CreateArtifact\(ctx context.Context, input storage.CreateArtifactInput\) \(storage.Artifact, error\)](<#Provider.CreateArtifact>)
+  - [func \(p \*Provider\) CreateCheckpoint\(ctx context.Context, input storage.CreateCheckpointInput\) \(storage.Checkpoint, error\)](<#Provider.CreateCheckpoint>)
+  - [func \(p \*Provider\) CreateProject\(ctx context.Context, input storage.CreateProjectInput\) \(storage.Project, error\)](<#Provider.CreateProject>)
+  - [func \(p \*Provider\) GetVerificationIntent\(ctx context.Context, id string\) \(storage.IntentRecord, error\)](<#Provider.GetVerificationIntent>)
+  - [func \(p \*Provider\) GetVerificationIntentByHash\(ctx context.Context, intentHash string\) \(storage.IntentRecord, error\)](<#Provider.GetVerificationIntentByHash>)
+  - [func \(p \*Provider\) GetVisibleContextArtifact\(ctx context.Context, idPrefix, activeProject string\) \(storage.Artifact, error\)](<#Provider.GetVisibleContextArtifact>)
+  - [func \(p \*Provider\) Health\(ctx context.Context\) storage.Health](<#Provider.Health>)
+  - [func \(p \*Provider\) ImportExport\(\) bool](<#Provider.ImportExport>)
+  - [func \(p \*Provider\) ListAllCheckpoints\(ctx context.Context\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListAllCheckpoints>)
+  - [func \(p \*Provider\) ListArtifacts\(ctx context.Context, query storage.ArtifactQuery\) \(\[\]storage.Artifact, error\)](<#Provider.ListArtifacts>)
+  - [func \(p \*Provider\) ListCheckpoints\(ctx context.Context, project string\) \(\[\]storage.Checkpoint, error\)](<#Provider.ListCheckpoints>)
+  - [func \(p \*Provider\) ListExportItems\(ctx context.Context, query storage.ExportQuery\) \(\[\]storage.ExportItem, int, error\)](<#Provider.ListExportItems>)
+  - [func \(p \*Provider\) ListProjects\(ctx context.Context\) \(\[\]storage.Project, error\)](<#Provider.ListProjects>)
+  - [func \(p \*Provider\) ListVisibleContextArtifacts\(ctx context.Context, query storage.ContextArtifactQuery\) \(\[\]storage.Artifact, error\)](<#Provider.ListVisibleContextArtifacts>)
+  - [func \(p \*Provider\) Name\(\) storage.ProviderName](<#Provider.Name>)
+  - [func \(p \*Provider\) ProjectExists\(ctx context.Context, name string\) \(bool, error\)](<#Provider.ProjectExists>)
+  - [func \(p \*Provider\) Projects\(\) bool](<#Provider.Projects>)
+  - [func \(p \*Provider\) SQLDB\(\) \*sql.DB](<#Provider.SQLDB>)
+  - [func \(p \*Provider\) Verification\(\) bool](<#Provider.Verification>)
+
+
+<a name="Provider"></a>
+## type [Provider](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L34-L37>)
+
+Provider is the embedded SQLite storage provider.
+
+```go
+type Provider struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="FromDB"></a>
+### func [FromDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L249>)
+
+```go
+func FromDB(db *sql.DB) *Provider
+```
+
+FromDB wraps an existing SQLite handle with provider operations.
+
+<a name="Open"></a>
+### func [Open](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L40>)
+
+```go
+func Open(ctx context.Context, path string, migrations fs.FS) (*Provider, bool, error)
+```
+
+Open initializes a SQLite provider at path using the provided migration files.
+
+<a name="Provider.Artifacts"></a>
+### func \(\*Provider\) [Artifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L111>)
+
+```go
+func (p *Provider) Artifacts() bool
+```
+
+
+
+<a name="Provider.Checkpoints"></a>
+### func \(\*Provider\) [Checkpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L113>)
+
+```go
+func (p *Provider) Checkpoints() bool
+```
+
+
+
+<a name="Provider.Close"></a>
+### func \(\*Provider\) [Close](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L89>)
+
+```go
+func (p *Provider) Close() error
+```
+
+Close closes the provider handle.
+
+<a name="Provider.CreateArtifact"></a>
+### func \(\*Provider\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L37>)
+
+```go
+func (p *Provider) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (storage.Artifact, error)
+```
+
+CreateArtifact stores an artifact using current SQLite artifact semantics.
+
+<a name="Provider.CreateCheckpoint"></a>
+### func \(\*Provider\) [CreateCheckpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L19>)
+
+```go
+func (p *Provider) CreateCheckpoint(ctx context.Context, input storage.CreateCheckpointInput) (storage.Checkpoint, error)
+```
+
+CreateCheckpoint creates a checkpoint using current SQLite checkpoint semantics.
+
+<a name="Provider.CreateProject"></a>
+### func \(\*Provider\) [CreateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L17>)
+
+```go
+func (p *Provider) CreateProject(ctx context.Context, input storage.CreateProjectInput) (storage.Project, error)
+```
+
+CreateProject creates a project using current SQLite project semantics.
+
+<a name="Provider.GetVerificationIntent"></a>
+### func \(\*Provider\) [GetVerificationIntent](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/verification.go#L13>)
+
+```go
+func (p *Provider) GetVerificationIntent(ctx context.Context, id string) (storage.IntentRecord, error)
+```
+
+GetVerificationIntent loads an intent by ID using current verification semantics.
+
+<a name="Provider.GetVerificationIntentByHash"></a>
+### func \(\*Provider\) [GetVerificationIntentByHash](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/verification.go#L28>)
+
+```go
+func (p *Provider) GetVerificationIntentByHash(ctx context.Context, intentHash string) (storage.IntentRecord, error)
+```
+
+GetVerificationIntentByHash loads an intent by hash using current chain traversal semantics.
+
+<a name="Provider.GetVisibleContextArtifact"></a>
+### func \(\*Provider\) [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L182>)
+
+```go
+func (p *Provider) GetVisibleContextArtifact(ctx context.Context, idPrefix, activeProject string) (storage.Artifact, error)
+```
+
+GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
+
+<a name="Provider.Health"></a>
+### func \(\*Provider\) [Health](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L97>)
+
+```go
+func (p *Provider) Health(ctx context.Context) storage.Health
+```
+
+Health reports internal readiness for the provider.
+
+<a name="Provider.ImportExport"></a>
+### func \(\*Provider\) [ImportExport](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L115>)
+
+```go
+func (p *Provider) ImportExport() bool
+```
+
+
+
+<a name="Provider.ListAllCheckpoints"></a>
+### func \(\*Provider\) [ListAllCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L112>)
+
+```go
+func (p *Provider) ListAllCheckpoints(ctx context.Context) ([]storage.Checkpoint, error)
+```
+
+ListAllCheckpoints returns all checkpoints using current CLI all\-project ordering.
+
+<a name="Provider.ListArtifacts"></a>
+### func \(\*Provider\) [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L111>)
+
+```go
+func (p *Provider) ListArtifacts(ctx context.Context, query storage.ArtifactQuery) ([]storage.Artifact, error)
+```
+
+ListArtifacts lists artifacts using current project/class/type filtering semantics.
+
+<a name="Provider.ListCheckpoints"></a>
+### func \(\*Provider\) [ListCheckpoints](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/checkpoint.go#L88>)
+
+```go
+func (p *Provider) ListCheckpoints(ctx context.Context, project string) ([]storage.Checkpoint, error)
+```
+
+ListCheckpoints returns project checkpoints ordered newest first.
+
+<a name="Provider.ListExportItems"></a>
+### func \(\*Provider\) [ListExportItems](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/export.go#L13>)
+
+```go
+func (p *Provider) ListExportItems(ctx context.Context, query storage.ExportQuery) ([]storage.ExportItem, int, error)
+```
+
+ListExportItems returns the current SQLite\-backed export timeline source data.
+
+<a name="Provider.ListProjects"></a>
+### func \(\*Provider\) [ListProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L56>)
+
+```go
+func (p *Provider) ListProjects(ctx context.Context) ([]storage.Project, error)
+```
+
+ListProjects returns projects ordered by creation time, oldest first.
+
+<a name="Provider.ListVisibleContextArtifacts"></a>
+### func \(\*Provider\) [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/artifact.go#L138>)
+
+```go
+func (p *Provider) ListVisibleContextArtifacts(ctx context.Context, query storage.ContextArtifactQuery) ([]storage.Artifact, error)
+```
+
+ListVisibleContextArtifacts lists context artifacts with current visibility rules.
+
+<a name="Provider.Name"></a>
+### func \(\*Provider\) [Name](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L76>)
+
+```go
+func (p *Provider) Name() storage.ProviderName
+```
+
+Name returns the provider identifier.
+
+<a name="Provider.ProjectExists"></a>
+### func \(\*Provider\) [ProjectExists](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/project.go#L90>)
+
+```go
+func (p *Provider) ProjectExists(ctx context.Context, name string) (bool, error)
+```
+
+ProjectExists checks whether a project row exists for the provided name.
+
+<a name="Provider.Projects"></a>
+### func \(\*Provider\) [Projects](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L112>)
+
+```go
+func (p *Provider) Projects() bool
+```
+
+
+
+<a name="Provider.SQLDB"></a>
+### func \(\*Provider\) [SQLDB](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L81>)
+
+```go
+func (p *Provider) SQLDB() *sql.DB
+```
+
+SQLDB exposes the current SQLite handle for existing local call sites.
+
+<a name="Provider.Verification"></a>
+### func \(\*Provider\) [Verification](<https://github.com/chuxorg/yanzi/blob/master/internal/storage/sqlite/provider.go#L114>)
+
+```go
+func (p *Provider) Verification() bool
 ```
 
 

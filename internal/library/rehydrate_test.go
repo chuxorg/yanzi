@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"testing"
 
@@ -166,6 +167,78 @@ func TestRehydrateProjectFallsBackToRecentProjectIntents(t *testing.T) {
 	}
 	if payload.Intents[0].ID != "cap-3" || payload.Intents[len(payload.Intents)-1].ID != "cap-12" {
 		t.Fatalf("unexpected fallback window/order: %+v", payload.Intents)
+	}
+}
+
+func TestRehydrateProjectRejectsMissingProject(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := RehydrateProject("missing"); err == nil {
+		t.Fatal("expected error")
+	} else {
+		var notFound ProjectNotFoundError
+		if !errors.As(err, &notFound) {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	}
+}
+
+func TestRehydrateProjectOrdersEqualTimestampsByID(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(envDBPath, "")
+
+	if _, err := Initialize(); err != nil {
+		t.Fatalf("Initialize: %v", err)
+	}
+	db, err := InitDB()
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := CreateProject("alpha", ""); err != nil {
+		t.Fatalf("CreateProject alpha: %v", err)
+	}
+
+	seedRehydrateCheckpoint(t, db, "alpha", "2025-01-01T00:00:10Z", "checkpoint summary")
+	seedRehydrateIntent(t, db, rehydrateTestIntent{
+		ID:        "intent-b",
+		CreatedAt: "2025-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "prompt b",
+		Response:  "response b",
+	})
+	seedRehydrateIntent(t, db, rehydrateTestIntent{
+		ID:        "intent-a",
+		CreatedAt: "2025-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "prompt a",
+		Response:  "response a",
+	})
+
+	payload, err := RehydrateProject("alpha")
+	if err != nil {
+		t.Fatalf("RehydrateProject: %v", err)
+	}
+	if len(payload.Intents) != 2 {
+		t.Fatalf("expected 2 intents, got %d", len(payload.Intents))
+	}
+	if payload.Intents[0].ID != "intent-a" || payload.Intents[1].ID != "intent-b" {
+		t.Fatalf("unexpected intent order: %+v", payload.Intents)
 	}
 }
 

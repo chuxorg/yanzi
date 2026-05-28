@@ -278,3 +278,56 @@ func TestRunContextShow(t *testing.T) {
 		t.Fatalf("expected full content in show output: %q", output)
 	}
 }
+
+func TestArtifactProviderCLICompatibilityWorkflow(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	writeTestConfig(t, home)
+	createTestProject(t, "alpha")
+	writeStateFile(t, home, "alpha")
+
+	if _, err := captureStdout(func() error {
+		return RunIntent([]string{"add", "--type", "task", "--title", "Provider task", "--content", "Route through provider.", "--metadata", `{"phase":"2B"}`})
+	}); err != nil {
+		t.Fatalf("RunIntent add: %v", err)
+	}
+	intentList, err := captureStdout(func() error {
+		return RunIntent([]string{"list", "--type", "task"})
+	})
+	if err != nil {
+		t.Fatalf("RunIntent list: %v", err)
+	}
+	if !strings.Contains(intentList, "Provider task") || !strings.Contains(intentList, "Project: alpha") {
+		t.Fatalf("unexpected intent list output: %q", intentList)
+	}
+
+	contextOutput, err := captureStdout(func() error {
+		return RunContext([]string{"add", "--type", "reference", "--title", "Provider reference", "--content", "Context provider content.", "--metadata", `{"owner":"storage"}`})
+	})
+	if err != nil {
+		t.Fatalf("RunContext add: %v", err)
+	}
+	fields := strings.Fields(contextOutput)
+	if len(fields) < 7 {
+		t.Fatalf("unexpected context add output: %q", contextOutput)
+	}
+
+	showOutput, err := captureStdout(func() error {
+		return RunContext([]string{"show", fields[6]})
+	})
+	if err != nil {
+		t.Fatalf("RunContext show: %v", err)
+	}
+	for _, expected := range []string{
+		"Title: Provider reference",
+		"Type: reference",
+		"Scope: project",
+		"Project: alpha",
+		`Metadata: {"owner":"storage"}`,
+		"Context provider content.",
+	} {
+		if !strings.Contains(showOutput, expected) {
+			t.Fatalf("expected %q in context show output: %q", expected, showOutput)
+		}
+	}
+}

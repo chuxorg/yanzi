@@ -2,13 +2,12 @@ package yanzilibrary
 
 import (
 	"context"
-	"crypto/sha256"
-	"database/sql"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
-	"time"
+
+	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/storage"
+	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
 
 // CreateProject creates a unique project record and returns the created project.
@@ -18,93 +17,82 @@ func CreateProject(name string, description string) (*Project, error) {
 		return nil, errors.New("project name is required")
 	}
 
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	ctx := context.Background()
-	exists, err := projectExists(ctx, db, name)
+	project, err := provider.CreateProject(context.Background(), storage.CreateProjectInput{Name: name, Description: description})
 	if err != nil {
 		return nil, err
 	}
-	if exists {
-		return nil, fmt.Errorf("project already exists: %s", name)
-	}
-
-	createdAt := time.Now().UTC()
-	createdAtText := createdAt.Format(time.RFC3339Nano)
-	hash := hashProjectRecord(name, description, createdAtText)
-
-	if _, err := db.ExecContext(
-		ctx,
-		`INSERT INTO projects (name, description, created_at, prev_hash, hash) VALUES (?, ?, ?, ?, ?)`,
-		name,
-		description,
-		createdAtText,
-		nil,
-		hash,
-	); err != nil {
-		if isUniqueViolation(err) {
-			return nil, fmt.Errorf("project already exists: %s", name)
-		}
-		return nil, err
-	}
-
 	return &Project{
-		Name:        name,
-		Description: description,
-		CreatedAt:   createdAt,
+		Name:        project.Name,
+		Description: project.Description,
+		CreatedAt:   project.CreatedAt,
 	}, nil
 }
 
 // ListProjects returns all projects ordered by creation time, oldest first.
 func ListProjects() ([]Project, error) {
-	db, err := InitDB()
+	provider, err := openStorageProvider()
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
-		_ = db.Close()
+		_ = provider.Close()
 	}()
 
-	rows, err := db.QueryContext(context.Background(), `SELECT name, description, created_at FROM projects ORDER BY created_at ASC, name ASC`)
+	records, err := provider.ListProjects(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	projects := make([]Project, 0)
-	for rows.Next() {
-		var project Project
-		var description sql.NullString
-		var createdAtText string
-		if err := rows.Scan(&project.Name, &description, &createdAtText); err != nil {
-			return nil, err
-		}
-		if description.Valid {
-			project.Description = description.String
-		}
-		project.CreatedAt, err = time.Parse(time.RFC3339Nano, createdAtText)
-		if err != nil {
-			return nil, fmt.Errorf("parse project created_at for %s: %w", project.Name, err)
-		}
-		projects = append(projects, project)
+	projects := make([]Project, 0, len(records))
+	for _, record := range records {
+		projects = append(projects, Project{
+			Name:        record.Name,
+			Description: record.Description,
+			CreatedAt:   record.CreatedAt,
+		})
 	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
 	return projects, nil
 }
 
-// hashProjectRecord computes a deterministic hash for the projects table hash column.
-func hashProjectRecord(name, description, createdAt string) string {
-	sum := sha256.Sum256([]byte(name + "\n" + description + "\n" + createdAt))
-	return hex.EncodeToString(sum[:])
+// ProjectExists reports whether a project exists in the current local provider.
+func ProjectExists(name string) (bool, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return false, errors.New("project name is required")
+	}
+
+	provider, err := openStorageProvider()
+	if err != nil {
+		return false, err
+	}
+	defer func() {
+		_ = provider.Close()
+	}()
+
+	return provider.ProjectExists(context.Background(), name)
+}
+
+func openStorageProvider() (storage.Provider, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+	provider, err := registry.Open(context.Background(), cfg, registry.Options{Migrations: MigrationsFS()})
+	if err != nil {
+		return nil, err
+	}
+	if health := provider.Health(context.Background()); health.Path != "" {
+		setResolvedDBPath(health.Path)
+	}
+	return provider, nil
 }
 
 // isUniqueViolation reports whether the database error is a uniqueness constraint violation.

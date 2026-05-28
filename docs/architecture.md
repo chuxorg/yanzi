@@ -31,3 +31,19 @@ Yanzi is a local-first append-only datastore with a CLI over that state.
 - stored content is not interpreted by Yanzi
 - metadata is matched exactly when filters are used
 - meaning is left to the caller or agent using the stored data
+
+## Delivery Authority
+
+Repository delivery governance preserves separation of authority:
+
+```text
+Architect       -> Capability
+Release Steward -> Phase Approval
+Execution Agent -> Delivery
+QA              -> Validation
+Release Steward -> Release Decision
+```
+
+The Release Steward governs PR review, merge approval, checkpoint approval, release readiness, backlog state transitions, and convergence validation. The role does not redefine architecture, orchestrate agents, override branch protections, autonomously release, or invent requirements.
+
+See [Release Steward Role](roles/release-steward.md).

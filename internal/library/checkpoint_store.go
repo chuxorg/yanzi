@@ -3,152 +3,52 @@ package yanzilibrary
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"strings"
-	"time"
+
+	"github.com/chuxorg/yanzi/internal/storage"
+	storagesqlite "github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
 // CheckpointStore provides persistence for checkpoints.
 type CheckpointStore struct {
-	db *sql.DB
+	provider storage.Provider
 }
 
 // NewCheckpointStore constructs a CheckpointStore using the provided database handle.
 func NewCheckpointStore(db *sql.DB) *CheckpointStore {
-	return &CheckpointStore{db: db}
+	return &CheckpointStore{provider: storagesqlite.FromDB(db)}
 }
 
 // CreateCheckpoint creates a new checkpoint artifact for a project.
 func (s *CheckpointStore) CreateCheckpoint(ctx context.Context, project, summary string, artifactIDs []string) (Checkpoint, error) {
-	if s == nil || s.db == nil {
+	if s == nil || s.provider == nil {
 		return Checkpoint{}, errors.New("checkpoint store is not initialized")
 	}
-
-	project = strings.TrimSpace(project)
-	if project == "" {
-		return Checkpoint{}, CheckpointValidationError{Field: "project", Message: "is required"}
-	}
-	summary = strings.TrimSpace(summary)
-	if summary == "" {
-		return Checkpoint{}, CheckpointValidationError{Field: "summary", Message: "is required"}
-	}
-
-	exists, err := projectExists(ctx, s.db, project)
+	checkpoint, err := s.provider.CreateCheckpoint(ctx, storage.CreateCheckpointInput{
+		Project:     project,
+		Summary:     summary,
+		ArtifactIDs: artifactIDs,
+	})
 	if err != nil {
 		return Checkpoint{}, err
 	}
-	if !exists {
-		return Checkpoint{}, ProjectNotFoundError{Name: project}
-	}
-
-	createdAt := time.Now().UTC().Format(time.RFC3339Nano)
-	previousID, err := s.latestCheckpointID(ctx, project)
-	if err != nil {
-		return Checkpoint{}, err
-	}
-
-	checkpoint := Checkpoint{
-		Project:              project,
-		Summary:              summary,
-		CreatedAt:            createdAt,
-		ArtifactIDs:          artifactIDs,
-		PreviousCheckpointID: previousID,
-	}
-	checkpoint = checkpoint.Normalize()
-
-	hashValue, err := HashCheckpoint(checkpoint)
-	if err != nil {
-		return Checkpoint{}, err
-	}
-	checkpoint.Hash = hashValue
-
-	storedIDs := checkpoint.ArtifactIDs
-	if storedIDs == nil {
-		storedIDs = []string{}
-	}
-	artifactJSON, err := json.Marshal(storedIDs)
-	if err != nil {
-		return Checkpoint{}, err
-	}
-
-	var prev any
-	if checkpoint.PreviousCheckpointID != "" {
-		prev = checkpoint.PreviousCheckpointID
-	}
-
-	_, err = s.db.ExecContext(
-		ctx,
-		`INSERT INTO checkpoints (hash, project, summary, created_at, artifact_ids, previous_checkpoint_id)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		checkpoint.Hash,
-		checkpoint.Project,
-		checkpoint.Summary,
-		checkpoint.CreatedAt,
-		string(artifactJSON),
-		prev,
-	)
-	if err != nil {
-		return Checkpoint{}, err
-	}
-
-	return checkpoint, nil
+	return checkpointFromStorage(checkpoint), nil
 }
 
 // ListCheckpoints returns checkpoints for a project ordered by creation time, newest first.
 func (s *CheckpointStore) ListCheckpoints(ctx context.Context, project string) ([]Checkpoint, error) {
-	if s == nil || s.db == nil {
+	if s == nil || s.provider == nil {
 		return nil, errors.New("checkpoint store is not initialized")
 	}
-
-	project = strings.TrimSpace(project)
-	if project == "" {
-		return nil, CheckpointValidationError{Field: "project", Message: "is required"}
-	}
-
-	exists, err := projectExists(ctx, s.db, project)
+	checkpoints, err := s.provider.ListCheckpoints(ctx, project)
 	if err != nil {
 		return nil, err
 	}
-	if !exists {
-		return nil, ProjectNotFoundError{Name: project}
+	result := make([]Checkpoint, 0, len(checkpoints))
+	for _, checkpoint := range checkpoints {
+		result = append(result, checkpointFromStorage(checkpoint))
 	}
-
-	rows, err := s.db.QueryContext(ctx, `SELECT hash, project, summary, created_at, artifact_ids, previous_checkpoint_id FROM checkpoints WHERE project = ? ORDER BY created_at DESC`, project)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	checkpoints := []Checkpoint{}
-	for rows.Next() {
-		var checkpoint Checkpoint
-		var artifactText string
-		var prev sql.NullString
-		if err := rows.Scan(
-			&checkpoint.Hash,
-			&checkpoint.Project,
-			&checkpoint.Summary,
-			&checkpoint.CreatedAt,
-			&artifactText,
-			&prev,
-		); err != nil {
-			return nil, err
-		}
-		if artifactText != "" {
-			if err := json.Unmarshal([]byte(artifactText), &checkpoint.ArtifactIDs); err != nil {
-				return nil, err
-			}
-		}
-		if prev.Valid {
-			checkpoint.PreviousCheckpointID = prev.String
-		}
-		checkpoints = append(checkpoints, checkpoint)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return checkpoints, nil
+	return result, nil
 }
 
 // CreateCheckpoint is a convenience wrapper for CheckpointStore.CreateCheckpoint.
@@ -161,17 +61,29 @@ func ListCheckpoints(ctx context.Context, db *sql.DB, project string) ([]Checkpo
 	return NewCheckpointStore(db).ListCheckpoints(ctx, project)
 }
 
-// latestCheckpointID returns the most recent checkpoint hash for a project, or empty if none exist.
-func (s *CheckpointStore) latestCheckpointID(ctx context.Context, project string) (string, error) {
-	var hash string
-	row := s.db.QueryRowContext(ctx, `SELECT hash FROM checkpoints WHERE project = ? ORDER BY created_at DESC LIMIT 1`, project)
-	if err := row.Scan(&hash); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", nil
-		}
-		return "", err
+// ListAllCheckpoints is a convenience wrapper for all-project checkpoint listing.
+func ListAllCheckpoints(ctx context.Context, db *sql.DB) ([]Checkpoint, error) {
+	provider := storagesqlite.FromDB(db)
+	checkpoints, err := provider.ListAllCheckpoints(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return hash, nil
+	result := make([]Checkpoint, 0, len(checkpoints))
+	for _, checkpoint := range checkpoints {
+		result = append(result, checkpointFromStorage(checkpoint))
+	}
+	return result, nil
+}
+
+func checkpointFromStorage(checkpoint storage.Checkpoint) Checkpoint {
+	return Checkpoint{
+		Project:              checkpoint.Project,
+		Summary:              checkpoint.Summary,
+		CreatedAt:            checkpoint.CreatedAt,
+		ArtifactIDs:          checkpoint.ArtifactIDs,
+		PreviousCheckpointID: checkpoint.PreviousCheckpointID,
+		Hash:                 checkpoint.Hash,
+	}
 }
 
 // projectExists checks whether a project row exists for the provided project name.

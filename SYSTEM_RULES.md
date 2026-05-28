@@ -208,3 +208,147 @@ These rules are:
 If a rule conflicts with a prompt:
 
 → The rule takes precedence
+
+
+# Yanzi Operational Continuity
+
+Yanzi is required for all implementation, documentation, QA, and release work.
+
+Purpose:
+Preserve deterministic operational continuity across execution sessions and AI agents.
+
+Project:
+
+yanzi-dev
+
+Required Behavior:
+
+## Startup
+
+At the beginning of work:
+
+1. Verify Yanzi installation:
+
+    yanzi --version
+
+2. Ensure project exists:
+
+    yanzi project list
+
+3. Create if missing:
+
+    yanzi project create yanzi-dev
+
+4. Activate project:
+
+    yanzi project use yanzi-dev
+
+5. Record a checkpoint only if beginning a new execution phase:
+
+    yanzi checkpoint create \
+      --summary "Begin <capability>/<phase>"
+
+---
+
+## Capture Expectations
+
+Capture meaningful operational artifacts.
+
+Capture:
+- execution prompts
+- architecture decisions
+- implementation decisions
+- major discoveries
+- QA findings
+- release decisions
+- follow-up recommendations
+
+Do not capture:
+- temporary shell commands
+- repetitive logs
+- failed experiments unless informative
+- generated build output
+
+Preferred capture pattern:
+
+Create files:
+
+.prompt.txt
+.response.txt
+
+Capture:
+
+yanzi capture \
+  --author "<agent-name>" \
+  --prompt-file .prompt.txt \
+  --response-file .response.txt \
+  --meta source=agent \
+  --meta capability=<capability> \
+  --meta phase=<phase>
+
+Examples:
+
+--meta capability=CAP-001
+--meta phase=phase-2B
+
+---
+
+## Checkpoints
+
+Create checkpoints only at meaningful transitions:
+
+Examples:
+- phase complete
+- QA complete
+- release ready
+- release complete
+
+Example:
+
+yanzi checkpoint create \
+  --summary "Complete CAP-001 Phase 2B"
+
+---
+
+## Rehydration
+
+Before resuming existing work:
+
+Run:
+
+yanzi rehydrate
+
+Use rehydration output before making architectural or implementation decisions.
+
+---
+
+## Governance
+
+Agents may:
+- capture
+- checkpoint
+- rehydrate
+- export
+
+Agents must NOT:
+- rewrite lineage
+- delete operational history
+- modify checkpoints retroactively
+- bypass repository governance
+
+Humans retain operational authority.
+
+---
+
+## Completion
+
+Before reporting completion:
+
+Run:
+
+yanzi list --limit 10
+
+Confirm:
+- execution artifacts captured
+- checkpoint created if appropriate
+- operational continuity preserved

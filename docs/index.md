@@ -19,10 +19,14 @@ Yanzi gives you a local workflow for:
 - [Problem](problem.md)
 - [Install](install.md)
 - [How It Works](how-it-works.md)
+- [Runtime Architecture](specs/runtime-architecture.md)
+- [CAP-002 Readiness](releases/cap-002-readiness.md)
+- [CAP-002 Release Notes](releases/CAP-002-release-notes.md)
 - [Use Yanzi](use-yanzi.md)
 - [Quickstart](quickstart.md)
 - [CLI Reference](cli.md)
 - [API](api/index.md)
+- [Release Steward Role](roles/release-steward.md)
 
 ## Use Cases
 
