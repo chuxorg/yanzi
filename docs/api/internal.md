@@ -1199,7 +1199,7 @@ type Instance struct {
 ```
 
 <a name="Instance.Addr"></a>
-### func \(\*Instance\) [Addr](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L116>)
+### func \(\*Instance\) [Addr](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L108>)
 
 ```go
 func (i *Instance) Addr() string
@@ -1208,7 +1208,7 @@ func (i *Instance) Addr() string
 Addr returns the bound listener address.
 
 <a name="Instance.Shutdown"></a>
-### func \(\*Instance\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L132>)
+### func \(\*Instance\) [Shutdown](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L124>)
 
 ```go
 func (i *Instance) Shutdown(ctx context.Context) error
@@ -1217,7 +1217,7 @@ func (i *Instance) Shutdown(ctx context.Context) error
 Shutdown stops the runtime server with a bounded grace period.
 
 <a name="Instance.StartedAt"></a>
-### func \(\*Instance\) [StartedAt](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L124>)
+### func \(\*Instance\) [StartedAt](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L116>)
 
 ```go
 func (i *Instance) StartedAt() time.Time
@@ -1226,7 +1226,7 @@ func (i *Instance) StartedAt() time.Time
 StartedAt returns the runtime startup timestamp.
 
 <a name="Instance.Wait"></a>
-### func \(\*Instance\) [Wait](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L142>)
+### func \(\*Instance\) [Wait](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L138>)
 
 ```go
 func (i *Instance) Wait() error
@@ -1270,7 +1270,7 @@ func New(opts Options) *Runtime
 New constructs a runtime bootstrap wrapper around the operational API server.
 
 <a name="Runtime.Start"></a>
-### func \(\*Runtime\) [Start](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L85>)
+### func \(\*Runtime\) [Start](<https://github.com/chuxorg/yanzi/blob/master/internal/runtime/runtime.go#L77>)
 
 ```go
 func (r *Runtime) Start() (*Instance, error)
