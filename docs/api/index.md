@@ -2,7 +2,6 @@
 
 This is the authoritative reference for the Yanzi HTTP API (v0).
 
-For product narrative and onboarding, see [yanzi.sh](https://yanzi.sh/).
 For CLI usage, see the [CLI Reference](../cli.md).
 
 ## Overview
