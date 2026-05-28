@@ -197,7 +197,7 @@ func RunBootstrap(args []string) error
 
 
 <a name="RunCapture"></a>
-## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L38>)
+## func [RunCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/capture.go#L39>)
 
 ```go
 func RunCapture(args []string) error
@@ -266,7 +266,7 @@ func RunContext(args []string) error
 
 
 <a name="RunDelete"></a>
-## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L15>)
+## func [RunDelete](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L16>)
 
 ```go
 func RunDelete(args []string) error
@@ -445,7 +445,7 @@ yanzi rehydrate --dry-run
 ```
 
 <a name="RunRestore"></a>
-## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L67>)
+## func [RunRestore](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/delete.go#L69>)
 
 ```go
 func RunRestore(args []string) error
@@ -631,6 +631,13 @@ import "github.com/chuxorg/yanzi/internal/library"
   - [func NewArtifactReadStore\(db \*sql.DB\) \*ArtifactReadStore](<#NewArtifactReadStore>)
   - [func \(s \*ArtifactReadStore\) GetIntentRecord\(ctx context.Context, id string\) \(model.IntentRecord, error\)](<#ArtifactReadStore.GetIntentRecord>)
   - [func \(s \*ArtifactReadStore\) ListIntentRecords\(ctx context.Context, query ArtifactReadQuery\) \(\[\]model.IntentRecord, error\)](<#ArtifactReadStore.ListIntentRecords>)
+- [type ArtifactWriteStore](<#ArtifactWriteStore>)
+  - [func NewArtifactWriteStore\(db \*sql.DB\) \*ArtifactWriteStore](<#NewArtifactWriteStore>)
+  - [func \(s \*ArtifactWriteStore\) CreateArtifact\(ctx context.Context, input storage.CreateArtifactInput\) \(Artifact, error\)](<#ArtifactWriteStore.CreateArtifact>)
+  - [func \(s \*ArtifactWriteStore\) CreateCapture\(ctx context.Context, input CaptureWriteInput\) \(model.IntentRecord, error\)](<#ArtifactWriteStore.CreateCapture>)
+  - [func \(s \*ArtifactWriteStore\) Restore\(ctx context.Context, id string\) error](<#ArtifactWriteStore.Restore>)
+  - [func \(s \*ArtifactWriteStore\) Tombstone\(ctx context.Context, id string, cascade, force bool\) \(\[\]string, error\)](<#ArtifactWriteStore.Tombstone>)
+- [type CaptureWriteInput](<#CaptureWriteInput>)
 - [type Checkpoint](<#Checkpoint>)
   - [func CreateCheckpoint\(ctx context.Context, db \*sql.DB, project, summary string, artifactIDs \[\]string\) \(Checkpoint, error\)](<#CreateCheckpoint>)
   - [func ListAllCheckpoints\(ctx context.Context, db \*sql.DB\) \(\[\]Checkpoint, error\)](<#ListAllCheckpoints>)
@@ -764,7 +771,7 @@ type Artifact struct {
 ```
 
 <a name="CreateArtifact"></a>
-### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L15>)
+### func [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L14>)
 
 ```go
 func CreateArtifact(projectID, class, artifactType, title, content, metadata string) (Artifact, error)
@@ -782,7 +789,7 @@ func CreateContextArtifact(projectID, artifactType, scope, title, content, metad
 CreateContextArtifact stores a new context artifact using the Phase 6 scope rules.
 
 <a name="GetVisibleContextArtifact"></a>
-### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L340>)
+### func [GetVisibleContextArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L337>)
 
 ```go
 func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
@@ -791,7 +798,7 @@ func GetVisibleContextArtifact(idPrefix, activeProject string) (Artifact, error)
 GetVisibleContextArtifact resolves a visible context artifact by full id or unique prefix.
 
 <a name="ListArtifacts"></a>
-### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L97>)
+### func [ListArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L94>)
 
 ```go
 func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -800,7 +807,7 @@ func ListArtifacts(projectID, class, artifactType string, includeDeleted bool) (
 ListArtifacts lists artifacts for a project and class, optionally filtered by type.
 
 <a name="ListArtifactsAllProjects"></a>
-### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L126>)
+### func [ListArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L123>)
 
 ```go
 func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) ([]Artifact, error)
@@ -809,7 +816,7 @@ func ListArtifactsAllProjects(class, artifactType string, includeDeleted bool) (
 ListArtifactsAllProjects lists artifacts across every project for the requested class.
 
 <a name="ListVisibleContextArtifacts"></a>
-### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L270>)
+### func [ListVisibleContextArtifacts](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L267>)
 
 ```go
 func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, projectFilter string, includeDeleted bool) ([]Artifact, error)
@@ -818,7 +825,7 @@ func ListVisibleContextArtifacts(activeProject, artifactType, scopeFilter, proje
 ListVisibleContextArtifacts returns global context plus project context visible to the caller.
 
 <a name="ListVisibleContextArtifactsAllProjects"></a>
-### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L307>)
+### func [ListVisibleContextArtifactsAllProjects](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_store.go#L304>)
 
 ```go
 func ListVisibleContextArtifactsAllProjects(artifactType, scopeFilter string, includeDeleted bool) ([]Artifact, error)
@@ -878,6 +885,79 @@ func (s *ArtifactReadStore) ListIntentRecords(ctx context.Context, query Artifac
 ```
 
 ListIntentRecords returns current list/show records with existing filter semantics preserved.
+
+<a name="ArtifactWriteStore"></a>
+## type [ArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L27-L29>)
+
+ArtifactWriteStore is the internal write boundary for current local artifact, capture, and tombstone writes.
+
+```go
+type ArtifactWriteStore struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewArtifactWriteStore"></a>
+### func [NewArtifactWriteStore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L57>)
+
+```go
+func NewArtifactWriteStore(db *sql.DB) *ArtifactWriteStore
+```
+
+NewArtifactWriteStore creates a local artifact write boundary over db.
+
+<a name="ArtifactWriteStore.CreateArtifact"></a>
+### func \(\*ArtifactWriteStore\) [CreateArtifact](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L77>)
+
+```go
+func (s *ArtifactWriteStore) CreateArtifact(ctx context.Context, input storage.CreateArtifactInput) (Artifact, error)
+```
+
+CreateArtifact stores an artifact through the provider\-compatible SQLite path.
+
+<a name="ArtifactWriteStore.CreateCapture"></a>
+### func \(\*ArtifactWriteStore\) [CreateCapture](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L62>)
+
+```go
+func (s *ArtifactWriteStore) CreateCapture(ctx context.Context, input CaptureWriteInput) (model.IntentRecord, error)
+```
+
+CreateCapture stores a local capture using current intent ledger semantics.
+
+<a name="ArtifactWriteStore.Restore"></a>
+### func \(\*ArtifactWriteStore\) [Restore](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L141>)
+
+```go
+func (s *ArtifactWriteStore) Restore(ctx context.Context, id string) error
+```
+
+Restore removes current tombstone metadata from an intent or artifact.
+
+<a name="ArtifactWriteStore.Tombstone"></a>
+### func \(\*ArtifactWriteStore\) [Tombstone](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L90>)
+
+```go
+func (s *ArtifactWriteStore) Tombstone(ctx context.Context, id string, cascade, force bool) ([]string, error)
+```
+
+Tombstone marks an intent or artifact deleted using current metadata column rules.
+
+<a name="CaptureWriteInput"></a>
+## type [CaptureWriteInput](<https://github.com/chuxorg/yanzi/blob/master/internal/library/artifact_write_store.go#L32-L40>)
+
+CaptureWriteInput captures the current local prompt/response write shape.
+
+```go
+type CaptureWriteInput struct {
+    Author     string
+    SourceType string
+    Title      string
+    Prompt     string
+    Response   string
+    Meta       json.RawMessage
+    PrevHash   string
+}
+```
 
 <a name="Checkpoint"></a>
 ## type [Checkpoint](<https://github.com/chuxorg/yanzi/blob/master/internal/library/checkpoint.go#L9-L16>)

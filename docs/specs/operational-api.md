@@ -85,6 +85,8 @@ Phase 1 must not migrate those paths. Future artifact endpoint phases will addre
 
 CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
+CAP-002 Phase 5 narrows the write-side portion of that debt by introducing a dedicated internal artifact write boundary for current capture, artifact creation, tombstone, and restore behavior. Provider-compatible artifact creation writes now route through that boundary. Capture writes and tombstone mutations still use SQLite where no provider contract exists, but that SQL is isolated behind the boundary and must not leak into future API handlers or contracts.
+
 ## Implementation Status
 
 Current status: health plus read-only artifact endpoints.
@@ -155,6 +157,38 @@ Preserved current behavior and quirks:
 
 Future artifact endpoint work:
 
-- keep artifact read endpoints routed only through the read boundary
-- add mutation endpoints only after the remaining write and tombstone debt is explicitly addressed
-- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+-- keep artifact read endpoints routed only through the read boundary
+-- add mutation endpoints only after the remaining write and tombstone debt is explicitly addressed
+-- keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+
+## Artifact Write Boundary
+
+Current artifact mutation endpoint status:
+
+-- `/v0/artifacts` remains read-only for list/detail in the current phase
+-- no public artifact create, update, patch, delete, capture, or tombstone endpoint is exposed yet
+
+Current internal write status:
+
+- CAP-002 Phase 5 introduces `internal/library/artifact_write_store.go` as the current local write boundary
+- local `yanzi capture` delegates through that boundary
+- library artifact creation delegates through that boundary
+- local `yanzi delete` and `yanzi restore` delegate through that boundary
+- artifact creation inside the boundary uses provider-compatible SQLite artifact writes
+
+Preserved current behavior and quirks:
+
+- `capture` keeps the existing required flags, prompt/response source validation, metadata shaping, `id:`/`hash:` output, and `last_hash` update behavior
+- capture hashes keep the existing `HashIntent` preimage, canonical metadata behavior, and optional `prev_hash` lineage semantics
+- capture rows still persist artifact-compatible columns with `class = intent`, `type = prompt`, `content = prompt`, and `metadata = meta`
+- artifact creation still persists `author = yanzi`, `source_type = artifact`, system metadata in `meta`, caller metadata in `metadata`, and no `prev_hash`
+- tombstone still writes deletion metadata to `metadata` for normal captures and to `meta` for `source_type = artifact` rows
+- restore still removes deletion metadata from the same column selected by tombstone behavior
+
+Remaining write-side debt:
+
+- capture writes do not yet have a provider contract method
+- tombstone and restore mutations do not yet have provider contract methods
+- direct SQLite writes remain inside `ArtifactWriteStore` for those deferred operations
+- public capture, artifact mutation, and tombstone APIs remain deferred
+- future APIs must delegate through `ArtifactWriteStore` or a provider-backed successor rather than reaching into SQLDB directly
