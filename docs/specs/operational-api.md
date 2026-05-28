@@ -81,6 +81,8 @@ Phase 1 must not migrate those paths. Future artifact endpoint phases will addre
 
 CAP-002 Phase 3 narrows the `list/show` portion of that debt by introducing a dedicated internal artifact read boundary for current CLI read behavior. The boundary still uses the existing local SQL path where required, but future artifact endpoints must delegate through that seam instead of duplicating local read logic in handlers.
 
+CAP-002 Phase 8 narrows the rehydration portion of that debt by introducing `internal/library/rehydration_service.go` as the current local rehydration boundary. The CLI continues to use existing rehydration semantics, but future rehydration endpoints must delegate through that boundary instead of duplicating project selection, checkpoint scoping, or output behavior in handlers.
+
 ## Implementation Status
 
 Current status: API foundation only.
@@ -124,6 +126,12 @@ Current artifact endpoint status:
 - `/v0/artifacts` remains a deferred placeholder
 - no public artifact list, show, or create endpoint is exposed yet
 
+Current rehydration status:
+
+- no public rehydration endpoint is exposed yet
+- CLI `rehydrate` now routes through the internal rehydration service boundary
+- future rehydration endpoint work must call `RehydrationService` rather than reimplementing checkpoint or fallback composition
+
 Current internal read status:
 
 - CAP-002 Phase 3 introduces `internal/library/artifact_read_store.go` as the current local list/show read boundary
@@ -143,3 +151,9 @@ Future artifact endpoint work:
 
 - implement artifact read endpoints only through the read boundary
 - keep capture writes, rehydration reads, and tombstone mutation work deferred to later CAP-002 phases
+
+Future rehydration endpoint work:
+
+- implement any public rehydration endpoint only through the rehydration service boundary
+- preserve deterministic checkpoint and fallback behavior
+- keep runtime, auth, federation, MCP, and Postgres work deferred

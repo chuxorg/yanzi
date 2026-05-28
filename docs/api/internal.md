@@ -420,7 +420,7 @@ yanzi project use demo
 ```
 
 <a name="RunRehydrate"></a>
-## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L73>)
+## func [RunRehydrate](<https://github.com/chuxorg/yanzi/blob/master/internal/cmd/rehydrate.go#L74>)
 
 ```go
 func RunRehydrate(args []string) error
@@ -651,6 +651,10 @@ import "github.com/chuxorg/yanzi/internal/library"
 - [type RehydratePayload](<#RehydratePayload>)
   - [func RehydrateProject\(project string\) \(\*RehydratePayload, error\)](<#RehydrateProject>)
   - [func RehydrateProjectWithFallback\(project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrateProjectWithFallback>)
+- [type RehydrationService](<#RehydrationService>)
+  - [func NewRehydrationService\(db \*sql.DB\) \*RehydrationService](<#NewRehydrationService>)
+  - [func \(s \*RehydrationService\) RehydrateProject\(ctx context.Context, project string\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProject>)
+  - [func \(s \*RehydrationService\) RehydrateProjectWithFallback\(ctx context.Context, project string, fallbackLimit int\) \(\*RehydratePayload, error\)](<#RehydrationService.RehydrateProjectWithFallback>)
 
 
 ## Constants
@@ -1092,6 +1096,44 @@ If no checkpoint exists, the payload falls back to the latest project intents so
 
 ```go
 func RehydrateProjectWithFallback(project string, fallbackLimit int) (*RehydratePayload, error)
+```
+
+RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
+
+<a name="RehydrationService"></a>
+## type [RehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L11-L13>)
+
+RehydrationService isolates the current SQL\-backed rehydration flow.
+
+```go
+type RehydrationService struct {
+    // contains filtered or unexported fields
+}
+```
+
+<a name="NewRehydrationService"></a>
+### func [NewRehydrationService](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L16>)
+
+```go
+func NewRehydrationService(db *sql.DB) *RehydrationService
+```
+
+NewRehydrationService constructs a rehydration service around the provided database handle.
+
+<a name="RehydrationService.RehydrateProject"></a>
+### func \(\*RehydrationService\) [RehydrateProject](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L21>)
+
+```go
+func (s *RehydrationService) RehydrateProject(ctx context.Context, project string) (*RehydratePayload, error)
+```
+
+RehydrateProject loads the latest checkpoint and subsequent intents for a project.
+
+<a name="RehydrationService.RehydrateProjectWithFallback"></a>
+### func \(\*RehydrationService\) [RehydrateProjectWithFallback](<https://github.com/chuxorg/yanzi/blob/master/internal/library/rehydration_service.go#L26>)
+
+```go
+func (s *RehydrationService) RehydrateProjectWithFallback(ctx context.Context, project string, fallbackLimit int) (*RehydratePayload, error)
 ```
 
 RehydrateProjectWithFallback loads checkpoint\-based rehydration data or a recent\-capture fallback.
