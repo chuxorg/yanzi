@@ -184,6 +184,52 @@ func TestRehydrateDryRun(t *testing.T) {
 	}
 }
 
+func TestRehydrateTextOutputDeterministicOrdering(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	withCwd(t, workdir)
+	writeStateFile(t, workdir, "alpha")
+	db := openTestDB(t, workdir)
+	defer db.Close()
+
+	seedProject(t, db, "alpha")
+	seedCheckpoint(t, db, "alpha", "2025-01-01T00:00:10Z", "checkpoint")
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "intent-b",
+		CreatedAt: "2025-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "prompt b",
+		Response:  "response b",
+		Meta:      map[string]string{"project": "alpha"},
+	})
+	seedIntentRecord(t, db, rehydrateSeedIntent{
+		ID:        "intent-a",
+		CreatedAt: "2025-01-01T00:00:11Z",
+		Project:   "alpha",
+		Author:    "Ada",
+		Prompt:    "prompt a",
+		Response:  "response a",
+		Meta:      map[string]string{"project": "alpha"},
+	})
+
+	output, err := captureStdout(func() error {
+		return RunRehydrate([]string{})
+	})
+	if err != nil {
+		t.Fatalf("RunRehydrate: %v", err)
+	}
+
+	first := strings.Index(output, "prompt a")
+	second := strings.Index(output, "prompt b")
+	if first == -1 || second == -1 {
+		t.Fatalf("missing prompts in output: %q", output)
+	}
+	if first > second {
+		t.Fatalf("unexpected output order: %q", output)
+	}
+}
+
 func TestRehydrateNoActiveProject(t *testing.T) {
 	workdir := t.TempDir()
 	t.Setenv("HOME", workdir)
