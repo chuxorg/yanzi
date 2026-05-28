@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,6 +15,21 @@ import (
 )
 
 func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
+	workdir := t.TempDir()
+	t.Setenv("HOME", workdir)
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(workdir); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(wd); err != nil {
+			t.Fatalf("restore wd: %v", err)
+		}
+	})
+
 	handler := NewHandler(handlers.Dependencies{
 		Version: "v0.0.0-test",
 		LoadConfig: func() (config.Config, error) {
@@ -48,6 +64,13 @@ func TestNewHandlerRegistersHealthAndDeferredGroups(t *testing.T) {
 	}
 	if got := methodRec.Header().Get("Allow"); got != http.MethodGet {
 		t.Fatalf("unexpected allow header: %q", got)
+	}
+
+	rehydrateReq := httptest.NewRequest(http.MethodGet, "/v0/rehydrate", nil)
+	rehydrateRec := httptest.NewRecorder()
+	handler.ServeHTTP(rehydrateRec, rehydrateReq)
+	if rehydrateRec.Code != http.StatusBadRequest || !strings.Contains(rehydrateRec.Body.String(), "\"active_project_not_set\"") {
+		t.Fatalf("unexpected rehydrate response: code=%d body=%q", rehydrateRec.Code, rehydrateRec.Body.String())
 	}
 }
 
