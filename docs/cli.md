@@ -2,6 +2,8 @@
 
 Yanzi commands operate on local state by default. Several commands require an active project.
 
+For product narrative and onboarding, see [yanzi.sh](https://yanzi.sh/).
+
 ## Command List
 
 ```text
