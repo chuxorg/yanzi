@@ -32,7 +32,7 @@ func NewHandler(deps handlers.Dependencies) http.Handler {
 	registerMethods(mux, projectsPath, handlers.NewProjectsHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, projectCurrentPath, handlers.NewCurrentProjectHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, checkpointsPath, handlers.NewCheckpointsHandler(deps), http.MethodGet, http.MethodPost)
-	return mux
+	return middleware.CORS(mux)
 }
 
 func registerGet(mux *http.ServeMux, path string, handler http.Handler) {
