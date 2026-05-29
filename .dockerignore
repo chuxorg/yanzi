@@ -1,0 +1,10 @@
+.git
+.github
+*.md
+docs/
+site/
+yanzi-dev-data/
+YANZI_LOG.*
+.env*
+*.test
+coverage.out

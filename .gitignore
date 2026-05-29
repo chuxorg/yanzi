@@ -57,3 +57,6 @@ go.work.sum
 .gomodcache/
 .claude/
 .notes/
+
+# Dev container data (bind-mounted SQLite corpus)
+yanzi-dev-data/

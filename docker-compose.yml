@@ -1,0 +1,12 @@
+services:
+  yanzi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8742:8080"
+    volumes:
+      - ./yanzi-dev-data:/root/.yanzi
+    environment:
+      - YANZI_DB_PATH=/root/.yanzi/yanzi.db
+    restart: unless-stopped
