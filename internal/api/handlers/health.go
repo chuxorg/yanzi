@@ -111,7 +111,7 @@ func (d Dependencies) withDefaults() Dependencies {
 	}
 	if d.OpenProvider == nil {
 		d.OpenProvider = func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
-			return registry.Open(ctx, cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+			return registry.Open(ctx, cfg, registry.Options{})
 		}
 	}
 	if d.CreateProject == nil {

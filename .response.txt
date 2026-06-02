@@ -1,0 +1,23 @@
+CAP-UI-000 CORS middleware implemented and PR opened.
+
+Files created:
+- internal/api/middleware/cors.go — CORS(next http.Handler) http.Handler
+  Sets Access-Control-Allow-Origin/Methods/Headers on every response.
+  Returns 204 for OPTIONS preflight. TODO comment marks wildcard for CAP-004 tightening.
+- internal/api/middleware/cors_test.go — 3 tests (OPTIONS 204, GET passthrough, POST passthrough).
+  Standard library only.
+
+Files modified:
+- internal/api/routes/routes.go — return middleware.CORS(mux) as outermost wrapper.
+  Middleware package was already imported; one-line change only.
+
+Middleware wired in: routes.NewHandler() return value, wrapping the entire mux.
+This is the outermost handler so CORS headers apply before any route dispatch.
+
+Test results:
+go mod tidy   — no changes (no new dependencies)
+go vet ./...  — clean
+go test ./... — all 19 packages pass
+go build      — clean
+
+PR: https://github.com/chuxorg/yanzi/pull/159

@@ -40,7 +40,7 @@ func TestInitializeCreatesRuntimeState(t *testing.T) {
 	defer db.Close()
 
 	assertTableExists(t, db, "schema_version")
-	assertTableExists(t, db, "schema_migrations")
+	assertTableExists(t, db, "_yanzi_migrations")
 	assertTableExists(t, db, "intents")
 	assertTableExists(t, db, "projects")
 	assertTableExists(t, db, "checkpoints")

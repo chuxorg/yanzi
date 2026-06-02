@@ -6,14 +6,13 @@ import (
 	"testing"
 
 	"github.com/chuxorg/yanzi/internal/config"
-	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
 
 func TestOpenReturnsSQLiteProviderFromCurrentConfig(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "configured.db")
-	provider, err := registry.Open(context.Background(), config.Config{Mode: config.ModeLocal, DBPath: path}, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+	provider, err := registry.Open(context.Background(), config.Config{Mode: config.ModeLocal, DBPath: path}, registry.Options{})
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}

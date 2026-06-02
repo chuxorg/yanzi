@@ -3,7 +3,6 @@ package registry
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"strings"
 
@@ -12,10 +11,8 @@ import (
 	"github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
-// Options contains provider construction inputs that are not user-facing config.
-type Options struct {
-	Migrations fs.FS
-}
+// Options contains provider construction inputs.
+type Options struct{}
 
 // Open returns the configured storage provider.
 //
@@ -26,7 +23,7 @@ func Open(ctx context.Context, cfg config.Config, opts Options) (storage.Provide
 	if err != nil {
 		return nil, err
 	}
-	provider, _, err := sqlite.Open(ctx, path, opts.Migrations)
+	provider, _, err := sqlite.Open(ctx, path)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +32,7 @@ func Open(ctx context.Context, cfg config.Config, opts Options) (storage.Provide
 
 // OpenAtPath returns the SQLite provider at a specific path.
 func OpenAtPath(ctx context.Context, path string, opts Options) (storage.Provider, bool, error) {
-	return sqlite.Open(ctx, path, opts.Migrations)
+	return sqlite.Open(ctx, path)
 }
 
 // EnsureLocalStateDir preserves existing local SQLite directory creation.

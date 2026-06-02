@@ -1,0 +1,9 @@
+CAP-UI-000 — CORS Middleware for yanzi serve
+
+yanzi serve binds to 127.0.0.1:8080 with no CORS headers.
+A browser-based UI served from any origin (including localhost on a
+different port) will be blocked by the browser's same-origin policy.
+
+This change adds CORS middleware to the HTTP server so that local UI
+development works without browser restrictions, while keeping the
+server local-only by default.

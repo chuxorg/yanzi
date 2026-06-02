@@ -3,13 +3,9 @@ package sqlite
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/chuxorg/yanzi/internal/storage"
@@ -23,26 +19,16 @@ CREATE TABLE IF NOT EXISTS schema_version (
 );
 `
 
-const schemaMigrationsTable = `
-CREATE TABLE IF NOT EXISTS schema_migrations (
-	version TEXT PRIMARY KEY,
-	applied_at TEXT NOT NULL
-);
-`
-
 // Provider is the embedded SQLite storage provider.
 type Provider struct {
 	path string
 	db   *sql.DB
 }
 
-// Open initializes a SQLite provider at path using the provided migration files.
-func Open(ctx context.Context, path string, migrations fs.FS) (*Provider, bool, error) {
-	if strings.TrimSpace(path) == "" {
-		return nil, false, errors.New("sqlite path is required")
-	}
-	if migrations == nil {
-		return nil, false, errors.New("sqlite migrations fs is required")
+// Open initializes a SQLite provider at path, running embedded migrations.
+func Open(ctx context.Context, path string) (*Provider, bool, error) {
+	if path == "" {
+		return nil, false, fmt.Errorf("sqlite path is required")
 	}
 	if err := ensureDBFile(path); err != nil {
 		return nil, false, err
@@ -64,7 +50,7 @@ func Open(ctx context.Context, path string, migrations fs.FS) (*Provider, bool, 
 		_ = provider.Close()
 		return nil, false, err
 	}
-	if err := provider.migrate(ctx, migrations); err != nil {
+	if err := RunMigrations(db); err != nil {
 		_ = provider.Close()
 		return nil, false, err
 	}
@@ -163,86 +149,6 @@ func (p *Provider) ensureSchemaVersion(ctx context.Context) (bool, error) {
 		return false, fmt.Errorf("write schema_version: %w", err)
 	}
 	return true, nil
-}
-
-func (p *Provider) migrate(ctx context.Context, migrations fs.FS) error {
-	if p == nil || p.db == nil {
-		return errors.New("database is nil")
-	}
-	if _, err := p.db.ExecContext(ctx, schemaMigrationsTable); err != nil {
-		return fmt.Errorf("create schema_migrations: %w", err)
-	}
-
-	paths, err := listMigrationFiles(migrations)
-	if err != nil {
-		return err
-	}
-	if len(paths) == 0 {
-		return errors.New("no migration files found")
-	}
-
-	sort.Strings(paths)
-	for _, path := range paths {
-		version := filepath.Base(path)
-		applied, err := p.isMigrationApplied(ctx, version)
-		if err != nil {
-			return err
-		}
-		if applied {
-			continue
-		}
-
-		contents, err := fs.ReadFile(migrations, path)
-		if err != nil {
-			return fmt.Errorf("read migration %s: %w", version, err)
-		}
-
-		tx, err := p.db.BeginTx(ctx, nil)
-		if err != nil {
-			return fmt.Errorf("begin migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, string(contents)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("apply migration %s: %w", version, err)
-		}
-		if _, err := tx.ExecContext(ctx, `INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)`, version, time.Now().UTC().Format(time.RFC3339Nano)); err != nil {
-			_ = tx.Rollback()
-			return fmt.Errorf("record migration %s: %w", version, err)
-		}
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("commit migration %s: %w", version, err)
-		}
-	}
-
-	return nil
-}
-
-func listMigrationFiles(fsys fs.FS) ([]string, error) {
-	entries, err := fs.ReadDir(fsys, "migrations")
-	if err != nil {
-		return nil, fmt.Errorf("list migrations: %w", err)
-	}
-
-	paths := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		name := entry.Name()
-		if !strings.HasSuffix(name, ".sql") {
-			continue
-		}
-		paths = append(paths, filepath.Join("migrations", name))
-	}
-	return paths, nil
-}
-
-func (p *Provider) isMigrationApplied(ctx context.Context, version string) (bool, error) {
-	var count int
-	if err := p.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM schema_migrations WHERE version = ?`, version).Scan(&count); err != nil {
-		return false, fmt.Errorf("check migration %s: %w", version, err)
-	}
-	return count > 0, nil
 }
 
 // FromDB wraps an existing SQLite handle with provider operations.

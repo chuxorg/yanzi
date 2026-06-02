@@ -198,7 +198,7 @@ func newVerifyExportTestDeps(t *testing.T) (handlers.Dependencies, string) {
 			return config.Config{Mode: config.ModeLocal, DBPath: dbPath}, nil
 		},
 		OpenProvider: func(ctx context.Context, cfg config.Config) (storage.Provider, error) {
-			provider, _, err := registry.OpenAtPath(ctx, dbPath, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+			provider, _, err := registry.OpenAtPath(ctx, dbPath, registry.Options{})
 			return provider, err
 		},
 		Now: func() time.Time {
@@ -213,7 +213,7 @@ func seedCaptureForVerifyExport(t *testing.T, dbPath string, input yanzilibrary.
 	if strings.TrimSpace(input.SourceType) == "" {
 		input.SourceType = "cli"
 	}
-	provider, _, err := registry.OpenAtPath(context.Background(), dbPath, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+	provider, _, err := registry.OpenAtPath(context.Background(), dbPath, registry.Options{})
 	if err != nil {
 		t.Fatalf("open provider: %v", err)
 	}
@@ -248,7 +248,7 @@ func seedCaptureForVerifyExport(t *testing.T, dbPath string, input yanzilibrary.
 
 func seedCheckpointForVerifyExport(t *testing.T, dbPath, project, summary string) {
 	t.Helper()
-	provider, _, err := registry.OpenAtPath(context.Background(), dbPath, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+	provider, _, err := registry.OpenAtPath(context.Background(), dbPath, registry.Options{})
 	if err != nil {
 		t.Fatalf("open provider: %v", err)
 	}
