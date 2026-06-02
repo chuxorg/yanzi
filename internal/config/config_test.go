@@ -155,3 +155,70 @@ func TestEffectiveLocalDBPathFallsBackToDefault(t *testing.T) {
 		t.Fatalf("expected default path %q, got %q", want, path)
 	}
 }
+
+func TestPostgresProviderRequiresDSN(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(StorageProviderEnvVar, "postgres")
+	t.Setenv(PostgresDSNEnvVar, "")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error for postgres provider without DSN")
+	}
+	if !strings.Contains(err.Error(), "postgres provider requires") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPostgresProviderAcceptsDSNFromEnv(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(StorageProviderEnvVar, "postgres")
+	t.Setenv(PostgresDSNEnvVar, "postgres://user:pass@localhost:5432/db?sslmode=disable")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if EffectiveStorageProvider(cfg) != "postgres" {
+		t.Fatalf("expected postgres provider, got %q", EffectiveStorageProvider(cfg))
+	}
+	if cfg.Storage.Postgres.DSN == "" {
+		t.Fatal("expected postgres DSN to be set")
+	}
+}
+
+func TestStorageProviderDefaultsToSQLite(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(StorageProviderEnvVar, "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if EffectiveStorageProvider(cfg) != "sqlite" {
+		t.Fatalf("expected sqlite default, got %q", EffectiveStorageProvider(cfg))
+	}
+}
+
+func TestEffectiveLocalDBPathPrefersSQLiteConfigPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv(LocalDBPathEnvVar, "")
+
+	cfg := Config{
+		DBPath: "/tmp/legacy.db",
+		Storage: StorageConfig{
+			SQLite: SQLiteConfig{Path: "/tmp/storage-sqlite.db"},
+		},
+	}
+	path, err := EffectiveLocalDBPath(cfg)
+	if err != nil {
+		t.Fatalf("EffectiveLocalDBPath: %v", err)
+	}
+	if path != "/tmp/storage-sqlite.db" {
+		t.Fatalf("expected storage.sqlite.path, got %q", path)
+	}
+}
