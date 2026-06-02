@@ -55,3 +55,12 @@ Expected: health response from yanzi API.
 | 8742 | 8080 | yanzi dev container |
 
 8080 remains the default for `yanzi serve` without Docker.
+
+## Postgres storage provider
+
+Postgres provider support is coming in CAP-003 Phase 2. When available,
+the dev container will support `YANZI_STORAGE_PROVIDER=postgres` to run
+against a Postgres backend instead of the default SQLite file.
+
+See [docs/reference/storage-providers.md](../reference/storage-providers.md)
+for current provider configuration options.

@@ -23,7 +23,7 @@ func openLocalDB(cfg config.Config) (*sql.DB, error) {
 }
 
 func openLocalProvider(cfg config.Config) (storage.Provider, error) {
-	return registry.Open(context.Background(), cfg, registry.Options{Migrations: yanzilibrary.MigrationsFS()})
+	return registry.Open(context.Background(), cfg, registry.Options{})
 }
 
 func verifyLocalIntent(ctx context.Context, provider storage.Provider, id string) (verifyResult, error) {

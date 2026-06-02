@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -22,23 +23,50 @@ const (
 
 // Config holds CLI configuration values loaded from disk.
 type Config struct {
-	Mode    Mode   `yaml:"mode"`
-	DBPath  string `yaml:"db_path"`
-	BaseURL string `yaml:"base_url"`
+	Mode    Mode          `yaml:"mode"`
+	DBPath  string        `yaml:"db_path"`
+	BaseURL string        `yaml:"base_url"`
+	Storage StorageConfig `yaml:"storage"`
 }
 
-// LocalDBPathEnvVar is the environment variable that overrides local SQLite resolution.
-const LocalDBPathEnvVar = "YANZI_DB_PATH"
+// StorageConfig holds provider selection and per-provider configuration.
+type StorageConfig struct {
+	Provider string       `yaml:"provider"`
+	SQLite   SQLiteConfig `yaml:"sqlite"`
+	Postgres PostgresConfig `yaml:"postgres"`
+}
+
+// SQLiteConfig holds SQLite-specific configuration.
+type SQLiteConfig struct {
+	Path string `yaml:"path"`
+}
+
+// PostgresConfig holds Postgres-specific configuration.
+type PostgresConfig struct {
+	DSN             string `yaml:"dsn"`
+	MaxOpenConns    int    `yaml:"max_open_conns"`
+	MaxIdleConns    int    `yaml:"max_idle_conns"`
+	ConnMaxLifetime int    `yaml:"conn_max_lifetime"`
+}
+
+// Environment variable names.
+const (
+	// LocalDBPathEnvVar is the environment variable that overrides local SQLite resolution.
+	LocalDBPathEnvVar = "YANZI_DB_PATH"
+	// StorageProviderEnvVar overrides storage.provider.
+	StorageProviderEnvVar = "YANZI_STORAGE_PROVIDER"
+	// PostgresDSNEnvVar overrides storage.postgres.dsn.
+	PostgresDSNEnvVar = "YANZI_POSTGRES_DSN"
+	// PostgresMaxConnsEnvVar overrides storage.postgres.max_open_conns.
+	PostgresMaxConnsEnvVar = "YANZI_POSTGRES_MAX_CONNS"
+)
 
 // Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
 //
-// Problem:
-// The CLI needs one deterministic source of truth for local and optional HTTP
-// runtime settings.
-//
-// Solution:
-// Load reads the config file, applies defaults, trims values, and validates
-// mode-specific requirements before returning.
+// Environment variables take precedence over config file values. Precedence:
+//  1. Environment variables
+//  2. config.yaml values
+//  3. Defaults
 func Load() (Config, error) {
 	cfg := Config{
 		Mode: ModeLocal,
@@ -51,6 +79,10 @@ func Load() (Config, error) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			applyDefaults(&cfg)
+			applyEnvOverrides(&cfg)
+			if err := validateConfig(cfg); err != nil {
+				return cfg, err
+			}
 			return cfg, nil
 		}
 		return cfg, fmt.Errorf("read config: %w", err)
@@ -70,17 +102,15 @@ func Load() (Config, error) {
 	}
 
 	applyDefaults(&cfg)
+	applyEnvOverrides(&cfg)
+
 	cfg.BaseURL = strings.TrimSpace(cfg.BaseURL)
 	cfg.DBPath = strings.TrimSpace(cfg.DBPath)
+	cfg.Storage.Provider = strings.TrimSpace(cfg.Storage.Provider)
+	cfg.Storage.Postgres.DSN = strings.TrimSpace(cfg.Storage.Postgres.DSN)
 
-	if cfg.Mode != ModeLocal && cfg.Mode != ModeHTTP {
-		return cfg, fmt.Errorf("invalid mode: %s", cfg.Mode)
-	}
-	if cfg.Mode == ModeHTTP && cfg.BaseURL == "" {
-		return cfg, errors.New("base_url is required when mode=http")
-	}
-	if cfg.Mode == ModeLocal && cfg.DBPath == "" {
-		return cfg, errors.New("db_path is required when mode=local")
+	if err := validateConfig(cfg); err != nil {
+		return cfg, err
 	}
 
 	return cfg, nil
@@ -92,6 +122,46 @@ func applyDefaults(cfg *Config) {
 			cfg.DBPath = path
 		}
 	}
+	if cfg.Storage.Postgres.MaxOpenConns == 0 {
+		cfg.Storage.Postgres.MaxOpenConns = 25
+	}
+	if cfg.Storage.Postgres.MaxIdleConns == 0 {
+		cfg.Storage.Postgres.MaxIdleConns = 5
+	}
+	if cfg.Storage.Postgres.ConnMaxLifetime == 0 {
+		cfg.Storage.Postgres.ConnMaxLifetime = 300
+	}
+}
+
+func applyEnvOverrides(cfg *Config) {
+	if v := strings.TrimSpace(os.Getenv(StorageProviderEnvVar)); v != "" {
+		cfg.Storage.Provider = v
+	}
+	if v := strings.TrimSpace(os.Getenv(PostgresDSNEnvVar)); v != "" {
+		cfg.Storage.Postgres.DSN = v
+	}
+	if v := strings.TrimSpace(os.Getenv(PostgresMaxConnsEnvVar)); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cfg.Storage.Postgres.MaxOpenConns = n
+		}
+	}
+}
+
+func validateConfig(cfg Config) error {
+	if cfg.Mode != ModeLocal && cfg.Mode != ModeHTTP {
+		return fmt.Errorf("invalid mode: %s", cfg.Mode)
+	}
+	if cfg.Mode == ModeHTTP && cfg.BaseURL == "" {
+		return errors.New("base_url is required when mode=http")
+	}
+	if cfg.Mode == ModeLocal && cfg.DBPath == "" && cfg.Storage.Provider != "postgres" {
+		return errors.New("db_path is required when mode=local")
+	}
+	provider := strings.TrimSpace(cfg.Storage.Provider)
+	if provider == "postgres" && strings.TrimSpace(cfg.Storage.Postgres.DSN) == "" {
+		return errors.New("postgres provider requires YANZI_POSTGRES_DSN or storage.postgres.dsn in config")
+	}
+	return nil
 }
 
 func ensureEOF(dec *yaml.Decoder) error {
@@ -135,14 +205,28 @@ func DefaultDBPath() (string, error) {
 //
 // Precedence:
 //  1. YANZI_DB_PATH
-//  2. Config.DBPath
-//  3. DefaultDBPath()
+//  2. Config.Storage.SQLite.Path
+//  3. Config.DBPath
+//  4. DefaultDBPath()
 func EffectiveLocalDBPath(cfg Config) (string, error) {
 	if override := strings.TrimSpace(os.Getenv(LocalDBPathEnvVar)); override != "" {
 		return override, nil
+	}
+	if path := strings.TrimSpace(cfg.Storage.SQLite.Path); path != "" {
+		return path, nil
 	}
 	if path := strings.TrimSpace(cfg.DBPath); path != "" {
 		return path, nil
 	}
 	return DefaultDBPath()
+}
+
+// EffectiveStorageProvider returns the active provider name.
+// Defaults to "sqlite" if not configured.
+func EffectiveStorageProvider(cfg Config) string {
+	p := strings.TrimSpace(cfg.Storage.Provider)
+	if p == "" {
+		return "sqlite"
+	}
+	return p
 }

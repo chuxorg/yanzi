@@ -105,7 +105,7 @@ func resolveDBPath() (string, error) {
 }
 
 func openInitializedDB(path string) (*sql.DB, bool, error) {
-	provider, initialized, err := registry.OpenAtPath(context.Background(), path, registry.Options{Migrations: MigrationsFS()})
+	provider, initialized, err := registry.OpenAtPath(context.Background(), path, registry.Options{})
 	if err != nil {
 		return nil, false, err
 	}

@@ -85,7 +85,7 @@ func openStorageProvider() (storage.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	provider, err := registry.Open(context.Background(), cfg, registry.Options{Migrations: MigrationsFS()})
+	provider, err := registry.Open(context.Background(), cfg, registry.Options{})
 	if err != nil {
 		return nil, err
 	}

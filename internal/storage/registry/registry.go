@@ -3,39 +3,45 @@ package registry
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/storage"
+	"github.com/chuxorg/yanzi/internal/storage/postgres"
 	"github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
-// Options contains provider construction inputs that are not user-facing config.
-type Options struct {
-	Migrations fs.FS
-}
+// Options contains provider construction inputs.
+type Options struct{}
 
-// Open returns the configured storage provider.
-//
-// CAP-001 Phase 1 supports SQLite only and preserves existing local db_path
-// resolution. No provider config key is active yet.
+// Open returns the configured storage provider based on the effective provider
+// name resolved from config and environment variables.
 func Open(ctx context.Context, cfg config.Config, opts Options) (storage.Provider, error) {
-	path, err := config.EffectiveLocalDBPath(cfg)
-	if err != nil {
-		return nil, err
+	provider := config.EffectiveStorageProvider(cfg)
+	switch provider {
+	case string(storage.ProviderPostgres):
+		p, err := postgres.NewProvider(cfg.Storage.Postgres)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize storage provider: %w", err)
+		}
+		return p, nil
+	default:
+		path, err := config.EffectiveLocalDBPath(cfg)
+		if err != nil {
+			return nil, err
+		}
+		p, _, err := sqlite.Open(ctx, path)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize storage provider: %w", err)
+		}
+		return p, nil
 	}
-	provider, _, err := sqlite.Open(ctx, path, opts.Migrations)
-	if err != nil {
-		return nil, err
-	}
-	return provider, nil
 }
 
 // OpenAtPath returns the SQLite provider at a specific path.
 func OpenAtPath(ctx context.Context, path string, opts Options) (storage.Provider, bool, error) {
-	return sqlite.Open(ctx, path, opts.Migrations)
+	return sqlite.Open(ctx, path)
 }
 
 // EnsureLocalStateDir preserves existing local SQLite directory creation.
@@ -50,10 +56,10 @@ func EnsureLocalStateDir() error {
 	return nil
 }
 
-// ValidateProviderName rejects future provider names until implementations exist.
+// ValidateProviderName reports whether the provider name is supported.
 func ValidateProviderName(name string) error {
 	switch strings.TrimSpace(name) {
-	case "", string(storage.ProviderSQLite):
+	case "", string(storage.ProviderSQLite), string(storage.ProviderPostgres):
 		return nil
 	default:
 		return storage.ErrUnsupportedProvider

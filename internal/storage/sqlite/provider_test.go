@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/sqlite"
 	_ "modernc.org/sqlite"
@@ -14,7 +13,7 @@ import (
 
 func TestProviderSatisfiesContractAndReportsHealth(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "yanzi.db")
-	provider, initialized, err := sqlite.Open(context.Background(), path, yanzilibrary.MigrationsFS())
+	provider, initialized, err := sqlite.Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
 	}
@@ -47,7 +46,7 @@ func TestProviderAppliesArtifactColumnMigrationToExistingDatabase(t *testing.T) 
 	path := filepath.Join(t.TempDir(), "legacy.db")
 	createLegacyDatabase(t, path)
 
-	provider, initialized, err := sqlite.Open(context.Background(), path, yanzilibrary.MigrationsFS())
+	provider, initialized, err := sqlite.Open(context.Background(), path)
 	if err != nil {
 		t.Fatalf("Open legacy db: %v", err)
 	}
@@ -105,7 +104,7 @@ func createLegacyDatabase(t *testing.T, path string) {
 
 func openTestProvider(t *testing.T) *sqlite.Provider {
 	t.Helper()
-	provider, _, err := sqlite.Open(context.Background(), filepath.Join(t.TempDir(), "yanzi.db"), yanzilibrary.MigrationsFS())
+	provider, _, err := sqlite.Open(context.Background(), filepath.Join(t.TempDir(), "yanzi.db"))
 	if err != nil {
 		t.Fatalf("Open provider: %v", err)
 	}
