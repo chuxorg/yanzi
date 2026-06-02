@@ -11,6 +11,8 @@ type ProviderName string
 const (
 	// ProviderSQLite is the embedded local SQLite provider.
 	ProviderSQLite ProviderName = "sqlite"
+	// ProviderPostgres is the Postgres storage provider.
+	ProviderPostgres ProviderName = "postgres"
 )
 
 const (
