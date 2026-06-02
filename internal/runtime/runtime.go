@@ -12,6 +12,8 @@ import (
 	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/api/models"
 	apiserver "github.com/chuxorg/yanzi/internal/api/server"
+	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/storage"
 )
 
 const defaultRuntimeMode = "shared"
@@ -24,6 +26,9 @@ type Options struct {
 	RuntimeMode     string
 	ShutdownTimeout time.Duration
 	Dependencies    handlers.Dependencies
+	// Provider is an optional pre-initialized storage provider. When set,
+	// it is used directly instead of opening a new provider per request.
+	Provider storage.Provider
 }
 
 // Runtime owns a lightweight shared operational API server.
@@ -64,6 +69,15 @@ func New(opts Options) *Runtime {
 	deps := opts.Dependencies
 	deps.Version = opts.Version
 	deps.RuntimeStatus = runtime.runtimeHealth
+
+	// Wire the pre-initialized provider so handlers return it directly
+	// instead of opening a new connection per request.
+	if opts.Provider != nil {
+		p := opts.Provider
+		deps.OpenProvider = func(_ context.Context, _ config.Config) (storage.Provider, error) {
+			return p, nil
+		}
+	}
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,

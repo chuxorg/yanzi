@@ -12,7 +12,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/runtime"
+	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
 
 // RunServe starts the shared runtime server in the foreground.
@@ -41,10 +43,25 @@ func runServe(ctx context.Context, args []string, version string) error {
 	}
 	listenAddr := net.JoinHostPort(strings.TrimSpace(*host), port)
 
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
+
+	providerName := config.EffectiveStorageProvider(cfg)
+	provider, err := registry.Open(ctx, cfg, registry.Options{})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = provider.Close() }()
+
+	fmt.Printf("storage provider: %s\n", providerName)
+
 	rt := runtime.New(runtime.Options{
 		Addr:            listenAddr,
 		Version:         version,
 		ShutdownTimeout: *grace,
+		Provider:        provider,
 	})
 	inst, err := rt.Start()
 	if err != nil {

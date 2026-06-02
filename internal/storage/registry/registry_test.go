@@ -33,7 +33,10 @@ func TestValidateProviderNameRejectsFutureProviders(t *testing.T) {
 	if err := registry.ValidateProviderName("sqlite"); err != nil {
 		t.Fatalf("sqlite provider should be valid: %v", err)
 	}
-	if err := registry.ValidateProviderName("postgres"); err == nil {
-		t.Fatalf("expected unsupported provider error")
+	if err := registry.ValidateProviderName("postgres"); err != nil {
+		t.Fatalf("postgres should be a valid provider name: %v", err)
+	}
+	if err := registry.ValidateProviderName("mysql"); err == nil {
+		t.Fatalf("expected unsupported provider error for unknown provider")
 	}
 }
