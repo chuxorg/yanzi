@@ -27,6 +27,21 @@ type Config struct {
 	DBPath  string        `yaml:"db_path"`
 	BaseURL string        `yaml:"base_url"`
 	Storage StorageConfig `yaml:"storage"`
+	Auth    AuthConfig    `yaml:"auth"`
+}
+
+// AuthConfig holds API key authentication settings.
+//
+// Example config.yaml:
+//
+//	auth:
+//	  enabled: false          # set true or YANZI_AUTH_ENABLED=true to require keys
+//	  require_https: false    # reject non-HTTPS requests when true
+//	  dev_keys_allowed: true  # set false to reject yk_dev_ keys in production
+type AuthConfig struct {
+	Enabled        bool `yaml:"enabled"`
+	RequireHTTPS   bool `yaml:"require_https"`
+	DevKeysAllowed bool `yaml:"dev_keys_allowed"`
 }
 
 // StorageConfig holds provider selection and per-provider configuration.
@@ -59,6 +74,12 @@ const (
 	PostgresDSNEnvVar = "YANZI_POSTGRES_DSN"
 	// PostgresMaxConnsEnvVar overrides storage.postgres.max_open_conns.
 	PostgresMaxConnsEnvVar = "YANZI_POSTGRES_MAX_CONNS"
+	// AuthEnabledEnvVar overrides auth.enabled.
+	AuthEnabledEnvVar = "YANZI_AUTH_ENABLED"
+	// AuthRequireHTTPSEnvVar overrides auth.require_https.
+	AuthRequireHTTPSEnvVar = "YANZI_AUTH_REQUIRE_HTTPS"
+	// AuthDevKeysEnvVar overrides auth.dev_keys_allowed.
+	AuthDevKeysEnvVar = "YANZI_AUTH_DEV_KEYS"
 )
 
 // Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
@@ -144,6 +165,15 @@ func applyEnvOverrides(cfg *Config) {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cfg.Storage.Postgres.MaxOpenConns = n
 		}
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthEnabledEnvVar)); v != "" {
+		cfg.Auth.Enabled = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthRequireHTTPSEnvVar)); v != "" {
+		cfg.Auth.RequireHTTPS = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthDevKeysEnvVar)); v != "" {
+		cfg.Auth.DevKeysAllowed = v == "true" || v == "1"
 	}
 }
 
