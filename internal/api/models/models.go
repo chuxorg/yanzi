@@ -180,16 +180,56 @@ type ProviderHealth struct {
 	Error  string `json:"error,omitempty"`
 }
 
+// StatusResponse is the generic deterministic status payload for non-CRUD route groups.
+type StatusResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+// APIKeyCreateRequest captures the POST /v0/keys payload.
+type APIKeyCreateRequest struct {
+	Name  string `json:"name"`
+	Scope string `json:"scope"`
+	Dev   bool   `json:"dev"`
+}
+
+// APIKeyCreateResponse is returned once on key creation. The full plaintext
+// key is shown exactly once and never stored.
+type APIKeyCreateResponse struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Key       string `json:"key"`
+	KeyPrefix string `json:"key_prefix"`
+	Scope     string `json:"scope"`
+	CreatedAt string `json:"created_at"`
+}
+
+// APIKeySummary is the safe list representation of a key (no hash, no plaintext).
+type APIKeySummary struct {
+	ID         string  `json:"id"`
+	Name       string  `json:"name"`
+	KeyPrefix  string  `json:"key_prefix"`
+	Scope      string  `json:"scope"`
+	CreatedAt  string  `json:"created_at"`
+	LastUsedAt *string `json:"last_used_at"`
+}
+
+// APIKeyListResponse wraps a list of key summaries.
+type APIKeyListResponse struct {
+	Keys []APIKeySummary `json:"keys"`
+}
+
+// AuthHealth is the auth status block embedded in the health response.
+type AuthHealth struct {
+	Enabled        bool `json:"enabled"`
+	DevKeysAllowed bool `json:"dev_keys_allowed"`
+}
+
 // HealthResponse is the minimal operational health/status response.
 type HealthResponse struct {
 	Version  string         `json:"version"`
 	Mode     string         `json:"mode"`
 	Runtime  *RuntimeHealth `json:"runtime,omitempty"`
 	Provider ProviderHealth `json:"provider"`
-}
-
-// StatusResponse is the generic deterministic status payload for non-CRUD route groups.
-type StatusResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Auth     *AuthHealth    `json:"auth,omitempty"`
 }

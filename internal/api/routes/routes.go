@@ -19,9 +19,12 @@ const (
 	projectsPath       = basePath + "/projects"
 	projectCurrentPath = projectsPath + "/current"
 	checkpointsPath    = basePath + "/checkpoints"
+	keysPath           = basePath + "/keys"
+	keysIDPath         = keysPath + "/"
 )
 
 // NewHandler constructs the operational API route foundation.
+// Middleware order (outermost → innermost): CORS → Auth → handlers.
 func NewHandler(deps handlers.Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerGet(mux, healthPath, handlers.NewHealthHandler(deps))
@@ -32,7 +35,10 @@ func NewHandler(deps handlers.Dependencies) http.Handler {
 	registerMethods(mux, projectsPath, handlers.NewProjectsHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, projectCurrentPath, handlers.NewCurrentProjectHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, checkpointsPath, handlers.NewCheckpointsHandler(deps), http.MethodGet, http.MethodPost)
-	return middleware.CORS(mux)
+	registerKeys(mux, deps)
+
+	authMiddleware := middleware.Auth(deps.APIKeyStore, deps.AuthConfig)
+	return middleware.CORS(authMiddleware(mux))
 }
 
 func registerGet(mux *http.ServeMux, path string, handler http.Handler) {
@@ -56,4 +62,24 @@ func registerVerification(mux *http.ServeMux, handler http.Handler) {
 
 func registerExport(mux *http.ServeMux, handler http.Handler) {
 	mux.Handle(exportPath, handler)
+}
+
+func registerKeys(mux *http.ServeMux, deps handlers.Dependencies) {
+	mux.Handle(keysPath, middleware.AllowMethods(
+		chooseKeyHandler(deps, handlers.NewCreateKeyHandler(deps), handlers.NewListKeysHandler(deps)),
+		http.MethodPost, http.MethodGet,
+	))
+	mux.Handle(keysIDPath, middleware.AllowMethods(handlers.NewRevokeKeyHandler(deps), http.MethodDelete))
+}
+
+// chooseKeyHandler dispatches GET → list and POST → create on the same path.
+func chooseKeyHandler(deps handlers.Dependencies, create, list http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			create.ServeHTTP(w, r)
+		default:
+			list.ServeHTTP(w, r)
+		}
+	})
 }
