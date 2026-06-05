@@ -37,7 +37,7 @@ func NewHandler(deps handlers.Dependencies) http.Handler {
 	registerMethods(mux, checkpointsPath, handlers.NewCheckpointsHandler(deps), http.MethodGet, http.MethodPost)
 	registerKeys(mux, deps)
 
-	authMiddleware := middleware.Auth(deps.APIKeyStore, deps.AuthConfig)
+	authMiddleware := middleware.Auth(deps.APIKeyStore, deps.OIDCValidator, deps.AuthConfig)
 	return middleware.CORS(authMiddleware(mux))
 }
 

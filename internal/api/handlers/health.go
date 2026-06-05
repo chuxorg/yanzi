@@ -56,6 +56,7 @@ type Dependencies struct {
 	RuntimeStatus         RuntimeStatusFunc
 	APIKeyStore           auth.APIKeyStore
 	AuthConfig            config.AuthConfig
+	OIDCValidator         *auth.OIDCValidator
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
