@@ -18,6 +18,37 @@ import (
 	"github.com/chuxorg/yanzi/internal/storage/registry"
 )
 
+func bootstrapAdminKey(ctx context.Context, store auth.APIKeyStore) error {
+	keys, err := store.ListKeys(ctx)
+	if err != nil {
+		return fmt.Errorf("list keys: %w", err)
+	}
+	if len(keys) > 0 {
+		return nil
+	}
+
+	_, fullKey, err := store.CreateKey(ctx, "bootstrap-admin", auth.ScopeAdmin, false)
+	if err != nil {
+		return fmt.Errorf("create bootstrap key: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Println("╔══════════════════════════════════════════════════════╗")
+	fmt.Println("║           YANZI BOOTSTRAP API KEY                   ║")
+	fmt.Println("║                                                      ║")
+	fmt.Println("║  No API keys found. A bootstrap admin key has been  ║")
+	fmt.Println("║  created. Copy it now — it will not be shown again. ║")
+	fmt.Println("║                                                      ║")
+	fmt.Printf( "║  Key:   %-44s ║\n", fullKey)
+	fmt.Println("║  Scope: admin                                        ║")
+	fmt.Println("║                                                      ║")
+	fmt.Println("║  Use this key to create additional keys via:        ║")
+	fmt.Println("║  POST /v0/keys                                      ║")
+	fmt.Println("╚══════════════════════════════════════════════════════╝")
+	fmt.Println()
+	return nil
+}
+
 // RunServe starts the shared runtime server in the foreground.
 func RunServe(args []string, version string) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -65,6 +96,11 @@ func runServe(ctx context.Context, args []string, version string) error {
 
 	if cfg.Auth.Enabled {
 		fmt.Println("auth: enabled")
+		if keyStore != nil {
+			if err := bootstrapAdminKey(ctx, keyStore); err != nil {
+				return fmt.Errorf("bootstrap admin key: %w", err)
+			}
+		}
 	} else {
 		fmt.Println("auth: disabled (all requests permitted)")
 	}
