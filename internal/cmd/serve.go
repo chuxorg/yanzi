@@ -105,6 +105,23 @@ func runServe(ctx context.Context, args []string, version string) error {
 		fmt.Println("auth: disabled (all requests permitted)")
 	}
 
+	var oidcValidator *auth.OIDCValidator
+	if cfg.Auth.OIDC.Enabled {
+		v, err := auth.NewOIDCValidator(ctx, cfg.Auth.OIDC)
+		if err != nil {
+			fmt.Printf("OIDC provider unreachable at startup: %v. OIDC validation will fail until provider is reachable.\n", err)
+		} else {
+			oidcValidator = v
+			fmt.Printf("OIDC provider: %s\n", cfg.Auth.OIDC.IssuerURL)
+			fmt.Printf("OIDC scope claim: %s\n", cfg.Auth.OIDC.ScopeClaim)
+			if len(cfg.Auth.OIDC.AllowedDomains) > 0 {
+				fmt.Printf("OIDC allowed domains: %v\n", cfg.Auth.OIDC.AllowedDomains)
+			}
+		}
+	} else {
+		fmt.Println("OIDC: disabled")
+	}
+
 	rt := runtime.New(runtime.Options{
 		Addr:            listenAddr,
 		Version:         version,
@@ -112,6 +129,7 @@ func runServe(ctx context.Context, args []string, version string) error {
 		Provider:        provider,
 		APIKeyStore:     keyStore,
 		AuthConfig:      cfg.Auth,
+		OIDCValidator:   oidcValidator,
 	})
 	inst, err := rt.Start()
 	if err != nil {

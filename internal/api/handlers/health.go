@@ -105,6 +105,10 @@ func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeSt
 		Auth: &models.AuthHealth{
 			Enabled:        authCfg.Enabled,
 			DevKeysAllowed: authCfg.DevKeysAllowed,
+			OIDC: models.OIDCHealth{
+				Enabled: authCfg.OIDC.Enabled,
+				Issuer:  authCfg.OIDC.IssuerURL,
+			},
 		},
 	}
 	if runtimeStatus != nil {

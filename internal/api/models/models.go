@@ -219,10 +219,17 @@ type APIKeyListResponse struct {
 	Keys []APIKeySummary `json:"keys"`
 }
 
+// OIDCHealth is the OIDC status block embedded in the auth health response.
+type OIDCHealth struct {
+	Enabled bool   `json:"enabled"`
+	Issuer  string `json:"issuer,omitempty"`
+}
+
 // AuthHealth is the auth status block embedded in the health response.
 type AuthHealth struct {
-	Enabled        bool `json:"enabled"`
-	DevKeysAllowed bool `json:"dev_keys_allowed"`
+	Enabled        bool       `json:"enabled"`
+	DevKeysAllowed bool       `json:"dev_keys_allowed"`
+	OIDC           OIDCHealth `json:"oidc"`
 }
 
 // HealthResponse is the minimal operational health/status response.

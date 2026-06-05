@@ -29,9 +29,10 @@ type Options struct {
 	Dependencies    handlers.Dependencies
 	// Provider is an optional pre-initialized storage provider. When set,
 	// it is used directly instead of opening a new provider per request.
-	Provider    storage.Provider
-	APIKeyStore auth.APIKeyStore
-	AuthConfig  config.AuthConfig
+	Provider      storage.Provider
+	APIKeyStore   auth.APIKeyStore
+	AuthConfig    config.AuthConfig
+	OIDCValidator *auth.OIDCValidator
 }
 
 // Runtime owns a lightweight shared operational API server.
@@ -84,6 +85,7 @@ func New(opts Options) *Runtime {
 
 	deps.APIKeyStore = opts.APIKeyStore
 	deps.AuthConfig = opts.AuthConfig
+	deps.OIDCValidator = opts.OIDCValidator
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,
