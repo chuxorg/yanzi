@@ -62,11 +62,13 @@ func runServe(ctx context.Context, args []string, version string) error {
 	host := fs.String("host", "127.0.0.1", "Host address to bind the HTTP server")
 	addr := fs.String("addr", "127.0.0.1:8080", "listen address (host:port)")
 	grace := fs.Duration("shutdown-timeout", 5*time.Second, "graceful shutdown timeout")
+	tlsCert := fs.String("tls-cert", "", "path to TLS certificate file (PEM)")
+	tlsKey := fs.String("tls-key", "", "path to TLS private key file (PEM)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 0 {
-		return errors.New("usage: yanzi serve [--host address] [--addr host:port] [--shutdown-timeout duration]")
+		return errors.New("usage: yanzi serve [--host address] [--addr host:port] [--shutdown-timeout duration] [--tls-cert path] [--tls-key path]")
 	}
 
 	_, port, err := net.SplitHostPort(strings.TrimSpace(*addr))
@@ -78,6 +80,29 @@ func runServe(ctx context.Context, args []string, version string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
+	}
+
+	// Resolve TLS config: flags > env vars > config file (env/config applied via config.Load).
+	resolvedCert := strings.TrimSpace(*tlsCert)
+	if resolvedCert == "" {
+		resolvedCert = strings.TrimSpace(cfg.TLS.Cert)
+	}
+	resolvedKey := strings.TrimSpace(*tlsKey)
+	if resolvedKey == "" {
+		resolvedKey = strings.TrimSpace(cfg.TLS.Key)
+	}
+
+	// Validate TLS: either both or neither must be provided.
+	if (resolvedCert == "") != (resolvedKey == "") {
+		return errors.New("TLS requires both --tls-cert and --tls-key")
+	}
+	if resolvedCert != "" {
+		if _, err := os.Stat(resolvedCert); err != nil {
+			return fmt.Errorf("TLS cert file not readable: %w", err)
+		}
+		if _, err := os.Stat(resolvedKey); err != nil {
+			return fmt.Errorf("TLS key file not readable: %w", err)
+		}
 	}
 
 	providerName := config.EffectiveStorageProvider(cfg)
@@ -130,13 +155,19 @@ func runServe(ctx context.Context, args []string, version string) error {
 		APIKeyStore:     keyStore,
 		AuthConfig:      cfg.Auth,
 		OIDCValidator:   oidcValidator,
+		TLSCert:         resolvedCert,
+		TLSKey:          resolvedKey,
 	})
 	inst, err := rt.Start()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Runtime listening on http://%s\n", inst.Addr())
+	if resolvedCert != "" {
+		fmt.Printf("listening on https://0.0.0.0:%s (TLS enabled)\n", port)
+	} else {
+		fmt.Printf("listening on http://%s\n", inst.Addr())
+	}
 
 	errCh := make(chan error, 1)
 	go func() {

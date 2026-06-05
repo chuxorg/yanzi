@@ -24,6 +24,11 @@ const contextKeyAPIKey contextKey = "api_key"
 func Auth(store auth.APIKeyStore, oidcValidator *auth.OIDCValidator, cfg config.AuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if cfg.RequireHTTPS && r.TLS == nil && r.Header.Get("X-Forwarded-Proto") != "https" {
+				responses.WriteError(w, http.StatusBadRequest, "https_required", "this instance requires HTTPS")
+				return
+			}
+
 			if !cfg.Enabled {
 				next.ServeHTTP(w, r)
 				return
