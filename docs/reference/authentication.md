@@ -69,6 +69,97 @@ YANZI_AUTH_DEV_KEYS=true
 
 ---
 
+## CLI Authentication (HTTP mode)
+
+When yanzi runs in HTTP mode, authenticate with:
+
+```bash
+# Environment variable (recommended for scripts and agents)
+export YANZI_API_KEY=yk_live_...
+yanzi capture --author "engineer" ...
+
+# Per-command flag
+yanzi list --api-key yk_live_...
+
+# OIDC token (from your identity provider)
+export YANZI_OIDC_TOKEN=$(your-provider-cli get-token)
+yanzi list
+
+# Config file (~/.yanzi/config.yaml)
+auth:
+  api_key: yk_live_...
+```
+
+Priority order for key resolution:
+
+1. `--api-key` flag
+2. `YANZI_API_KEY` environment variable
+3. `YANZI_OIDC_TOKEN` environment variable
+4. `auth.api_key` in `~/.yanzi/config.yaml`
+
+No auth configured: no `Authorization` header is sent (backward compatible).
+
+---
+
+## TLS Configuration
+
+For production shared instances, run yanzi behind a reverse proxy (nginx, Caddy)
+with TLS termination, or configure TLS directly:
+
+### Direct TLS
+
+```bash
+yanzi serve --tls-cert /path/to/cert.pem \
+            --tls-key  /path/to/key.pem
+```
+
+Or via `config.yaml`:
+```yaml
+tls:
+  cert: /path/to/cert.pem
+  key:  /path/to/key.pem
+```
+
+Or environment variables:
+```
+YANZI_TLS_CERT=/path/to/cert.pem
+YANZI_TLS_KEY=/path/to/key.pem
+```
+
+### Reverse proxy (recommended)
+
+Terminate TLS at nginx or Caddy and proxy to yanzi:
+
+**Caddy example (Caddyfile):**
+```
+yanzi.yourcompany.com {
+  reverse_proxy localhost:8742
+}
+```
+
+**nginx example:**
+```nginx
+server {
+  listen 443 ssl;
+  server_name yanzi.yourcompany.com;
+  ssl_certificate     /path/to/cert.pem;
+  ssl_certificate_key /path/to/key.pem;
+  location / {
+    proxy_pass http://localhost:8742;
+  }
+}
+```
+
+### Require HTTPS
+
+To reject non-HTTPS requests:
+```yaml
+auth:
+  require_https: true
+```
+
+---
+
 ## Tier 2 — OIDC Token Validation
 
 yanzi accepts JWT tokens issued by any OIDC-compliant identity provider. Teams bring their own provider. Credentials are portable across yanzi instances that trust the same provider.

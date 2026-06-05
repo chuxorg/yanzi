@@ -9,4 +9,9 @@ services:
       - ./yanzi-dev-data:/root/.yanzi
     environment:
       - YANZI_DB_PATH=/root/.yanzi/yanzi.db
+      # Uncomment to enable API key auth in dev:
+      # - YANZI_AUTH_ENABLED=true
+      # Uncomment to enable OIDC in dev:
+      # - YANZI_OIDC_ENABLED=true
+      # - YANZI_OIDC_ISSUER_URL=https://accounts.google.com
     restart: unless-stopped
