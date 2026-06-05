@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/runtime"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
@@ -57,11 +58,24 @@ func runServe(ctx context.Context, args []string, version string) error {
 
 	fmt.Printf("storage provider: %s\n", providerName)
 
+	var keyStore auth.APIKeyStore
+	if ks, ok := provider.(auth.APIKeyStore); ok {
+		keyStore = ks
+	}
+
+	if cfg.Auth.Enabled {
+		fmt.Println("auth: enabled")
+	} else {
+		fmt.Println("auth: disabled (all requests permitted)")
+	}
+
 	rt := runtime.New(runtime.Options{
 		Addr:            listenAddr,
 		Version:         version,
 		ShutdownTimeout: *grace,
 		Provider:        provider,
+		APIKeyStore:     keyStore,
+		AuthConfig:      cfg.Auth,
 	})
 	inst, err := rt.Start()
 	if err != nil {

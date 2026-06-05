@@ -12,6 +12,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/api/models"
 	apiserver "github.com/chuxorg/yanzi/internal/api/server"
+	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/storage"
 )
@@ -28,7 +29,9 @@ type Options struct {
 	Dependencies    handlers.Dependencies
 	// Provider is an optional pre-initialized storage provider. When set,
 	// it is used directly instead of opening a new provider per request.
-	Provider storage.Provider
+	Provider    storage.Provider
+	APIKeyStore auth.APIKeyStore
+	AuthConfig  config.AuthConfig
 }
 
 // Runtime owns a lightweight shared operational API server.
@@ -78,6 +81,9 @@ func New(opts Options) *Runtime {
 			return p, nil
 		}
 	}
+
+	deps.APIKeyStore = opts.APIKeyStore
+	deps.AuthConfig = opts.AuthConfig
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,
