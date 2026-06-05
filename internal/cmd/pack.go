@@ -128,6 +128,7 @@ func runPackExport(args []string) error {
 	fs := flag.NewFlagSet("pack export", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	output := fs.String("output", "", "pack output file")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

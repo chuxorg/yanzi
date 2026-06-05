@@ -50,6 +50,7 @@ func RunCapture(args []string) error {
 		respFlag   = stringFlag{help: "response text (exclusive with --response-file)"}
 		respFile   = fs.String("response-file", "", "response file path (exclusive with --response)")
 		prevHash   = fs.String("prev-hash", "", "previous hash")
+		apiKey     = fs.String("api-key", "", "API key for HTTP mode authentication")
 		metaPairs  = &kvPairs{}
 	)
 	fs.Var(&promptFlag, "prompt", promptFlag.help)
@@ -147,7 +148,7 @@ func RunCapture(args []string) error {
 	var intent client.IntentRecord
 	switch cfg.Mode {
 	case config.ModeHTTP:
-		cli := client.New(cfg.BaseURL)
+		cli := client.New(cfg.BaseURL, client.ResolveAuthHeader(cfg, *apiKey))
 		req := client.CreateIntentRequest{
 			Author:     input.Author,
 			SourceType: input.SourceType,

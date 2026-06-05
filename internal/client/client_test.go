@@ -11,7 +11,7 @@ import (
 )
 
 func TestBuildURLResolves(t *testing.T) {
-	cli := New("https://example.com/api")
+	cli := New("https://example.com/api", "")
 	got, err := cli.buildURL("/v0/intents")
 	if err != nil {
 		t.Fatalf("buildURL error: %v", err)
@@ -23,7 +23,7 @@ func TestBuildURLResolves(t *testing.T) {
 }
 
 func TestBuildURLInvalidBase(t *testing.T) {
-	cli := New("http://[::1")
+	cli := New("http://[::1", "")
 	_, err := cli.buildURL("/v0/intents")
 	if err == nil {
 		t.Fatal("expected error for invalid base url")
@@ -43,7 +43,7 @@ func TestListIntentsQueryParams(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	cli := New(srv.URL)
+	cli := New(srv.URL, "")
 	_, err := cli.ListIntents(context.Background(), "alice", "cli", 25, map[string]string{"team": "core"}, true)
 	if err != nil {
 		t.Fatalf("ListIntents error: %v", err)
@@ -73,7 +73,7 @@ func TestDoJSONServerErrorUsesBody(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	cli := New(srv.URL)
+	cli := New(srv.URL, "")
 	var out any
 	err := cli.doJSON(context.Background(), http.MethodGet, "/v0/intents", nil, &out)
 	if err == nil {
@@ -100,7 +100,7 @@ func TestCreateIntentSendsJSON(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	cli := New(srv.URL)
+	cli := New(srv.URL, "")
 	_, err := cli.CreateIntent(context.Background(), CreateIntentRequest{
 		Author:     "alice",
 		SourceType: "cli",

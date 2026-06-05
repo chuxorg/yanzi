@@ -28,6 +28,7 @@ type Config struct {
 	BaseURL string        `yaml:"base_url"`
 	Storage StorageConfig `yaml:"storage"`
 	Auth    AuthConfig    `yaml:"auth"`
+	TLS     TLSConfig     `yaml:"tls"`
 }
 
 // OIDCConfig holds OpenID Connect token validation settings.
@@ -59,6 +60,7 @@ type OIDCConfig struct {
 //	  enabled: false          # set true or YANZI_AUTH_ENABLED=true to require keys
 //	  require_https: false    # reject non-HTTPS requests when true
 //	  dev_keys_allowed: true  # set false to reject yk_dev_ keys in production
+//	  api_key: ""             # API key for HTTP mode; override with YANZI_API_KEY
 //	  oidc:
 //	    enabled: false
 //	    issuer_url: ""
@@ -66,7 +68,20 @@ type AuthConfig struct {
 	Enabled        bool       `yaml:"enabled"`
 	RequireHTTPS   bool       `yaml:"require_https"`
 	DevKeysAllowed bool       `yaml:"dev_keys_allowed"`
+	APIKey         string     `yaml:"api_key"`
 	OIDC           OIDCConfig `yaml:"oidc"`
+}
+
+// TLSConfig holds TLS certificate configuration for yanzi serve.
+//
+// Example config.yaml:
+//
+//	tls:
+//	  cert: ""   # path to certificate PEM file
+//	  key: ""    # path to private key PEM file
+type TLSConfig struct {
+	Cert string `yaml:"cert"`
+	Key  string `yaml:"key"`
 }
 
 // StorageConfig holds provider selection and per-provider configuration.
@@ -115,6 +130,10 @@ const (
 	OIDCScopeClaimEnvVar = "YANZI_OIDC_SCOPE_CLAIM"
 	// OIDCScopeDefaultEnvVar overrides auth.oidc.scope_default.
 	OIDCScopeDefaultEnvVar = "YANZI_OIDC_SCOPE_DEFAULT"
+	// TLSCertEnvVar overrides tls.cert.
+	TLSCertEnvVar = "YANZI_TLS_CERT"
+	// TLSKeyEnvVar overrides tls.key.
+	TLSKeyEnvVar = "YANZI_TLS_KEY"
 )
 
 // Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
@@ -230,6 +249,12 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := strings.TrimSpace(os.Getenv(OIDCScopeDefaultEnvVar)); v != "" {
 		cfg.Auth.OIDC.ScopeDefault = v
+	}
+	if v := strings.TrimSpace(os.Getenv(TLSCertEnvVar)); v != "" {
+		cfg.TLS.Cert = v
+	}
+	if v := strings.TrimSpace(os.Getenv(TLSKeyEnvVar)); v != "" {
+		cfg.TLS.Key = v
 	}
 }
 

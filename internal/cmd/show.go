@@ -15,6 +15,7 @@ import (
 func RunShow(args []string) error {
 	fs := flag.NewFlagSet("show", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -31,7 +32,7 @@ func RunShow(args []string) error {
 	var intent client.IntentRecord
 	switch cfg.Mode {
 	case config.ModeHTTP:
-		cli := client.New(cfg.BaseURL)
+		cli := client.New(cfg.BaseURL, client.ResolveAuthHeader(cfg, *apiKey))
 		record, err := cli.GetIntent(context.Background(), id)
 		if err != nil {
 			if isNotFoundError(err) {
