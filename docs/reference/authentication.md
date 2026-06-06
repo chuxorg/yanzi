@@ -302,3 +302,18 @@ If the provider is unreachable at startup:
 OIDC provider unreachable at startup: <error>. OIDC validation will fail until provider is reachable.
 ```
 API key authentication continues to work even when the OIDC provider is temporarily unavailable.
+
+
+---
+
+## Pack and Seed Endpoints
+
+Pack and Seed endpoints follow the standard scope rules:
+
+| Scope | Grants access to |
+|-------|-----------------|
+| `read` | GET endpoints (list, get) |
+| `write` | POST endpoints (create, compose) |
+| `admin` | DELETE endpoints |
+
+`POST /v0/packs/compose` requires `write` scope. See [Packs and Seeds](packs-and-seeds.md) for full endpoint documentation.
