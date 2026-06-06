@@ -15,6 +15,7 @@ import (
 	apiserver "github.com/chuxorg/yanzi/internal/api/server"
 	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/packs"
 	"github.com/chuxorg/yanzi/internal/storage"
 )
 
@@ -36,8 +37,9 @@ type Options struct {
 	OIDCValidator *auth.OIDCValidator
 	// TLSCert and TLSKey are paths to PEM files for TLS. Both must be set to
 	// enable HTTPS; if both are empty the server runs plain HTTP.
-	TLSCert string
-	TLSKey  string
+	TLSCert    string
+	TLSKey     string
+	PackStore  packs.PackStore
 }
 
 // Runtime owns a lightweight shared operational API server.
@@ -95,6 +97,7 @@ func New(opts Options) *Runtime {
 	deps.APIKeyStore = opts.APIKeyStore
 	deps.AuthConfig = opts.AuthConfig
 	deps.OIDCValidator = opts.OIDCValidator
+	deps.PackStore = opts.PackStore
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,

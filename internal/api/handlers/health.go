@@ -12,6 +12,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
+	"github.com/chuxorg/yanzi/internal/packs"
 	"github.com/chuxorg/yanzi/internal/projectstate"
 	"github.com/chuxorg/yanzi/internal/storage"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
@@ -57,6 +58,7 @@ type Dependencies struct {
 	APIKeyStore           auth.APIKeyStore
 	AuthConfig            config.AuthConfig
 	OIDCValidator         *auth.OIDCValidator
+	PackStore             packs.PackStore
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.

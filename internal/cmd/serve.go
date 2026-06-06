@@ -14,8 +14,12 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
+	"github.com/chuxorg/yanzi/internal/packs"
 	"github.com/chuxorg/yanzi/internal/runtime"
+	"github.com/chuxorg/yanzi/internal/storage"
+	pgpacks "github.com/chuxorg/yanzi/internal/storage/postgres"
 	"github.com/chuxorg/yanzi/internal/storage/registry"
+	sqlitepacks "github.com/chuxorg/yanzi/internal/storage/sqlite"
 )
 
 func bootstrapAdminKey(ctx context.Context, store auth.APIKeyStore) error {
@@ -119,6 +123,15 @@ func runServe(ctx context.Context, args []string, version string) error {
 		keyStore = ks
 	}
 
+	var packStore packs.PackStore
+	db := provider.SQLDB()
+	switch provider.Name() {
+	case storage.ProviderPostgres:
+		packStore = pgpacks.NewPackStore(db)
+	default:
+		packStore = sqlitepacks.NewPackStore(db)
+	}
+
 	if cfg.Auth.Enabled {
 		fmt.Println("auth: enabled")
 		if keyStore != nil {
@@ -157,6 +170,7 @@ func runServe(ctx context.Context, args []string, version string) error {
 		OIDCValidator:   oidcValidator,
 		TLSCert:         resolvedCert,
 		TLSKey:          resolvedKey,
+		PackStore:       packStore,
 	})
 	inst, err := rt.Start()
 	if err != nil {
