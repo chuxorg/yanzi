@@ -8,6 +8,7 @@ import (
 
 	"github.com/chuxorg/yanzi/internal/api/models"
 	"github.com/chuxorg/yanzi/internal/api/responses"
+	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/core/model"
 	yanzilibrary "github.com/chuxorg/yanzi/internal/library"
@@ -53,6 +54,9 @@ type Dependencies struct {
 	OpenArtifactReadStore ArtifactReadOpenFunc
 	Now                   func() time.Time
 	RuntimeStatus         RuntimeStatusFunc
+	APIKeyStore           auth.APIKeyStore
+	AuthConfig            config.AuthConfig
+	OIDCValidator         *auth.OIDCValidator
 }
 
 // NewHealthHandler returns the minimal GET /v0/health handler.
@@ -65,7 +69,7 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 			return
 		}
 
-		resp := newHealthResponse(deps.Version, cfg.Mode, deps.RuntimeStatus)
+		resp := newHealthResponse(deps.Version, cfg.Mode, deps.RuntimeStatus, deps.AuthConfig)
 
 		providerCfg := cfg
 		providerCfg.Mode = config.ModeLocal
@@ -90,13 +94,21 @@ func NewHealthHandler(deps Dependencies) http.Handler {
 	})
 }
 
-func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeStatusFunc) models.HealthResponse {
+func newHealthResponse(version string, mode config.Mode, runtimeStatus RuntimeStatusFunc, authCfg config.AuthConfig) models.HealthResponse {
 	resp := models.HealthResponse{
 		Version: version,
 		Mode:    string(mode),
 		Provider: models.ProviderHealth{
 			Name:   string(storage.ProviderSQLite),
 			Status: string(storage.HealthUnavailable),
+		},
+		Auth: &models.AuthHealth{
+			Enabled:        authCfg.Enabled,
+			DevKeysAllowed: authCfg.DevKeysAllowed,
+			OIDC: models.OIDCHealth{
+				Enabled: authCfg.OIDC.Enabled,
+				Issuer:  authCfg.OIDC.IssuerURL,
+			},
 		},
 	}
 	if runtimeStatus != nil {

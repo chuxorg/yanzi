@@ -22,6 +22,7 @@ func RunList(args []string) error {
 	limit := fs.Int("limit", 20, "max records to return")
 	allProjects := fs.Bool("all-projects", false, "list records across every project")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	metaFilters := metaPairs{}
 	fs.Var(&metaFilters, "meta", "meta filter key=value (repeatable; exact match; AND)")
 	if err := fs.Parse(args); err != nil {
@@ -40,7 +41,7 @@ func RunList(args []string) error {
 	scopeLabel := "All projects"
 	switch cfg.Mode {
 	case config.ModeHTTP:
-		cli := client.New(cfg.BaseURL)
+		cli := client.New(cfg.BaseURL, client.ResolveAuthHeader(cfg, *apiKey))
 		resp, err := cli.ListIntents(context.Background(), *author, *source, *limit, map[string]string(metaFilters), *includeDeleted)
 		if err != nil {
 			return fmt.Errorf("http request to %s failed: %w", cfg.BaseURL, err)

@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"github.com/chuxorg/yanzi/internal/api/handlers"
 	"github.com/chuxorg/yanzi/internal/api/models"
 	apiserver "github.com/chuxorg/yanzi/internal/api/server"
+	"github.com/chuxorg/yanzi/internal/auth"
 	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/storage"
 )
@@ -28,7 +30,14 @@ type Options struct {
 	Dependencies    handlers.Dependencies
 	// Provider is an optional pre-initialized storage provider. When set,
 	// it is used directly instead of opening a new provider per request.
-	Provider storage.Provider
+	Provider      storage.Provider
+	APIKeyStore   auth.APIKeyStore
+	AuthConfig    config.AuthConfig
+	OIDCValidator *auth.OIDCValidator
+	// TLSCert and TLSKey are paths to PEM files for TLS. Both must be set to
+	// enable HTTPS; if both are empty the server runs plain HTTP.
+	TLSCert string
+	TLSKey  string
 }
 
 // Runtime owns a lightweight shared operational API server.
@@ -37,6 +46,8 @@ type Runtime struct {
 	startedAt       time.Time
 	runtimeMode     string
 	shutdownTimeout time.Duration
+	tlsCert         string
+	tlsKey          string
 }
 
 // Instance represents a started runtime server.
@@ -65,6 +76,8 @@ func New(opts Options) *Runtime {
 	runtime := &Runtime{
 		runtimeMode:     runtimeMode,
 		shutdownTimeout: shutdownTimeout,
+		tlsCert:         opts.TLSCert,
+		tlsKey:          opts.TLSKey,
 	}
 	deps := opts.Dependencies
 	deps.Version = opts.Version
@@ -78,6 +91,10 @@ func New(opts Options) *Runtime {
 			return p, nil
 		}
 	}
+
+	deps.APIKeyStore = opts.APIKeyStore
+	deps.AuthConfig = opts.AuthConfig
+	deps.OIDCValidator = opts.OIDCValidator
 
 	runtime.server = apiserver.NewLocal(apiserver.LocalOptions{
 		Addr:         addr,
@@ -93,9 +110,23 @@ func (r *Runtime) Start() (*Instance, error) {
 		return nil, errors.New("runtime is not initialized")
 	}
 
-	listener, err := net.Listen("tcp", r.server.HTTPServer().Addr)
+	tcpListener, err := net.Listen("tcp", r.server.HTTPServer().Addr)
 	if err != nil {
 		return nil, fmt.Errorf("start runtime listener: %w", err)
+	}
+
+	var listener net.Listener = tcpListener
+	if r.tlsCert != "" && r.tlsKey != "" {
+		cert, err := tls.LoadX509KeyPair(r.tlsCert, r.tlsKey)
+		if err != nil {
+			_ = tcpListener.Close()
+			return nil, fmt.Errorf("load TLS certificate: %w", err)
+		}
+		tlsCfg := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+		listener = tls.NewListener(tcpListener, tlsCfg)
 	}
 
 	r.startedAt = time.Now().UTC()

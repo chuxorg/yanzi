@@ -49,6 +49,7 @@ func runCheckpointCreate(args []string) error {
 	fs := flag.NewFlagSet("checkpoint create", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	summary := fs.String("summary", "", "checkpoint summary")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -100,6 +101,7 @@ func runCheckpointList(args []string) error {
 	fs := flag.NewFlagSet("checkpoint list", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 	allProjects := fs.Bool("all-projects", false, "list checkpoints across every project")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

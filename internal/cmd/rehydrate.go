@@ -76,6 +76,7 @@ func RunRehydrate(args []string) error {
 	fs.SetOutput(os.Stderr)
 	dryRun := fs.Bool("dry-run", false, "preview what rehydrate would load")
 	format := fs.String("format", "text", "output format: text or json")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

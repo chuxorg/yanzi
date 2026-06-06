@@ -60,6 +60,7 @@ func runMessageSend(args []string) error {
 	title := fs.String("title", "", "optional message title")
 	filePath := fs.String("file", "", "message file")
 	content := fs.String("content", "", "inline message content")
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -97,6 +98,9 @@ func runMessageSend(args []string) error {
 	if trimmed := strings.TrimSpace(*channel); trimmed != "" {
 		captureArgs = append(captureArgs, "--meta", "channel="+trimmed)
 	}
+	if trimmed := strings.TrimSpace(*apiKey); trimmed != "" {
+		captureArgs = append(captureArgs, "--api-key", trimmed)
+	}
 	return RunCapture(captureArgs)
 }
 
@@ -108,6 +112,7 @@ func runMessageList(args []string) error {
 	channel := fs.String("channel", "", "optional message channel")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
 	limit := fs.Int("limit", 20, "max records to return")
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -133,6 +138,9 @@ func runMessageList(args []string) error {
 	if *includeDeleted {
 		listArgs = append(listArgs, "--include-deleted")
 	}
+	if trimmed := strings.TrimSpace(*apiKey); trimmed != "" {
+		listArgs = append(listArgs, "--api-key", trimmed)
+	}
 	return RunList(listArgs)
 }
 
@@ -143,6 +151,7 @@ func runMessagePull(args []string) error {
 	from := fs.String("from", "", "message sender")
 	channel := fs.String("channel", "", "optional message channel")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -164,7 +173,7 @@ func runMessagePull(args []string) error {
 		metaFilters["channel"] = trimmed
 	}
 
-	intents, err := loadMessageIntents(metaFilters, *includeDeleted)
+	intents, err := loadMessageIntents(metaFilters, *includeDeleted, *apiKey)
 	if err != nil {
 		return err
 	}
@@ -202,7 +211,7 @@ func runMessagePull(args []string) error {
 	return nil
 }
 
-func loadMessageIntents(metaFilters map[string]string, includeDeleted bool) ([]model.IntentRecord, error) {
+func loadMessageIntents(metaFilters map[string]string, includeDeleted bool, apiKey string) ([]model.IntentRecord, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -210,7 +219,7 @@ func loadMessageIntents(metaFilters map[string]string, includeDeleted bool) ([]m
 
 	switch cfg.Mode {
 	case config.ModeHTTP:
-		cli := client.New(cfg.BaseURL)
+		cli := client.New(cfg.BaseURL, client.ResolveAuthHeader(cfg, apiKey))
 		resp, err := cli.ListIntents(context.Background(), "", "message", 200, metaFilters, includeDeleted)
 		if err != nil {
 			return nil, fmt.Errorf("http request to %s failed: %w", cfg.BaseURL, err)

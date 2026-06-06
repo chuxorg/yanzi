@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 // Client is a minimal HTTP client for the Yanzi Library API.
 type Client struct {
 	BaseURL    string
+	AuthHeader string
 	HTTPClient *http.Client
 }
 
@@ -57,13 +59,15 @@ type CreateIntentRequest struct {
 	PrevHash   string          `json:"prev_hash,omitempty"`
 }
 
-// New creates an HTTP client for a Yanzi base URL.
+// New creates an HTTP client for a Yanzi base URL with an optional auth header.
 //
-// The returned client trims any trailing slash from baseURL and sets a default
-// request timeout. It is used when the CLI runs in HTTP mode.
-func New(baseURL string) *Client {
+// The authHeader parameter should be a resolved Authorization header value
+// (e.g., "Bearer yk_live_...") or an empty string for unauthenticated requests.
+// Use ResolveAuthHeader to compute this value from flags, env vars, and config.
+func New(baseURL, authHeader string) *Client {
 	return &Client{
-		BaseURL: strings.TrimRight(baseURL, "/"),
+		BaseURL:    strings.TrimRight(baseURL, "/"),
+		AuthHeader: authHeader,
 		HTTPClient: &http.Client{
 			Timeout: 15 * time.Second,
 		},
@@ -160,6 +164,9 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	if c.AuthHeader != "" {
+		req.Header.Set("Authorization", c.AuthHeader)
+	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -170,6 +177,17 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("read response: %w", err)
+	}
+
+	switch resp.StatusCode {
+	case http.StatusUnauthorized:
+		fmt.Fprintln(os.Stderr, "Error: authentication required.")
+		fmt.Fprintln(os.Stderr, "  Set YANZI_API_KEY or use --api-key flag.")
+		fmt.Fprintln(os.Stderr, "  Run 'yanzi mode' to check current mode.")
+		os.Exit(1)
+	case http.StatusForbidden:
+		fmt.Fprintln(os.Stderr, "Error: API key has insufficient scope for this operation.")
+		os.Exit(1)
 	}
 
 	if resp.StatusCode >= 300 {

@@ -15,6 +15,7 @@ import (
 func RunChain(args []string) error {
 	fs := flag.NewFlagSet("chain", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
+	apiKey := fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -30,7 +31,7 @@ func RunChain(args []string) error {
 	var resp chainResult
 	switch cfg.Mode {
 	case config.ModeHTTP:
-		cli := client.New(cfg.BaseURL)
+		cli := client.New(cfg.BaseURL, client.ResolveAuthHeader(cfg, *apiKey))
 		httpResp, err := cli.ChainIntent(context.Background(), id)
 		if err != nil {
 			return fmt.Errorf("http request to %s failed: %w", cfg.BaseURL, err)

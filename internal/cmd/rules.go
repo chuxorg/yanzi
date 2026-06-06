@@ -50,6 +50,7 @@ func runRulesAdd(args []string) error {
 	scope := fs.String("scope", yanzilibrary.ContextScopeGlobal, "rule scope (global|project)")
 	priority := fs.String("priority", "", "rule priority")
 	profile := fs.String("profile", "", "optional rule profile")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(parseArgs); err != nil {
 		return err
 	}
@@ -108,6 +109,7 @@ func runRulesList(args []string) error {
 	scope := fs.String("scope", "", "rule scope (global|project)")
 	profile := fs.String("profile", "", "optional rule profile")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -142,6 +144,7 @@ func runRulesExport(args []string, cliVersion string) error {
 	scope := fs.String("scope", "", "rule scope (global|project)")
 	profile := fs.String("profile", "", "optional rule profile")
 	includeDeleted := fs.Bool("include-deleted", false, "include tombstoned records")
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

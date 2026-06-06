@@ -75,6 +75,7 @@ func runProjectCreate(args []string) error {
 func runProjectList(args []string) error {
 	fs := flag.NewFlagSet("project list", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
+	_ = fs.String("api-key", "", "API key for HTTP mode authentication")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}

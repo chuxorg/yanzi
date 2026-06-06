@@ -27,6 +27,61 @@ type Config struct {
 	DBPath  string        `yaml:"db_path"`
 	BaseURL string        `yaml:"base_url"`
 	Storage StorageConfig `yaml:"storage"`
+	Auth    AuthConfig    `yaml:"auth"`
+	TLS     TLSConfig     `yaml:"tls"`
+}
+
+// OIDCConfig holds OpenID Connect token validation settings.
+//
+// Example config.yaml:
+//
+//	auth:
+//	  oidc:
+//	    enabled: false
+//	    issuer_url: ""
+//	    audience: ""
+//	    scope_claim: "yanzi_scope"
+//	    scope_default: "read"
+//	    allowed_domains: []
+type OIDCConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	IssuerURL      string   `yaml:"issuer_url"`
+	Audience       string   `yaml:"audience"`
+	ScopeClaim     string   `yaml:"scope_claim"`
+	ScopeDefault   string   `yaml:"scope_default"`
+	AllowedDomains []string `yaml:"allowed_domains"`
+}
+
+// AuthConfig holds API key authentication settings.
+//
+// Example config.yaml:
+//
+//	auth:
+//	  enabled: false          # set true or YANZI_AUTH_ENABLED=true to require keys
+//	  require_https: false    # reject non-HTTPS requests when true
+//	  dev_keys_allowed: true  # set false to reject yk_dev_ keys in production
+//	  api_key: ""             # API key for HTTP mode; override with YANZI_API_KEY
+//	  oidc:
+//	    enabled: false
+//	    issuer_url: ""
+type AuthConfig struct {
+	Enabled        bool       `yaml:"enabled"`
+	RequireHTTPS   bool       `yaml:"require_https"`
+	DevKeysAllowed bool       `yaml:"dev_keys_allowed"`
+	APIKey         string     `yaml:"api_key"`
+	OIDC           OIDCConfig `yaml:"oidc"`
+}
+
+// TLSConfig holds TLS certificate configuration for yanzi serve.
+//
+// Example config.yaml:
+//
+//	tls:
+//	  cert: ""   # path to certificate PEM file
+//	  key: ""    # path to private key PEM file
+type TLSConfig struct {
+	Cert string `yaml:"cert"`
+	Key  string `yaml:"key"`
 }
 
 // StorageConfig holds provider selection and per-provider configuration.
@@ -59,6 +114,26 @@ const (
 	PostgresDSNEnvVar = "YANZI_POSTGRES_DSN"
 	// PostgresMaxConnsEnvVar overrides storage.postgres.max_open_conns.
 	PostgresMaxConnsEnvVar = "YANZI_POSTGRES_MAX_CONNS"
+	// AuthEnabledEnvVar overrides auth.enabled.
+	AuthEnabledEnvVar = "YANZI_AUTH_ENABLED"
+	// AuthRequireHTTPSEnvVar overrides auth.require_https.
+	AuthRequireHTTPSEnvVar = "YANZI_AUTH_REQUIRE_HTTPS"
+	// AuthDevKeysEnvVar overrides auth.dev_keys_allowed.
+	AuthDevKeysEnvVar = "YANZI_AUTH_DEV_KEYS"
+	// OIDCEnabledEnvVar overrides auth.oidc.enabled.
+	OIDCEnabledEnvVar = "YANZI_OIDC_ENABLED"
+	// OIDCIssuerURLEnvVar overrides auth.oidc.issuer_url.
+	OIDCIssuerURLEnvVar = "YANZI_OIDC_ISSUER_URL"
+	// OIDCAudienceEnvVar overrides auth.oidc.audience.
+	OIDCAudienceEnvVar = "YANZI_OIDC_AUDIENCE"
+	// OIDCScopeClaimEnvVar overrides auth.oidc.scope_claim.
+	OIDCScopeClaimEnvVar = "YANZI_OIDC_SCOPE_CLAIM"
+	// OIDCScopeDefaultEnvVar overrides auth.oidc.scope_default.
+	OIDCScopeDefaultEnvVar = "YANZI_OIDC_SCOPE_DEFAULT"
+	// TLSCertEnvVar overrides tls.cert.
+	TLSCertEnvVar = "YANZI_TLS_CERT"
+	// TLSKeyEnvVar overrides tls.key.
+	TLSKeyEnvVar = "YANZI_TLS_KEY"
 )
 
 // Load reads ~/.yanzi/config.yaml and returns the effective CLI configuration.
@@ -131,6 +206,12 @@ func applyDefaults(cfg *Config) {
 	if cfg.Storage.Postgres.ConnMaxLifetime == 0 {
 		cfg.Storage.Postgres.ConnMaxLifetime = 300
 	}
+	if cfg.Auth.OIDC.ScopeClaim == "" {
+		cfg.Auth.OIDC.ScopeClaim = "yanzi_scope"
+	}
+	if cfg.Auth.OIDC.ScopeDefault == "" {
+		cfg.Auth.OIDC.ScopeDefault = "read"
+	}
 }
 
 func applyEnvOverrides(cfg *Config) {
@@ -144,6 +225,36 @@ func applyEnvOverrides(cfg *Config) {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cfg.Storage.Postgres.MaxOpenConns = n
 		}
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthEnabledEnvVar)); v != "" {
+		cfg.Auth.Enabled = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthRequireHTTPSEnvVar)); v != "" {
+		cfg.Auth.RequireHTTPS = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(AuthDevKeysEnvVar)); v != "" {
+		cfg.Auth.DevKeysAllowed = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(OIDCEnabledEnvVar)); v != "" {
+		cfg.Auth.OIDC.Enabled = v == "true" || v == "1"
+	}
+	if v := strings.TrimSpace(os.Getenv(OIDCIssuerURLEnvVar)); v != "" {
+		cfg.Auth.OIDC.IssuerURL = v
+	}
+	if v := strings.TrimSpace(os.Getenv(OIDCAudienceEnvVar)); v != "" {
+		cfg.Auth.OIDC.Audience = v
+	}
+	if v := strings.TrimSpace(os.Getenv(OIDCScopeClaimEnvVar)); v != "" {
+		cfg.Auth.OIDC.ScopeClaim = v
+	}
+	if v := strings.TrimSpace(os.Getenv(OIDCScopeDefaultEnvVar)); v != "" {
+		cfg.Auth.OIDC.ScopeDefault = v
+	}
+	if v := strings.TrimSpace(os.Getenv(TLSCertEnvVar)); v != "" {
+		cfg.TLS.Cert = v
+	}
+	if v := strings.TrimSpace(os.Getenv(TLSKeyEnvVar)); v != "" {
+		cfg.TLS.Key = v
 	}
 }
 
@@ -160,6 +271,12 @@ func validateConfig(cfg Config) error {
 	provider := strings.TrimSpace(cfg.Storage.Provider)
 	if provider == "postgres" && strings.TrimSpace(cfg.Storage.Postgres.DSN) == "" {
 		return errors.New("postgres provider requires YANZI_POSTGRES_DSN or storage.postgres.dsn in config")
+	}
+	if cfg.Auth.OIDC.Enabled && strings.TrimSpace(cfg.Auth.OIDC.IssuerURL) == "" {
+		return errors.New("OIDC requires auth.oidc.issuer_url or YANZI_OIDC_ISSUER_URL")
+	}
+	if cfg.Auth.OIDC.Enabled && !cfg.Auth.Enabled {
+		return errors.New("OIDC requires auth.enabled: true")
 	}
 	return nil
 }
