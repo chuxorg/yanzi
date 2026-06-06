@@ -21,6 +21,9 @@ const (
 	checkpointsPath    = basePath + "/checkpoints"
 	keysPath           = basePath + "/keys"
 	keysIDPath         = keysPath + "/"
+	seedsPath          = basePath + "/seeds"
+	packsPath          = basePath + "/packs"
+	tokensPath         = basePath + "/tokens"
 )
 
 // NewHandler constructs the operational API route foundation.
@@ -36,6 +39,9 @@ func NewHandler(deps handlers.Dependencies) http.Handler {
 	registerMethods(mux, projectCurrentPath, handlers.NewCurrentProjectHandler(deps), http.MethodGet, http.MethodPost)
 	registerMethods(mux, checkpointsPath, handlers.NewCheckpointsHandler(deps), http.MethodGet, http.MethodPost)
 	registerKeys(mux, deps)
+	registerSeeds(mux, deps)
+	registerPacks(mux, deps)
+	registerGet(mux, tokensPath, handlers.NewTokensHandler(deps))
 
 	authMiddleware := middleware.Auth(deps.APIKeyStore, deps.OIDCValidator, deps.AuthConfig)
 	return middleware.CORS(authMiddleware(mux))
@@ -70,6 +76,18 @@ func registerKeys(mux *http.ServeMux, deps handlers.Dependencies) {
 		http.MethodPost, http.MethodGet,
 	))
 	mux.Handle(keysIDPath, middleware.AllowMethods(handlers.NewRevokeKeyHandler(deps), http.MethodDelete))
+}
+
+func registerSeeds(mux *http.ServeMux, deps handlers.Dependencies) {
+	h := handlers.NewSeedsHandler(deps)
+	mux.Handle(seedsPath, h)
+	mux.Handle(seedsPath+"/", h)
+}
+
+func registerPacks(mux *http.ServeMux, deps handlers.Dependencies) {
+	h := handlers.NewPacksHandler(deps)
+	mux.Handle(packsPath, h)
+	mux.Handle(packsPath+"/", h)
 }
 
 // chooseKeyHandler dispatches GET → list and POST → create on the same path.

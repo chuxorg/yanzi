@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -8,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/chuxorg/yanzi/internal/api/responses"
+	"github.com/chuxorg/yanzi/internal/config"
 	"github.com/chuxorg/yanzi/internal/storage"
 )
 
@@ -31,6 +34,38 @@ func decodeJSONBody(w http.ResponseWriter, r *http.Request, out any) bool {
 		return false
 	}
 	return true
+}
+
+// decodeJSONBytes decodes a pre-read body slice into out, writing an error response on failure.
+func decodeJSONBytes(w http.ResponseWriter, body []byte, out any) error {
+	dec := json.NewDecoder(bytes.NewReader(body))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(out); err != nil {
+		responses.WriteError(w, http.StatusBadRequest, "invalid_request", "invalid JSON request body")
+		return err
+	}
+	if err := dec.Decode(new(struct{})); !errors.Is(err, io.EOF) {
+		responses.WriteError(w, http.StatusBadRequest, "invalid_request", "request body must contain a single JSON object")
+		return errors.New("trailing data in body")
+	}
+	return nil
+}
+
+// createBackingArtifact creates an artifact record for a seed or pack and returns its ID.
+func createBackingArtifact(ctx context.Context, deps Dependencies, cfg config.Config, input storage.CreateArtifactInput) (string, error) {
+	localCfg := cfg
+	localCfg.Mode = config.ModeLocal
+	provider, err := deps.OpenProvider(ctx, localCfg)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = provider.Close() }()
+
+	artifact, err := provider.CreateArtifact(ctx, input)
+	if err != nil {
+		return "", err
+	}
+	return artifact.ID, nil
 }
 
 func writeOperationError(w http.ResponseWriter, err error) {
